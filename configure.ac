@@ -45,7 +45,7 @@ AC_CHECK_LIB(pthread,pthread_create)
 AC_PROG_EGREP
 
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS(fcntl.h string.h strings.h unistd.h sys/ioctl.h sys/time.h netinet/tcp.h netinet/in.h pthread.h windows.h sys/param.h dirent.h rpc/rpc.h rpc/clnt.h rpc/types.h)
+AC_CHECK_HEADERS(fcntl.h string.h strings.h unistd.h sys/ioctl.h sys/time.h netinet/tcp.h netinet/in.h pthread.h windows.h sys/param.h dirent.h rpc/rpc.h rpc/clnt.h rpc/types.h mpi.h)
 
 #
 # Checks for typedefs, structures, and compiler characteristics.
@@ -87,7 +87,8 @@ then
   LIBLINK="-lpthread"
 
   CFLAGS=$IFLAGS" -fPIC -O2 -g -std=c11"
-  LIBS=$LFLAGS" -lmxml -ldl -lpthread"
+  LIBS=$LFLAGS" -lmxml -ldl -lpthread "
+ #LIBS=$LFLAGS" -lmxml -ldl -lpthread -lmosquitto"
 
 elif test "$target_os" = "Linux" -o "$target_os" = "linux" -o "$target_os" = "linux-gnu" -o "$target_os" = "linux gnu"
 then
@@ -99,7 +100,8 @@ then
   LIBLINK="-lpthread"
 
   CFLAGS=$IFLAGS" -fPIC -O2 -g -g3 -ggdb -Wall -Wextra -std=c11"
-  LIBS=$LFLAGS" -lmxml -ldl -lpthread"
+  LIBS=$LFLAGS" -lmxml -ldl -lpthread "
+ #LIBS=$LFLAGS" -lmxml -ldl -lpthread -lmosquitto"
 
 elif test "$target_os" = "AIX" -o "$target_os" = "aix"
 then
@@ -111,7 +113,7 @@ then
   LIBLINK="-lpthread "
 
   CFLAGS=$IFLAGS" -O2 -Wall -Wextra -fPIC -g -std=c11"
-  LIBS=$LFLAGS" -lmxml -ldl -lpthread"
+  LIBS=$LFLAGS" -lmxml -ldl -lpthread -lmosquitto"
 
 elif test "$target_os" = "IRIX6.5" -o "$target_os" = "irix6.5"
 then
@@ -123,7 +125,7 @@ then
   LIBLINK="-lpthread "
 
   CFLAGS=$IFLAGS" -O2 -Wall -Wextra -fPIC -g -std=c11"
-  LIBS=$LFLAGS" -lmxml -ldl -lpthread"
+  LIBS=$LFLAGS" -lmxml -ldl -lpthread -lmosquitto"
 
 else
   OS="__LINUX__"
@@ -134,7 +136,8 @@ else
   LIBLINK="-lpthread "
 
   CFLAGS=$IFLAGS" -O2 -Wall -Wextra -fPIC -g -std=c11"
-  LIBS=$LFLAGS" -lmxml -ldl -lpthread"
+  LIBS=$LFLAGS" -lmxml -ldl -lpthread "
+ #LIBS=$LFLAGS" -lmxml -ldl -lpthread -lmosquitto"
 
   AC_MSG_RESULT("Using Linux configuration as default configuration...");
 fi

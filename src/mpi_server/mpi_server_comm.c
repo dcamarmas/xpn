@@ -29,15 +29,8 @@
 
   int mpi_server_comm_init ( mpi_server_param_st *params )
   {
-    int ret, provided ;
-    MPI_Info info ;
-
-    // Print server info
-    char serv_name  [HOST_NAME_MAX];
-    gethostname(serv_name, HOST_NAME_MAX);
-    printf("--------------------------------\n");
-    printf("Starting XPN MPI server %s\n", serv_name);
-    printf("--------------------------------\n\n");
+    int  ret, provided ;
+    char serv_name [HOST_NAME_MAX];
 
     //Get timestap
     struct timeval t0;
@@ -74,26 +67,35 @@
     }
 
     // Generate DNS file
-    /*ret = ns_publish(params->srv_name, params->dns_file, params->port_name);
-    if (ret < 0) {
-      debug_error("Server[%d]: NS_PUBLISH fails :-(", params->rank) ;
-      return -1;
-    }*/
+    int version_len;
+    char version[MPI_MAX_LIBRARY_VERSION_STRING];
+    MPI_Get_library_version(version, &version_len);
+    
+    if(strncasecmp(version,"Open MPI", strlen("Open MPI")) != 0)
+    {
+      ret = ns_publish(params->dns_file, params->srv_name, params->port_name);
+      if (ret < 0) {
+        debug_error("Server[%d]: NS_PUBLISH fails :-(", params->rank) ;
+        return -1;
+      }
+    }
+    else
+    {
+      // Publish port name
+      MPI_Info info ;
+      MPI_Info_create(&info) ;
+      MPI_Info_set(info, "ompi_global_scope", "true") ;
 
-    // Publish port name
-    MPI_Info_create(&info) ;
-    MPI_Info_set(info, "ompi_global_scope", "true") ;
+      //struct hostent *serv_entry;
+      gethostname(serv_name, HOST_NAME_MAX); // get hostname
+      //serv_entry = gethostbyname(serv_name); // find host information
+      sprintf(params->srv_name, "%s", serv_name) ;
 
-    struct hostent *serv_entry;
-    gethostname(serv_name, HOST_NAME_MAX); //get hostname
-    serv_entry = gethostbyname(serv_name); //find host information
-    sprintf(params->srv_name, "%s", serv_name) ;
-
-
-    ret = MPI_Publish_name(params->srv_name, info, params->port_name) ;
-    if (MPI_SUCCESS != ret) {
-      debug_error("Server[%d]: MPI_Publish_name fails :-(", params->rank) ;
-      return -1 ;
+      ret = MPI_Publish_name(params->srv_name, info, params->port_name) ;
+      if (MPI_SUCCESS != ret) {
+        debug_error("Server[%d]: MPI_Publish_name fails :-(", params->rank) ;
+        return -1 ;
+      }
     }
 
     // Print server init information
@@ -108,7 +110,6 @@
 
     if (params->rank == 0)
     {
-      mpi_server_params_show(params) ;
       printf("\n\n");
       printf("Time to inizialize all servers: %f s\n", time);
       printf("\n");
@@ -139,13 +140,29 @@
 
     for (int i = 0; i < params->size; ++i)
     {
-      if(params->rank == i)
+      if (params->rank == i)
       {
-        // Unpublish port name
-        ret = ns_unpublish (params->dns_file);
-        if (ret < 0) {
-          debug_error("Server[%d]: ns_unpublish fails :-(", params->rank) ;
-          return -1 ;
+
+        int version_len;
+        char version[MPI_MAX_LIBRARY_VERSION_STRING];
+        MPI_Get_library_version(version, &version_len);
+
+        if(strncasecmp(version,"Open MPI", strlen("Open MPI")) != 0)
+        {
+          // Unpublish port name
+          ret = ns_unpublish(params->dns_file) ;
+          if (ret < 0) {
+            debug_error("Server[%d]: ns_unpublish fails :-(", params->rank) ;
+            return -1 ;
+          }
+        }
+        else{
+          // Unpublish port name
+          ret = MPI_Unpublish_name(params->srv_name, MPI_INFO_NULL, params->port_name) ;
+          if (MPI_SUCCESS != ret) {
+              debug_error("Server[%d]: port unregistration fails :-(\n", params->rank) ;
+              return -1 ;
+          }
         }
       }
 
@@ -158,13 +175,6 @@
       debug_error("Server[%d]: MPI_Finalize fails :-(", params->rank) ;
       return -1 ;
     }
-
-    // Print server info
-    char serv_name  [HOST_NAME_MAX];
-    gethostname(serv_name, HOST_NAME_MAX);
-    printf("--------------------------------\n");
-    printf("XPN MPI server %s stopped\n", serv_name);
-    printf("--------------------------------\n\n");
 
     DEBUG_END() ;
 
@@ -319,4 +329,3 @@
 
 
  /* ................................................................... */
-

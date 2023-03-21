@@ -1,6 +1,13 @@
 
 # Changelog
 
+## 2.2.0 - 2023-03-17
+  * TCP server rebuilt from scratch
+
+## 2.1.0 - 2023-03-03
+  * Spack support added
+  * Code refactoring
+
 ## 2.0.0 - 2022-12-12
   * First XPN Ad-Hoc release
   * This version provides:
