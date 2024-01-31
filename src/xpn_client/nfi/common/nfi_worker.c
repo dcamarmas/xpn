@@ -1,5 +1,5 @@
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -113,7 +113,7 @@ int nfi_worker_init(struct nfi_worker * wrk, struct nfi_server * serv, int threa
     pthread_attr_setdetachstate( & attr, PTHREAD_CREATE_DETACHED);
     pthread_attr_setstacksize( & attr, (256 * KB));
 
-    debug_info("[NFI_WORKER] pthread_create(%lu)", (unsigned long int) pthread_self())
+    debug_info("[NFI_WORKER] pthread_create(%lu)", (unsigned long int) pthread_self());
 
     ret = pthread_create( & (wrk -> pth), & attr, (void * ( * )(void * ))(nfi_worker_run), (void * ) wrk);
 
@@ -149,7 +149,7 @@ ssize_t nfi_worker_wait(struct nfi_worker * wrk)
 
   if (wrk -> thread) 
   {
-    debug_info("[NFI_WORKER] nfi_worker_wait(%lu) with_threads", (unsigned long int) pthread_self())
+    debug_info("[NFI_WORKER] nfi_worker_wait(%lu) with_threads", (unsigned long int) pthread_self());
     pthread_mutex_lock( & (wrk -> mt));
 
     while (wrk -> ready) 
@@ -163,11 +163,11 @@ ssize_t nfi_worker_wait(struct nfi_worker * wrk)
 
   if (wrk -> thread) 
   {
-    debug_info("[NFI_WORKER] nfi_worker_unlock(%lu) with_threads", (unsigned long int) pthread_self())
+    debug_info("[NFI_WORKER] nfi_worker_unlock(%lu) with_threads", (unsigned long int) pthread_self());
     pthread_mutex_unlock( & (wrk -> mt));
   } else 
   {
-    debug_info("[NFI_WORKER] nfi_worker_wait(%lu) without_threads", (unsigned long int) pthread_self())
+    debug_info("[NFI_WORKER] nfi_worker_wait(%lu) without_threads", (unsigned long int) pthread_self());
   }
 
   return ret;
@@ -178,7 +178,7 @@ ssize_t nfi_worker_wait(struct nfi_worker * wrk)
 int nfi_worker_end(struct nfi_worker * wrk) 
 {
   if (wrk -> thread) {
-    debug_info("[NFI_WORKER] nfi_worker_end(%lu) with_threads", (unsigned long int) pthread_self())
+    debug_info("[NFI_WORKER] nfi_worker_end(%lu) with_threads", (unsigned long int) pthread_self());
     pthread_mutex_destroy( & (wrk -> mt));
     pthread_cond_destroy( & (wrk -> cnd));
   }
@@ -210,7 +210,9 @@ int nfiworker_init(struct nfi_server * serv)
 
 
 int nfiworker_launch(void( * worker_function)(struct st_th), struct nfi_worker * wrk) 
-{
+{ 
+  if (wrk->server->error == -1)
+    return -1;
   // initialize wrk->warg...
   memset( & (wrk -> warg), 0, sizeof(struct st_th));
   wrk -> warg.params = (void * ) wrk;
