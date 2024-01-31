@@ -64,15 +64,15 @@ mk_conf_servers() {
   fi
 
   if [[ ! -f ${DEPLOYMENTFILE} ]]; then
-    ${BASE_DIR}/mk_conf.sh --conf         ${CONF_NAME} \
-                           --machinefile  ${MACHINE_FILE} \
-                           --part_size    ${PARTITION_SIZE} \
-                           --replication_level    ${REPLICATION_LEVEL} \
-                           --part_name    ${PARTITION_NAME} \
-                           --storage_path ${STORAGE_PATH}
+    ${BASE_DIR}/mk_conf.sh --conf              "${CONF_NAME}" \
+                           --machinefile       "${MACHINE_FILE}" \
+                           --part_size         "${PARTITION_SIZE}" \
+                           --replication_level "${REPLICATION_LEVEL}" \
+                           --part_name         "${PARTITION_NAME}" \
+                           --storage_path      "${STORAGE_PATH}"
   else
     "${BASE_DIR}"/mk_conf.sh --conf            "${CONF_NAME}" \
-                           --deployment_file "${DEPLOYMENTFILE}"
+                             --deployment_file "${DEPLOYMENTFILE}"
   fi
 }
 
@@ -97,17 +97,19 @@ start_xpn_servers() {
   touch "${WORKDIR}/dns.txt"
 
   if [[ ${SERVER_TYPE} == "mpi" ]]; then
+    # #######
     # mpiexec -np       "${NODE_NUM}" \
     #         -hostfile "${HOSTFILE}" \
     #         -genv LD_LIBRARY_PATH ../mxml/lib:"$LD_LIBRARY_PATH" \
     #         "${BASE_DIR}"/../../src/mpi_server/xpn_mpi_server -ns "${WORKDIR}"/dns.txt "${ARGS}" &
+    # #######
     for ((i=1; i<=$NODE_NUM; i++))
     do
         line=$(head -n $i "$HOSTFILE" | tail -n 1)
         mpiexec -np       1 \
           -host "${line}" \
           -genv LD_LIBRARY_PATH ../mxml/lib:"$LD_LIBRARY_PATH" \
-          ${BASE_DIR}/../../src/mpi_server/xpn_mpi_server -ns ${WORKDIR}/dns.txt ${ARGS} &
+          "${BASE_DIR}"/../../src/mpi_server/xpn_mpi_server -ns "${WORKDIR}"/dns.txt "${ARGS}" &
         sleep 0.5
     done
   else
@@ -165,9 +167,9 @@ terminate_xpn_server() {
 
   if [[ ${SERVER_TYPE} == "mpi" ]]; then
     mpiexec -np 1 \
-            -genv XPN_DNS ${WORKDIR}/dns.txt \
+            -genv XPN_DNS "${WORKDIR}"/dns.txt \
             -genv LD_LIBRARY_PATH ../mxml/lib:"$LD_LIBRARY_PATH" \
-            ${BASE_DIR}/../../src/mpi_server/xpn_terminate_mpi_server -f ${DEATH_FILE} -h ${HOST}
+            "${BASE_DIR}"/../../src/mpi_server/xpn_terminate_mpi_server -f "${DEATH_FILE}" -h "${HOST}"
   # else
   #   mpiexec -np 1 \
   #           -genv XPN_DNS${WORKDIR}/dns.txt \
@@ -355,7 +357,7 @@ fi
 
 # run 
 case "${ACTION}" in
-      start)    mk_conf_servers  "config.xml" ${HOSTFILE} "512k" ${XPN_REPLICATION_LEVEL} "xpn" ${XPN_STORAGE_PATH} ${DEPLOYMENTFILE}
+      start)    mk_conf_servers  "config.xml" "${HOSTFILE}" "512k" "${XPN_REPLICATION_LEVEL}" "xpn" "${XPN_STORAGE_PATH}" "${DEPLOYMENTFILE}"
                 start_xpn_servers
                 ;;
       stop)     stop_xpn_servers

@@ -1148,18 +1148,22 @@
 
     // private_info...
     server_aux = (struct nfi_mpi_server_server *) serv->private_info;
-    debug_info("[NFI-MPI] nfi_mpi_server_remove(%s): begin %s\n",server_aux->id, url) ;
-    if (server_aux == NULL){
-      mpi_server_err(MPI_SERVERERR_PARAM) ;
-      return -1;
+    if (server_aux == NULL)
+    {
+       fprintf(stderr, "nfi_mpi_server_remove: server_aux is NULL.\n") ;
+       mpi_server_err(MPI_SERVERERR_PARAM) ;
+       return -1;
     }
+
+    debug_info("[NFI-MPI] nfi_mpi_server_remove(%s): begin %s\n",server_aux->id, url) ;
 
     // from url -> server + dir
     ret = ParseURL(url,  NULL, NULL, NULL, server,  NULL,  dir) ;
-    if(ret < 0){
-      fprintf(stderr,"nfi_mpi_server_remove: url %s incorrect.\n",url) ;
-      mpi_server_err(MPI_SERVERERR_URL) ;
-      return -1;
+    if (ret < 0)
+    {
+       fprintf(stderr, "nfi_mpi_server_remove: url %s incorrect.\n", url) ;
+       mpi_server_err(MPI_SERVERERR_URL) ;
+       return -1;
     }
 
     /************** LOCAL *****************/
