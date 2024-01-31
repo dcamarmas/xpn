@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -18,7 +18,6 @@
  *  along with Expand.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
 
 #ifndef _NFI_H
 #define _NFI_H
@@ -69,6 +68,8 @@
     void  *private_info;    // info private       
     struct nfi_ops    *ops; // operations       
     struct nfi_worker *wrk; // this struct has the thread   
+
+    int error;              // For fault tolerance
 
     // Execution configuration
     int xpn_thread;

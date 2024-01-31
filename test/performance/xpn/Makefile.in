@@ -17,7 +17,6 @@
 #
 
 all:  open-write-close open-read-close
-
 open-write-close: open-write-close.o
 	$(CC)  -o open-write-close open-write-close.o $(MYLIBPATH) $(LIBRARIES)
 

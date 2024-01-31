@@ -72,11 +72,11 @@ int ns_unpublish(char *dns_file, char *protocol, char *param_srv_name)
   FILE *dns_fd;
   FILE *new_dns_fd;
   char new_dns_file[PATH_MAX];
-  int new_dns_poxis_fd;
   int found = 0;
   char aux_name[1024];
   char aux_name_2[1024];
   char port_name[HOST_NAME_MAX];
+  int res = 0;
 
   // open files
   dns_fd = fopen(dns_file, "r");
@@ -86,10 +86,9 @@ int ns_unpublish(char *dns_file, char *protocol, char *param_srv_name)
     return -1;
   }
 
-  strcpy(new_dns_file, "xpn_dns_XXXXXX");
-  new_dns_poxis_fd = mkstemp(new_dns_file);
+  sprintf(new_dns_file, "%saux%d", dns_file, rand());
 
-  new_dns_fd = fdopen(new_dns_poxis_fd, "w");
+  new_dns_fd = fopen(new_dns_file, "w");
   if (NULL == new_dns_fd)
   {
     fclose(dns_fd);
@@ -125,9 +124,12 @@ int ns_unpublish(char *dns_file, char *protocol, char *param_srv_name)
   fclose(dns_fd);
 
   unlink(dns_file);
-  rename(new_dns_file, dns_file);
-
-  return 0;
+  res = rename(new_dns_file, dns_file);
+  if (res != 0){
+    debug_error("Error: in rename %s\n",strerror(errno));
+  }
+  
+  return res;
 }
 
 int ns_lookup(char *protocol, char *param_srv_name, char *srv_ip, char *port_name)
