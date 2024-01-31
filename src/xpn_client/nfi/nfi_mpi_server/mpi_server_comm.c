@@ -27,12 +27,12 @@
   
   /* ... Functions / Funciones ......................................... */
 
-  int mpiClient_comm_init ( mpiClient_param_st *params )
+  int mpi_client_comm_init ( mpi_client_param_st *params )
   {
     int ret, provided, claimed ;
     int flag = 0 ;
 
-    debug_info("[CLI-COMM] begin mpiClient_comm_init(...)\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_comm_init(...)\n") ;
 
     // MPI_Init
     MPI_Initialized(&flag);
@@ -86,17 +86,17 @@
 
     debug_info("[CLI-COMM] server %d available at %s\n", params->rank, params->port_name) ;
 
-    debug_info("[CLI-COMM] end mpiClient_comm_init(...)\n") ;
+    debug_info("[CLI-COMM] end mpi_client_comm_init(...)\n") ;
 
     // Return OK
     return 1 ;
   }
 
-  int mpiClient_comm_destroy ( mpiClient_param_st *params )
+  int mpi_client_comm_destroy ( mpi_client_param_st *params )
   {
     int ret ;
 
-    debug_info("[CLI-COMM] begin mpiClient_comm_destroy(...)\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_comm_destroy(...)\n") ;
 
     if (params->size < 0)
     {
@@ -122,17 +122,17 @@
     //Indicates mpi_server are the used protocolo 
     unsetenv("XPN_IS_MPI_SERVER");
 
-    debug_info("[CLI-COMM] end mpiClient_comm_destroy(...)\n") ;
+    debug_info("[CLI-COMM] end mpi_client_comm_destroy(...)\n") ;
 
     // Return OK
     return 1 ;
   }
 
-  int mpiClient_comm_connect ( mpiClient_param_st *params )
+  int mpi_client_comm_connect ( mpi_client_param_st *params )
   {
     int ret ;
 
-    debug_info("[CLI-COMM] begin mpiClient_comm_connect(...)\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_comm_connect(...)\n") ;
 
     int version_len;
     char version[MPI_MAX_LIBRARY_VERSION_STRING];
@@ -214,18 +214,18 @@
       return -1 ;
     }
 
-    debug_info("[CLI-COMM] end mpiClient_comm_connect(...)\n") ;
+    debug_info("[CLI-COMM] end mpi_client_comm_connect(...)\n") ;
 
     // Return OK
     return 1 ;
   }
 
-  int mpiClient_comm_disconnect ( mpiClient_param_st *params )
+  int mpi_client_comm_disconnect ( mpi_client_param_st *params )
   {
     int ret ;
     int data;
 
-    debug_info("[CLI-COMM] begin mpiClient_comm_disconnect nservers\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_comm_disconnect nservers\n") ;
 
     data = MPI_SERVER_DISCONNECT;
     int rank;
@@ -249,7 +249,7 @@
     return 1 ;
   }
 
-  int mpiClient_comm_locality ( mpiClient_param_st *params )
+  int mpi_client_comm_locality ( mpi_client_param_st *params )
   {
     int ret;
     int data;
@@ -257,12 +257,12 @@
     char serv_name [HOST_NAME_MAX];
     MPI_Status status ;
 
-    debug_info("[CLI-COMM] begin mpiClient_comm_locality\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_comm_locality\n") ;
 
     // Locality disable
     if (!params->xpn_locality)
     { 
-      debug_info("[CLI-COMM] mpiClient_comm_locality disable\n") ;
+      debug_info("[CLI-COMM] mpi_client_comm_locality disable\n") ;
       params->locality = 0;
       return 1;
     }
@@ -308,17 +308,17 @@
       params->locality = 0;
     }
 
-    debug_info("[CLI-COMM] end mpiClient_comm_locality\n") ;
+    debug_info("[CLI-COMM] end mpi_client_comm_locality\n") ;
       
     // Return OK
     return 1;
   }
 
-  ssize_t mpiClient_write_operation ( MPI_Comm fd, char *data, ssize_t size, __attribute__((__unused__)) char *msg_id )
+  ssize_t mpi_client_write_operation ( MPI_Comm fd, char *data, ssize_t size, __attribute__((__unused__)) char *msg_id )
   {
     int ret ;
 
-    debug_info("[CLI-COMM] begin mpiClient_write_operation(...)\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_write_operation(...)\n") ;
 
     // Check params
     if (size == 0) {
@@ -340,17 +340,17 @@
       size = 0 ;
     }
 
-    debug_info("[CLI-COMM] end mpiClient_write_operation(...)\n") ;
+    debug_info("[CLI-COMM] end mpi_client_write_operation(...)\n") ;
 
     // Return bytes written
     return size;
   }
   
-  ssize_t mpiClient_write_data ( MPI_Comm fd, char *data, ssize_t size, char *msg_id )
+  ssize_t mpi_client_write_data ( MPI_Comm fd, char *data, ssize_t size, char *msg_id )
   {
     int ret ;
 
-    debug_info("[CLI-COMM] begin mpiClient_write_data(...)\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_write_data(...)\n") ;
 
     // Check params
     if (size == 0) {
@@ -369,18 +369,18 @@
       size = 0 ;
     }
 
-    debug_info("[CLI-COMM] end mpiClient_write_data(...)\n") ;
+    debug_info("[CLI-COMM] end mpi_client_write_data(...)\n") ;
 
     // Return bytes written
     return size;
   }
 
-  ssize_t mpiClient_read_data ( MPI_Comm fd, char *data, ssize_t size, char *msg_id )
+  ssize_t mpi_client_read_data ( MPI_Comm fd, char *data, ssize_t size, char *msg_id )
   {
     int ret ;
     MPI_Status status ;
 
-    debug_info("[CLI-COMM] begin mpiClient_read_data(...)\n") ;
+    debug_info("[CLI-COMM] begin mpi_client_read_data(...)\n") ;
 
     // Check params
     if (size == 0) {
@@ -399,7 +399,7 @@
       size = 0 ;
     }
 
-    debug_info("[CLI-COMM] end mpiClient_read_data(...)\n") ;
+    debug_info("[CLI-COMM] end mpi_client_read_data(...)\n") ;
 
     // Return bytes read
     return size;

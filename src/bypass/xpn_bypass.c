@@ -703,8 +703,9 @@ int openat ( int dirfd, const char *path, int flags, ... )
   mode_t mode = 0;
 
   va_start(ap, flags);
-
   mode = va_arg(ap, mode_t);
+
+  dirfd = dirfd ; // to avoid  warning: unused parameter ‘dirfd’
 
   debug_info("[BYPASS] >> Begin openat....\n");
   debug_info("[BYPASS]    1) dirfd => %d\n", dirfd);
