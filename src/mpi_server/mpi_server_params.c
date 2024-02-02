@@ -106,10 +106,6 @@ int mpi_server_params_get ( mpi_server_param_st *params, int argc, char *argv[] 
               strcpy(params->dns_file, argv[i+1]);
               i++;
             }
-            if ((strlen(argv[i]) == 4) && (argv[i][2] == 't') && (argv[i][3] == 'p')){
-              params->thread_mode = TH_OP;
-              i++;
-            }
             break;           
 
           case 'f':

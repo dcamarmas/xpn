@@ -111,11 +111,6 @@ int sck_server_params_get ( sck_server_param_st * params, int argc, char * argv[
             strcpy(params->name, argv[i+1]);
             i++;
           }
-          if ((strlen(argv[i]) == 3) && (argv[i][2] == 's')) 
-          {
-            strcpy(params->dns_file, argv[i+1]);
-            i++;
-          }
           break;
         case 'f':
           strcpy(params->shutdown_file, argv[i+1]);
