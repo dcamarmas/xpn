@@ -339,21 +339,22 @@ void *XpnReadBlocks(int fd, const void *buffer, size_t size, off_t offset, int s
 {	
 	int optimize = 1; // Optimize by default
 	if (xpn_file_table[fd]->part->replication_level > 0){
-    	optimize = 0; // Do not optimize
+    	    optimize = 0; // Do not optimize
 	}
 
 	void *new_buffer = (void *)buffer;
 	new_buffer = malloc(size * sizeof(char));
-	if (new_buffer == NULL){
-		XPN_DEBUG("Error in malloc");
-		perror("XpnReadBlocks: Error in malloc");
-		return new_buffer;
+	if (new_buffer == NULL) {
+	    XPN_DEBUG("Error in malloc");
+	    perror("XpnReadBlocks: Error in malloc");
+	    return new_buffer;
 	}
 
 	if (optimize)
 		XpnReadBlocksAllInOne(fd, new_buffer, size, offset, serv_client, io_out, ion_out, num_servers);
 	else 
 		XpnReadBlocksBlockByBlock(fd, buffer, size, offset, serv_client, io_out, ion_out, num_servers);
+
 	return new_buffer;
 }
 
