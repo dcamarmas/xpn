@@ -51,20 +51,23 @@
       }
     }
     // Threads enable
-    else
-    {
-      ret = MPI_Init_thread(&(params->argc), &(params->argv), MPI_THREAD_MULTIPLE, &provided);
-      if (MPI_SUCCESS != ret)
-      {
-        debug_error("Server[%d]: MPI_Init_thread fails :-(", -1) ;
-        return -1 ;
-      }
+  else
+  {
+    debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_init] MPI Init with threads\n", params->rank);
 
-      MPI_Query_thread(&claimed);
-      if (claimed != MPI_THREAD_MULTIPLE) {
-        printf("MPI_Init_thread: your MPI implementation seem not supporting thereads\n") ;
-      }
+    // ret = MPI_Init_thread(&(params->argc), &(params->argv), MPI_THREAD_MULTIPLE, &provided);
+       ret = MPI_Init_thread(&(params->argc), &(params->argv), MPI_THREAD_SERIALIZED, &provided);
+    if (MPI_SUCCESS != ret)
+    {
+      printf("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_init] ERROR: MPI_Init_thread fails\n", params->rank);
+      return -1;
     }
+
+    MPI_Query_thread(&claimed);
+    if (claimed == MPI_THREAD_SINGLE) {
+      printf("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_init] INFO: your MPI implementation seem not supporting thereads\n", params->rank);
+    }
+  }
 
     // params->rank = comm_rank()
     ret = MPI_Comm_rank(MPI_COMM_WORLD, &(params->rank)) ;
