@@ -705,13 +705,13 @@ int openat ( int dirfd, const char *path, int flags, ... )
   va_start(ap, flags);
   mode = va_arg(ap, mode_t);
 
-  dirfd = dirfd ; // to avoid  warning: unused parameter ‘dirfd’
-
   debug_info("[BYPASS] >> Begin openat....\n");
   debug_info("[BYPASS]    1) dirfd => %d\n", dirfd);
   debug_info("[BYPASS]    2) Path  => %s\n", path);
   debug_info("[BYPASS]    3) Flags => %d\n", flags);
   debug_info("[BYPASS]    4) Mode  => %d\n", mode);
+
+  dirfd = dirfd ; // to avoid "warning: unused parameter ‘dirfd’"
 
   // This if checks if variable path passed as argument starts with the expand prefix.
   if (is_xpn_prefix(path))
