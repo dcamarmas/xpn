@@ -128,12 +128,29 @@ ssize_t xpn_sread ( int fd, const void *buffer, size_t size, off_t offset )
      return -1;
   }
 
+
+  char *hostip = ns_get_host_ip();
+  char hostname[1024];
+  ns_get_hostname(hostname);
+  int serv_client = -1;
+  for (int i=0; i<n; i++)
+  {
+    XPN_DEBUG("serv_client: %d serv_url: %s client: %s name: %s", serv_client, servers[i]->url, hostip, hostname);
+
+    if (strstr(servers[i]->url, hostip) != NULL || strstr(servers[i]->url, hostname) != NULL) {
+        serv_client = i;
+        XPN_DEBUG("serv_client: %d serv_url: %s client: %s", serv_client, servers[serv_client]->url, hostip);
+    }
+  }
+
+
   new_offset = offset;
   count = 0;
 
   do
   {
-    XpnGetBlock(fd, new_offset, &l_offset, &l_serv);
+    XpnReadGetBlock(fd, new_offset, serv_client, &l_offset, &l_serv);
+    // XpnGetBlock(fd, new_offset, &l_offset, &l_serv);
 
     l_size = xpn_file_table[fd]->block_size - (new_offset%xpn_file_table[fd]->block_size);
 
@@ -436,8 +453,25 @@ ssize_t xpn_pread ( int fd, void *buffer, size_t size, off_t offset )
     io[i][0].size = 0;
   }
 
+
+  char *hostip = ns_get_host_ip();
+  char hostname[1024];
+  ns_get_hostname(hostname);
+  int serv_client = -1;
+  for (int i=0; i<n; i++)
+  {
+      XPN_DEBUG("serv_client: %d serv_url: %s client: %s name: %s", serv_client, servers[i]->url, hostip, hostname);
+
+      if (strstr(servers[i]->url, hostip) != NULL || strstr(servers[i]->url, hostname) != NULL) {
+          serv_client = i;
+          XPN_DEBUG("serv_client: %d serv_url: %s client: %s", serv_client, servers[serv_client]->url, hostip);
+      }
+  }
+
+
   // Calculate which blocks to read from each server
-  new_buffer = XpnReadBlocks(fd, buffer, size, offset, &io, &ion, n);
+  // new_buffer = XpnReadBlocks(fd, buffer, size, offset, &io, &ion, n);
+  new_buffer = XpnReadBlocks(fd, buffer, size, offset, serv_client, &io, &ion, n);
   if (new_buffer == NULL)
   {
       xpn_paux_free(n, &servers, &io, &ion, &res_v) ;
@@ -497,7 +531,8 @@ ssize_t xpn_pread ( int fd, void *buffer, size_t size, off_t offset )
   }
   res = total;
 
-  XpnReadBlocksFinish(fd, buffer, size, offset, &io, &ion, n, new_buffer);
+  XpnReadBlocksFinish(fd, buffer, size, offset, serv_client, &io, &ion, n, new_buffer);
+  // XpnReadBlocksFinish(fd, buffer, size, offset, &io, &ion, n, new_buffer);
   xpn_paux_free(n, &servers, &io, &ion, &res_v) ;
   // if (new_buffer != NULL) { free(new_buffer); new_buffer = NULL; } <- XpnReadBlocksFinish(...)
 
