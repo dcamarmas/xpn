@@ -1342,4 +1342,3 @@ void mpi_server_op_getid ( mpi_server_param_st *params, MPI_Comm sd, struct st_m
 
 /* ................................................................... */
 
-

@@ -174,4 +174,3 @@ int mpi_server_params_get ( mpi_server_param_st *params, int argc, char *argv[] 
 
 /* ................................................................... */
 
-

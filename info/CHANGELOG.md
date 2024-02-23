@@ -30,7 +30,7 @@
 
   * First XPN Ad-Hoc release
   * This version provides:
-    * Simplifiyed build system based on build-me script.  
+    * Simplifiyed build system based on build-me script.
     * Platforms: MPICH and Intel MPI.
     * Benchmarks tested: IOR, MdTest and IO500.
     * API: POSIX (through syscall interception library) and native XPN (similar to POSIX).

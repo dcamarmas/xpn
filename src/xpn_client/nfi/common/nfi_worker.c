@@ -267,7 +267,7 @@ void nfiworker_destroy(struct nfi_server * serv)
   debug_info("[NFI_WORKER] [nfiworker_destroy] >> Begin\n");
 
   if (serv->xpn_thread != TH_NOT) {
-    base_workers_destroy(&(serv->wrk->wb));
+      base_workers_destroy(&(serv->wrk->wb));
   }
 
   debug_info("[NFI_WORKER] [nfiworker_destroy] >> End\n");
@@ -275,3 +275,4 @@ void nfiworker_destroy(struct nfi_server * serv)
 
 
 /* ................................................................... */
+

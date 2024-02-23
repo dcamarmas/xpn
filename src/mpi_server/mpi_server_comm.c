@@ -472,4 +472,3 @@ ssize_t mpi_server_comm_read_data ( mpi_server_param_st *params, MPI_Comm fd, ch
 
 /* ................................................................... */
 
-

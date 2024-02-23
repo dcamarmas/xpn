@@ -211,7 +211,8 @@ int mpi_server_up ( void )
 
   the_end = 0;
 
-  while(!the_end){
+  while(!the_end)
+  {
     ret = socket_accept_read(server_socket);
     debug_info("[TH_ID=%d] [MPI_SERVER %s] [mpi_server_up] pipe recv: %d \n", 0,params.srv_name, ret);
     switch (ret)
@@ -219,10 +220,12 @@ int mpi_server_up ( void )
     case MPI_SOCKET_ACCEPT:
       mpi_server_accept();
       break;
+        
     case MPI_SOCKET_FINISH:
       mpi_server_finish();
       the_end = 1;
       break;
+        
     default:
       perror("read");
       break;
@@ -407,7 +410,8 @@ int main ( int argc, char *argv[] )
     debug_info("[TH_ID=%d] [MPI_SERVER] [main] Down servers\n", 0);
 
     ret = mpi_server_down (argc, argv);
-  }else if (strcasecmp(exec_name, "xpn_terminate_mpi_server") == 0) 
+  }
+  else if (strcasecmp(exec_name, "xpn_terminate_mpi_server") == 0) 
   {
     debug_info("[TH_ID=%d] [MPI_SERVER] [main] Terminate server\n", 0);
 
