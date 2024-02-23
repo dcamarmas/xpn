@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
+ *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
  *
  *  This file is part of Expand.
  *
@@ -20,53 +20,48 @@
  */
 
 
-#ifndef _WORKERS_COMMON_H_
-#define _WORKERS_COMMON_H_
+#ifndef _XPN_API_MUTEX_H
+#define _XPN_API_MUTEX_H
+
+  #ifdef  __cplusplus
+    extern "C" {
+  #endif
+
 
   /* ... Include / Inclusion ........................................... */
 
   #include "all_system.h"
-  #include "base/debug_msg.h"
 
 
   /* ... Const / Const ................................................. */
 
-  #define MAX_THREADS     2048
-  #define MAX_OPERATIONS  1024
-  #define STACK_SIZE     (256*KB)
-
 
   /* ... Data structures / Estructuras de datos ........................ */
 
-  struct st_th
-  {
-    void  *params;
-    void (*function)(struct st_th);
 
-    // server stuff
-    int   id;
-    int   type_op;
-    int   rank_client_id;
-    int   tag_client_id;
-    long  sd;
+  /* ... Macros / Macros ............................................... */
 
-    // w: worker_ondemand/worker_pool as void *
-    void *w;
-    // v: original st_th as void *
-    void *v;
+  #ifdef _REENTRANT
 
-    // client stuff
-    pthread_t       th_worker;
-    pthread_mutex_t m_wait;
-    pthread_cond_t  c_wait;
-    int             r_wait;
-    int             wait4me; // (wait4me==1) ? launch + wait : launch
-  };
+    extern pthread_mutex_t xpn_api_mutex ;
 
+    #define XPN_API_LOCK()    pthread_mutex_lock(&xpn_api_mutex)
+    #define XPN_API_UNLOCK()  pthread_mutex_unlock(&xpn_api_mutex)
+
+  #else
+
+    #define XPN_API_LOCK()    (0)
+    #define XPN_API_UNLOCK()  (0)
+
+  #endif
 
   /* ... Functions / Funciones ......................................... */
 
 
   /* ................................................................... */
+
+  #ifdef  __cplusplus
+    }
+  #endif
 
 #endif
