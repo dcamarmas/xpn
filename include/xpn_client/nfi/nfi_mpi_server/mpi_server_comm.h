@@ -29,6 +29,7 @@
   #include "mpi_server_params.h"
   #include "base/utils.h"
   #include "base/ns.h"
+  #include "base/socket.h"
   #include "mpi_server_ops.h"
 
 
@@ -48,12 +49,13 @@
   
   int     mpi_client_comm_locality   ( mpi_client_param_st *params );
 
-  ssize_t mpi_client_write_operation ( MPI_Comm fd, char *data, ssize_t size, char *msg_id );
-  ssize_t mpi_client_write_data      ( MPI_Comm fd, char *data, ssize_t size, char *msg_id );
-  ssize_t mpi_client_read_data       ( MPI_Comm fd, char *data, ssize_t size, char *msg_id );
+  ssize_t mpi_client_write_operation ( MPI_Comm fd, int op );
+  ssize_t mpi_client_write_data      ( MPI_Comm fd, char *data, ssize_t size );
+  ssize_t mpi_client_read_data       ( MPI_Comm fd, char *data, ssize_t size );
 
 
   /* ................................................................... */
 
 #endif
+
 

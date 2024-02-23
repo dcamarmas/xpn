@@ -23,6 +23,7 @@ BASE_HEADER=			@top_srcdir@/include/base/base_lib.h \
 				@top_srcdir@/include/base/trace_tags.h \
 				@top_srcdir@/include/base/urlstr.h \
 				@top_srcdir@/include/base/ns.h \
+				@top_srcdir@/include/base/socket.h \
 				@top_srcdir@/include/base/syscall_proxies.h \
 				@top_srcdir@/include/base/filesystem.h \
 				@top_srcdir@/include/base/workers.h \
@@ -133,6 +134,7 @@ BASE_OBJECTS=		@top_srcdir@/src/base/darray.c \
 			@top_srcdir@/src/base/time_misc.c \
 			@top_srcdir@/src/base/urlstr.c \
 			@top_srcdir@/src/base/ns.c \
+			@top_srcdir@/src/base/socket.c \
 			@top_srcdir@/src/base/syscall_proxies.c \
 			@top_srcdir@/src/base/filesystem.c \
 			@top_srcdir@/src/base/workers.c \
@@ -223,7 +225,8 @@ XPN_POLICY_OBJECTS=			@top_srcdir@/src/xpn_client/xpn/xpn_simple/policy/xpn_poli
 					@top_srcdir@/src/xpn_client/xpn/xpn_simple/policy/xpn_policy_opendir.c \
 					@top_srcdir@/src/xpn_client/xpn/xpn_simple/policy/xpn_policy_rw.c
 
-XPN_EP_OBJECTS=		                @top_srcdir@/src/xpn_client/xpn_unistd.c \
+XPN_EP_OBJECTS=		                @top_srcdir@/src/xpn_client/xpn_api_mutex.c \
+                                 	@top_srcdir@/src/xpn_client/xpn_unistd.c \
 					@top_srcdir@/src/xpn_client/xpn_stdio.c
 
 XPN_OBJECTS=$(XPN_CORE_OBJECTS) $(XPN_POLICY_OBJECTS) $(XPN_EP_OBJECTS)

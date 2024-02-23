@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
+ *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -20,53 +20,31 @@
  */
 
 
-#ifndef _WORKERS_COMMON_H_
-#define _WORKERS_COMMON_H_
+#ifndef _SOCKET_H_
+#define _SOCKET_H_
 
   /* ... Include / Inclusion ........................................... */
 
   #include "all_system.h"
-  #include "base/debug_msg.h"
+  #include "debug_msg.h"
 
 
   /* ... Const / Const ................................................. */
 
-  #define MAX_THREADS     2048
-  #define MAX_OPERATIONS  1024
-  #define STACK_SIZE     (256*KB)
-
+  #define MPI_SOCKET_PORT 3456
+  #define MPI_SOCKET_ACCEPT 123
+  #define MPI_SOCKET_FINISH 666
 
   /* ... Data structures / Estructuras de datos ........................ */
-
-  struct st_th
-  {
-    void  *params;
-    void (*function)(struct st_th);
-
-    // server stuff
-    int   id;
-    int   type_op;
-    int   rank_client_id;
-    int   tag_client_id;
-    long  sd;
-
-    // w: worker_ondemand/worker_pool as void *
-    void *w;
-    // v: original st_th as void *
-    void *v;
-
-    // client stuff
-    pthread_t       th_worker;
-    pthread_mutex_t m_wait;
-    pthread_cond_t  c_wait;
-    int             r_wait;
-    int             wait4me; // (wait4me==1) ? launch + wait : launch
-  };
 
 
   /* ... Functions / Funciones ......................................... */
 
+  int socket_accept_read ( int socket );   
+  int socket_send ( char * srv_name, int code );  
+  int socket_create ( int *out_socket );
 
-  /* ................................................................... */
+  /* ... Macros / Macros .................................................. */
+
 
 #endif
