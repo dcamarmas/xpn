@@ -249,7 +249,7 @@ void mpi_server_2_nfi_attr ( struct nfi_attr *nfi_att, struct stat *att )
   nfi_att->at_mtime   = att->st_mtime;                          // time of last modification
   nfi_att->at_ctime   = att->st_ctime;                          // time of last change
 
-  debug_info("[SERV_ID=%d] [NFI_MPI] [nfi_2_mpi_server_attr] >> End\n", -1);
+  debug_info("[SERV_ID=%d] [NFI_MPI] [mpi_server_2_nfi_attr] >> End\n", -1);
 }
 
 void mpi_server_2_nfi_info( __attribute__((__unused__)) struct nfi_info *nfi_inf, __attribute__((__unused__)) struct nfi_info *mpi_server_inf )
@@ -527,7 +527,7 @@ int nfi_mpi_server_disconnect ( struct nfi_server *serv )
 
   ret = mpi_client_comm_disconnect( &(server_aux->params) );
   if (ret < 0) {
-    printf("[SERV_ID=%d] [NFI_MPI] [nfi_mpi_server_reconnect] ERROR: mpi_client_comm_disconnect fails\n", serv->id);
+    printf("[SERV_ID=%d] [NFI_MPI] [nfi_mpi_server_disconnect] ERROR: mpi_client_comm_disconnect fails\n", serv->id);
   }
 
   FREE_AND_NULL(serv->private_info);

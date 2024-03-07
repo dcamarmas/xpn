@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
+ *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -55,8 +55,8 @@ void mpi_server_params_show ( mpi_server_param_st *params )
   printf("\t-d  <path>:\t'%s'\n",   params->dirbase);
   // * shutdown_file
   printf("\t-f  <path>:\t'%s'\n",   params->shutdown_file);
-  // * connections
-  printf("\t-c  <# accepts per server>:\t%d\n",   params->number_accepts);
+  // * host
+  printf("\t-h <host>:\t'%s'\n",   params->srv_name) ;
 
   debug_info("[Server=%d] [MPI_SERVER_PARAMS] [mpi_server_params_show] << End\n", params->rank);
 }
@@ -70,7 +70,7 @@ void mpi_server_params_show_usage ( void )
   printf("\t-t  <int>:      0 (without thread); 1 (thread pool); 2 (on demand)\n") ;
   printf("\t-d  <string>:   name of the base directory\n") ;
   printf("\t-f  <path>:     file of servers to be shutdown\n") ;
-  printf("\t-c  <accepts>:  number of accepts per server\n") ;
+  printf("\t-h  <host>:     host server to be shutdown\n") ;
 
   debug_info("[Server=%d] [MPI_SERVER_PARAMS] [mpi_server_params_show_usage] << End\n", -1) ;
 }
@@ -94,7 +94,6 @@ int mpi_server_params_get ( mpi_server_param_st *params, int argc, char *argv[] 
   // update user requests
   debug_info("[Server=%d] [MPI_SERVER_PARAMS] [mpi_server_params_get] Get user configuration\n", params->rank);
 
-  char *end = NULL ;
   for (int i=0; i<argc; i++)
   {
     switch (argv[i][0])
@@ -127,7 +126,8 @@ int mpi_server_params_get ( mpi_server_param_st *params, int argc, char *argv[] 
               {
                 int thread_mode_aux = atoi(argv[i+1]);
 
-                if (thread_mode_aux >= TH_NOT && thread_mode_aux <= TH_OP) {
+                if (thread_mode_aux >= TH_NOT && thread_mode_aux <= TH_OP) 
+                {
                   params->thread_mode = thread_mode_aux;
                 }
                 else {
@@ -152,17 +152,9 @@ int mpi_server_params_get ( mpi_server_param_st *params, int argc, char *argv[] 
             }
             i++;
             break;
-
-          case 'c':
-            params->number_accepts = strtol(argv[i+1], &end, 10) ;
-            if (*end != '\0') {
-              params->number_accepts = -1 ;
-            }
-            i++;
-            break;
-
           case 'h':
-            return -1;
+            strcpy(params->srv_name, argv[i+1]);
+            break;
 
           default:
             break;

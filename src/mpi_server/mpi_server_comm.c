@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
+ *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -182,6 +182,8 @@ int mpi_server_comm_init ( mpi_server_param_st *params )
   TIME_MISC_Timer(&t1);
   TIME_MISC_DiffTime(&t0, &t1, &tf);
   time = TIME_MISC_TimevaltoFloat(&tf);
+
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
 
   if (params->rank == 0)
   {
@@ -374,7 +376,7 @@ ssize_t mpi_server_comm_read_operation ( mpi_server_param_st *params, MPI_Comm f
   debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] >> Begin\n", params->rank);
 
   // Get message
-  debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_disconnect] Read operation\n", params->rank);
+  debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] Read operation\n", params->rank);
 
   ret = MPI_Recv(msg, 2, MPI_INT, MPI_ANY_SOURCE, 0, fd, &status);
   if (MPI_SUCCESS != ret) {
@@ -416,7 +418,7 @@ ssize_t mpi_server_comm_write_data ( mpi_server_param_st *params, MPI_Comm fd, c
   }
 
   // Send message
-  debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_write_data] Write data\n", params->rank);
+  debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_write_data] Write data tag %d\n", params->rank, tag_client_id);
 
   ret = MPI_Send(data, size, MPI_CHAR, rank_client_id, tag_client_id, fd);
   if (MPI_SUCCESS != ret) {
@@ -453,7 +455,7 @@ ssize_t mpi_server_comm_read_data ( mpi_server_param_st *params, MPI_Comm fd, ch
   }
 
   // Get message
-  debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_read_data] Read data\n", params->rank);
+  debug_info("[Server=%d] [MPI_SERVER_COMM] [mpi_server_comm_read_data] Read data tag %d\n", params->rank, tag_client_id);
 
   ret = MPI_Recv(data, size, MPI_CHAR, rank_client_id, tag_client_id, fd, &status);
   if (MPI_SUCCESS != ret) {

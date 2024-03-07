@@ -1,6 +1,6 @@
 
   /*
-   *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+   *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra, Dario Muñoz Muñoz
    *
    *  This file is part of Expand.
    *
@@ -26,6 +26,7 @@
 struct xpn_partition xpn_parttable[XPN_MAX_PART];
 pthread_mutex_t xpn_init_mutex = PTHREAD_MUTEX_INITIALIZER;
 int xpn_debug=0;
+int xpn_initialize=0;
 
 int xpn_destroy_servers(struct xpn_partition *part)
 {
@@ -66,6 +67,26 @@ int xpn_destroy_servers(struct xpn_partition *part)
   return 0;
 }
 
+int xpn_simple_mark_error_server(int index)
+{
+  struct nfi_server *serv;
+  int i = 0;
+  while(xpn_parttable[i].id != -1)
+    {
+      serv = xpn_parttable[i].data_serv;
+      if(serv[index].ops != NULL)
+      {
+        xpn_parttable[i].data_serv[index].ops->nfi_disconnect(&(serv[index]));
+
+      xpn_parttable[i].data_serv[index].error = -1;
+      }
+      i++;
+    }
+    
+  
+  return 0;
+}
+
 
 int xpn_simple_destroy ( void )
 {
@@ -73,7 +94,7 @@ int xpn_simple_destroy ( void )
   int i;
 
   XPN_DEBUG_BEGIN
-
+  xpn_initialize = 0;
   if(xpn_parttable[0].id < 0)
   {
     res = 0;
@@ -102,7 +123,7 @@ int xpn_init_partition(__attribute__((__unused__)) char *partname)
   int res;
   int i,j;
   struct conf_connect_st *fd;
-  static int xpn_initialize = 0;
+  xpn_initialize = 0;
   char *env_debug;
 
   env_debug = getenv("XPN_DEBUG");
@@ -149,9 +170,11 @@ int xpn_init_partition(__attribute__((__unused__)) char *partname)
   {
     xpn_parttable[i].initialized = 0;
 
-    xpn_parttable[i].id = XpnGetIdPartition(fd, xpn_parttable[i].name);
-    XPN_DEBUG("Partition %d: name=%s\n", xpn_parttable[i].id, xpn_parttable[i].name);
-
+    //TODO: XpnGetIdPartition does not take into account that xpn_init xpn_destroy and xpn_init are done in one run
+    // xpn_parttable[i].id = XpnGetIdPartition(fd, xpn_parttable[i].name);
+    xpn_parttable[i].id = i;
+    XPN_DEBUG("Partition %d: name=%s", xpn_parttable[i].id, xpn_parttable[i].name);
+    
     /* compruebo los errores???? */
     if(XpnGetInfoPartition(fd, &(xpn_parttable[i]))==-1)
     {
@@ -162,7 +185,8 @@ int xpn_init_partition(__attribute__((__unused__)) char *partname)
       res = -1;
       XPN_DEBUG_END
       return res;
-    }
+    }    
+    XPN_DEBUG("Partition %d: replication_level=%d", xpn_parttable[i].id, xpn_parttable[i].replication_level);
 
     xpn_parttable[i].data_nserv = XpnGetNumServersPartition(fd, &(xpn_parttable[i]) , XPN_DATA_SERVER);
     XPN_DEBUG("Partition %d: data_nserv=%d\n", xpn_parttable[i].id, xpn_parttable[i].data_nserv);
@@ -186,23 +210,47 @@ int xpn_init_partition(__attribute__((__unused__)) char *partname)
       //TODO: AQUI??
 
       res = XpnGetServer(fd, &(xpn_parttable[i]), &(xpn_parttable[i].data_serv[j]), XPN_DATA_SERVER);
+
       if(res<0){
+        // Mark server with error for fault tolerant
+        xpn_parttable[i].data_serv[j].error = -1;
+        // XpnPartitionClose(fd);
+        // for(j=0;j<i;j++){
+        //   xpn_destroy_servers(&(xpn_parttable[j]));
+        // }
+        // fprintf(stderr,"xpn_init: Data configuration incorrect\n");
 
-        XpnPartitionClose(fd);
-        for(j=0;j<i;j++){
-          xpn_destroy_servers(&(xpn_parttable[j]));
-        }
-        fprintf(stderr,"xpn_init: Data configuration incorrect\n");
+        // pthread_mutex_unlock(&xpn_init_mutex);
 
-        pthread_mutex_unlock(&xpn_init_mutex);
-
-        res = -1;
-        XPN_DEBUG_END
-        return res;
+        // res = -1;
+        // XPN_DEBUG_END
+        // return res;
       }
     }
+    
+    int n_error = 0;
+    for(j=0;j<xpn_parttable[i].data_nserv;j++)
+    {
+      if (xpn_parttable[i].data_serv[j].error != 0)
+        n_error++;
+      XPN_DEBUG("Partition %d: error server %d: %d",xpn_parttable[i].id,j,xpn_parttable[i].data_serv[j].error)
+    }  
     XPN_DEBUG("Partition %d end", xpn_parttable[i].id);
 
+    if (n_error > xpn_parttable[i].replication_level){
+      XpnPartitionClose(fd);
+      for(j=0;j<XPN_MAX_PART;j++){
+        xpn_destroy_servers(&(xpn_parttable[j]));
+      }
+      fprintf(stderr,"xpn_init: More servers with errors (%d) than replication level permit (%d)\n",n_error,xpn_parttable[i].replication_level);
+
+      pthread_mutex_unlock(&xpn_init_mutex);
+
+      res = -1;
+      XPN_DEBUG_END
+      return res;
+    }
+    
     i++;
     if(i == XPN_MAX_PART)
     {
