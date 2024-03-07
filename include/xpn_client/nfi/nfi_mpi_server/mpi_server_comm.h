@@ -29,6 +29,7 @@
   #include "mpi_server_params.h"
   #include "base/utils.h"
   #include "base/ns.h"
+  #include "base/socket.h"
   #include "mpi_server_ops.h"
 
 

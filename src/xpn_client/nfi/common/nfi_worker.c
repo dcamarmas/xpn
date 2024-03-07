@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -221,6 +221,9 @@ int nfiworker_init (struct nfi_server * serv)
 int nfiworker_launch (void( * worker_function)(struct st_th), struct nfi_worker * wrk) 
 {
   int ret = -1;
+  
+  if (wrk->server->error == -1)
+    return -1;
 
   debug_info("[NFI_WORKER] [nfiworker_launch] >> Begin\n");
 
@@ -245,6 +248,9 @@ int nfiworker_launch (void( * worker_function)(struct st_th), struct nfi_worker 
 ssize_t nfiworker_wait(struct nfi_worker * wrk) 
 {
   ssize_t ret;
+
+  if (wrk->server->error == -1)
+    return 0;
 
   debug_info("[NFI_WORKER] [nfiworker_wait] >> Begin\n");
 

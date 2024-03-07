@@ -20,46 +20,31 @@
  */
 
 
-#ifndef _XPN_INIT_H
-#define _XPN_INIT_H
-
-  #ifdef  __cplusplus
-    extern "C" {
-  #endif
-
+#ifndef _SOCKET_H_
+#define _SOCKET_H_
 
   /* ... Include / Inclusion ........................................... */
 
   #include "all_system.h"
-  #include "base/path_misc.h"
-  #include "xpn_policy_init.h"
-  #include "xpn_cwd.h"
-  #include "xpn_file.h"
+  #include "debug_msg.h"
 
 
   /* ... Const / Const ................................................. */
- 
-  #define XPN_MAX_PART 128
 
-  extern struct xpn_partition xpn_parttable[XPN_MAX_PART];
-
+  #define MPI_SOCKET_PORT 3456
+  #define MPI_SOCKET_ACCEPT 123
+  #define MPI_SOCKET_FINISH 666
 
   /* ... Data structures / Estructuras de datos ........................ */
 
 
   /* ... Functions / Funciones ......................................... */
 
-  int xpn_init_partition(char *partname);
+  int socket_accept_read ( int socket );   
+  int socket_send ( char * srv_name, int code );  
+  int socket_create ( int *out_socket );
 
-  int xpn_simple_mark_error_server ( int index ) ;
-  int xpn_simple_destroy ( void );
-  int xpn_simple_init ( void );
+  /* ... Macros / Macros .................................................. */
 
-
-  /* ................................................................... */
-
-  #ifdef  __cplusplus
-    }
-  #endif
 
 #endif

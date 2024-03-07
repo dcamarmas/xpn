@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
+ *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -177,14 +177,14 @@ int mpi_client_comm_connect ( mpi_client_param_st *params )
         { 
           char cli_name  [HOST_NAME_MAX];
           gethostname(cli_name, HOST_NAME_MAX);
-          printf("----------------------------------------------------------------\n");
-          printf("XPN Client %s : Waiting for servers being up and runing...\n", cli_name);
-          printf("----------------------------------------------------------------\n\n");
+          debug_info("----------------------------------------------------------------\n");
+          debug_info("XPN Client %s : Waiting for servers being up and runing...\n", cli_name);
+          debug_info("----------------------------------------------------------------\n\n");
         }
         lookup_retries++;
-        sleep(2);
+        sleep(1);
       }
-    } while((ret < 0) && (lookup_retries < 150));
+    } while((ret < 0) && (lookup_retries < 1));
 
     if (ret < 0)
     {
@@ -205,14 +205,36 @@ int mpi_client_comm_connect ( mpi_client_param_st *params )
     }
   }
 
+  MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_RETURN);
+  // Send connect intention
+  if (params->rank == 0)
+  {
+    ret = socket_send(params->srv_name, MPI_SOCKET_ACCEPT);
+    if (ret != 0)
+    {
+      printf("[MPI_CLIENT_COMM] [mpi_client_comm_connect] ERROR: socket send\n");
+      return -1;
+    }
+  }
+
   // Connect...
   debug_info("[MPI_CLIENT_COMM] [mpi_client_comm_connect] Connect port %s\n", params->port_name);
 
   int connect_retries = 0;
+  int errclass, resultlen;
+  char err_buffer[MPI_MAX_ERROR_STRING];
+  MPI_Info info;
+  MPI_Info_create( &info );
+  MPI_Info_set(info, "timeout", "1");
   do
   {
     ret = MPI_Comm_connect(params->port_name, MPI_INFO_NULL, 0, MPI_COMM_WORLD, &(params->server));
-    if (MPI_SUCCESS != ret)
+
+    MPI_Error_class(ret,&errclass);
+    MPI_Error_string(ret,err_buffer,&resultlen);
+    XPN_DEBUG("%s", err_buffer);
+    
+    if (MPI_SUCCESS != errclass)
     {
       if (connect_retries == 0)
       {
@@ -223,13 +245,13 @@ int mpi_client_comm_connect ( mpi_client_param_st *params )
         printf("----------------------------------------------------------------\n\n");
       }
       connect_retries++;
-      sleep(2);
+      sleep(1);
     }
-  } while(MPI_SUCCESS != ret && connect_retries < 150);
-  
+  } while(MPI_SUCCESS != ret && connect_retries < 1);
+  MPI_Info_free(&info);
   if (MPI_SUCCESS != ret)
   {
-    printf("[MPI_CLIENT_COMM] [mpi_client_comm_connect] ERROR: MPI_Comm_connect fails\n");
+    debug_error("[MPI_CLIENT_COMM] [mpi_client_comm_connect] ERROR: MPI_Comm_connect fails\n");
     return -1;
   }
 
@@ -242,18 +264,20 @@ int mpi_client_comm_connect ( mpi_client_param_st *params )
 int mpi_client_comm_disconnect ( mpi_client_param_st *params )
 {
   int ret;
-  int data;
 
   debug_info("[MPI_CLIENT_COMM] [mpi_client_comm_disconnect] >> Begin\n");
 
   int rank;
-  data = MPI_SERVER_DISCONNECT;
   MPI_Comm_rank(MPI_COMM_WORLD, &(rank));
   if (rank == 0)
   {
     debug_info("[MPI_CLIENT_COMM] [mpi_client_comm_disconnect] Send disconnect message\n");
-
-    MPI_Send( &data, 1, MPI_INT, 0, 0, params->server );
+    ret = mpi_client_write_operation ( params->server, MPI_SERVER_DISCONNECT );
+    if (ret < 0)
+    {
+      printf("[MPI_CLIENT_COMM] [mpi_client_comm_disconnect] ERROR: mpi_client_write_operation fails\n");
+      return -1;
+    }
   }
   
   MPI_Barrier(MPI_COMM_WORLD);
@@ -360,7 +384,7 @@ ssize_t mpi_client_write_operation ( MPI_Comm fd, int op )
   msg[1] = (int) op;
 
   // Send message
-  debug_info("[MPI_CLIENT_COMM] [mpi_client_write_operation] Write operation\n");
+  debug_info("[MPI_CLIENT_COMM] [mpi_client_write_operation] Write operation send tag %d\n", msg[0]);
 
   ret = MPI_Send(msg, 2, MPI_INT, 0, 0, fd);
   if (MPI_SUCCESS != ret)
@@ -394,7 +418,7 @@ ssize_t mpi_client_write_data ( MPI_Comm fd, char *data, ssize_t size )
   int tag = (int) (pthread_self() % 32450) + 1;
 
   // Send message
-  debug_info("[MPI_CLIENT_COMM] [mpi_client_write_data] Write data\n");
+  debug_info("[MPI_CLIENT_COMM] [mpi_client_write_data] Write data tag %d\n", tag);
 
   ret = MPI_Send(data, size, MPI_CHAR, 0, tag, fd);
   if (MPI_SUCCESS != ret)
@@ -429,7 +453,7 @@ ssize_t mpi_client_read_data ( MPI_Comm fd, char *data, ssize_t size )
   int tag = (int) (pthread_self() % 32450) + 1;
 
   // Get message
-  debug_info("[MPI_CLIENT_COMM] [mpi_client_read_data] Read data\n");
+  debug_info("[MPI_CLIENT_COMM] [mpi_client_read_data] Read data tag %d\n", tag);
 
   ret = MPI_Recv(data, size, MPI_CHAR, 0, tag, fd, &status);
   if (MPI_SUCCESS != ret)
