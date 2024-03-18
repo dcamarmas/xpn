@@ -51,8 +51,8 @@ $(SCK_SERVER_EXE_STOP): $(SCK_SERVER_EXE)
 	ln -s $(SCK_SERVER_EXE) $(SCK_SERVER_EXE_STOP)
 
 install:  $(SCK_SERVER_EXE)
-	cp -a                   $(SCK_SERVER_EXE) $(EXPAND_DIR)/bin
-	rm -fr $(EXPAND_DIR)/bin/$(SCK_SERVER_EXE_STOP) && ln -s $(EXPAND_DIR)/bin/$(SCK_SERVER_EXE) $(EXPAND_DIR)/bin/$(SCK_SERVER_EXE_STOP)
+	cp -a                    $(SCK_SERVER_EXE) $(EXPAND_DIR)/bin
+	ln -fs $(EXPAND_DIR)/bin/$(SCK_SERVER_EXE) $(EXPAND_DIR)/bin/$(SCK_SERVER_EXE_STOP)
 
 
 clean:
