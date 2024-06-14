@@ -38,10 +38,6 @@ void xpn_server_params_show ( xpn_server_param_st *params )
   if (params->server_type == XPN_SERVER_TYPE_MPI) {
       printf(" |\t-s  <int>:\tmpi_server\n");
   }
-  else
-  if (params->server_type == XPN_SERVER_TYPE_SCK) {
-      printf(" |\t-s  <int>:\tsck_server\n");
-  }
   else {
       printf(" |\t-s  <int>:\tError: unknown\n");
   }
@@ -75,7 +71,7 @@ void xpn_server_params_show_usage ( void )
   debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin\n", -1) ;
 
   printf("Usage:\n") ;
-  printf("\t-s  <server_type>:   mpi (for mpi server); sck (for sck server)\n") ;
+  printf("\t-s  <server_type>:   mpi (for mpi server)\n") ;
   printf("\t-t  <int>:           0 (without thread); 1 (thread pool); 2 (on demand)\n") ;
   printf("\t-f  <path>:          file of servers to be shutdown\n") ;
   printf("\t-h  <host>:          host server to be shutdown\n") ;
@@ -160,9 +156,6 @@ int xpn_server_params_get ( xpn_server_param_st *params, int argc, char *argv[] 
               if (strcmp("mpi", argv[i+1]) == 0) {
                 params->server_type = XPN_SERVER_TYPE_MPI;
               }
-              else if (strcmp("sck", argv[i+1]) == 0) {
-                params->server_type = XPN_SERVER_TYPE_SCK;
-              }
               else {
                 printf("ERROR: unknown option %s\n", argv[i+1]);
               }
@@ -184,7 +177,6 @@ int xpn_server_params_get ( xpn_server_param_st *params, int argc, char *argv[] 
     }
   }
 
-  // In sck_server worker for operations has to be sequential because you don't want to have to make a socket per operation.
   // It can be done because it is not reentrant
   if (params->server_type == XPN_SERVER_TYPE_SCK) {
       params->thread_mode_operations = TH_NOT;

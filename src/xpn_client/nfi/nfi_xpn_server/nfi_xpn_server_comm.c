@@ -27,9 +27,6 @@
 #ifdef ENABLE_MPI_SERVER
 #include "nfi_mpi_server_comm.h"
 #endif
-#ifdef ENABLE_MPI_SERVER
-#include "nfi_sck_server_comm.h"
-#endif
 
 /* ... Const / Const ................................................. */
 
@@ -100,11 +97,6 @@ int nfi_xpn_server_comm_connect ( struct nfi_xpn_server *params )
     ret = nfi_mpi_server_comm_connect(params->srv_name, params->port_name, &params->server_comm);
     break;
   #endif
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = nfi_sck_server_comm_connect(params->srv_name, params->port_name, &params->server_socket);
-    break;
-  #endif
   
   default:
     printf("[NFI_XPN_SERVER] [nfi_xpn_server_comm_connect] server_type '%d' not recognized\n",params->server_type);
@@ -123,11 +115,6 @@ int nfi_xpn_server_comm_disconnect ( struct nfi_xpn_server *params )
   #ifdef ENABLE_MPI_SERVER
   case XPN_SERVER_TYPE_MPI:
     ret = nfi_mpi_server_comm_disconnect(&(params->server_comm));
-    break;
-  #endif
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = nfi_sck_server_comm_disconnect(params->server_socket);
     break;
   #endif
   
