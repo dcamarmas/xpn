@@ -303,28 +303,6 @@ int XpnInitServer(struct conf_file_data *conf_data, struct xpn_partition * part,
     }
     #endif
 
-    #ifdef ENABLE_NFS
-    else if ((strcmp(prt, "nfs") == 0) || (strcmp(prt, "nfs2") == 0)) {
-        //printf("[XPN]nfi_nfs_init: %s\n",url);
-        ret = nfi_nfs_init(url_buf, serv, NULL);
-        if (ret < 0) {
-            errno = ESRCH;
-            return -1;
-        }
-    }
-    #endif
-
-    #ifdef ENABLE_NFS3
-    else if (strcmp(prt, "nfs3") == 0) {
-        //printf("[XPN]nfi_nfs3_init: %s\n",url);
-        ret = nfi_nfs3_init(url_buf, serv, NULL);
-        if (ret < 0) {
-            errno = ESRCH;
-            return -1;
-        }
-    }
-    #endif
-
     else {
         printf("[XPN] Protocol '%s' not recognized\n", prt);
         errno = EINVAL;

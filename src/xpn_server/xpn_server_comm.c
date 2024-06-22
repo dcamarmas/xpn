@@ -85,6 +85,7 @@ int xpn_server_comm_accept ( xpn_server_param_st *params, void **new_sd )
     break;
   #endif
 
+ 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_accept] server_type '%d' not recognized\n", params->server_type);
     break;
@@ -105,6 +106,7 @@ int xpn_server_comm_disconnect ( xpn_server_param_st *params, void *sd )
     break;
   #endif
 
+ 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_disconnect] server_type '%d' not recognized\n", params->server_type);
     break;
