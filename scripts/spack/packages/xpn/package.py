@@ -35,7 +35,6 @@ class Xpn(AutotoolsPackage):
 
     def install(self, spec, prefix):
         configure("--prefix=" + prefix,
-                  "--enable-sck_server",
                   "--enable-mpi_server=" + spec['mpich'].prefix + "/bin/mpicc")
         make()
         make("install")

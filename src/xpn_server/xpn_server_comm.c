@@ -28,9 +28,6 @@
 #ifdef ENABLE_MPI_SERVER
 #include "mpi_server_comm.h"
 #endif
-#ifdef ENABLE_MPI_SERVER
-#include "sck_server_comm.h"
-#endif
 
 
 /* ... Functions / Funciones ......................................... */
@@ -45,12 +42,6 @@ int xpn_server_comm_init ( xpn_server_param_st *params )
   #ifdef ENABLE_MPI_SERVER
   case XPN_SERVER_TYPE_MPI:
     ret = mpi_server_comm_init( params->argc, params->argv, params->thread_mode_connections, params->port_name );
-    break;
-  #endif
-
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = sck_server_comm_init( &params->server_socket, params->port_name );
     break;
   #endif
  
@@ -99,12 +90,6 @@ int xpn_server_comm_accept ( xpn_server_param_st *params, void **new_sd )
     ret = mpi_server_comm_accept( params->port_name, (MPI_Comm **)new_sd );
     break;
   #endif
-
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = sck_server_comm_accept( params->server_socket, (int **)new_sd );
-    break;
-  #endif
  
   default:
     printf("[XPN_SERVER] [xpn_server_comm_accept] server_type '%d' not recognized\n", params->server_type);
@@ -123,12 +108,6 @@ int xpn_server_comm_disconnect ( xpn_server_param_st *params, void *sd )
   #ifdef ENABLE_MPI_SERVER
   case XPN_SERVER_TYPE_MPI:
     ret = mpi_server_comm_disconnect( (MPI_Comm *)sd );
-    break;
-  #endif
-
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = sck_server_comm_disconnect( (int *)sd );
     break;
   #endif
  
