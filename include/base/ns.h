@@ -25,26 +25,14 @@
 
   /* ... Include / Inclusion ........................................... */
 
-  #include "all_system.h" /// Library for 'TODO'
-  #include "base/utils.h" /// Library for 'TODO'
+  #include "all_system.h"
+  #include "base/utils.h"
 
   
   /* ... Const / Const ................................................. */
 
   #ifndef MPI_SERVER_DNS_FILE_DEFAULT
     #define MPI_SERVER_DNS_FILE_DEFAULT "/tmp/mpi_dns.txt"
-  #endif
-
-  #ifndef SCK_SERVER_DNS_FILE_DEFAULT
-    #define SCK_SERVER_DNS_FILE_DEFAULT "/tmp/sck_dns.txt"
-  #endif
-
-  #ifndef TCP_SERVER_DNS_FILE_DEFAULT
-    #define TCP_SERVER_DNS_FILE_DEFAULT "/tmp/tcp_dns.txt"
-  #endif
-
-  #ifndef MAX_TCP_SERVER_NODES
-    #define MAX_TCP_SERVER_NODES 256
   #endif
 
   #ifndef CONST_TEMP

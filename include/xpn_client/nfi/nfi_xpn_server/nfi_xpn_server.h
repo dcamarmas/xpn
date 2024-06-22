@@ -66,9 +66,6 @@
     #ifdef ENABLE_MPI_SERVER
     MPI_Comm server_comm; // For mpi_server
     #endif
-    #ifdef ENABLE_SCK_SERVER
-    int server_socket; // For sck_server
-    #endif
     // server port
     char port_name [XPN_SERVER_MAX_PORT_NAME];
     char  srv_name [XPN_SERVER_MAX_PORT_NAME];

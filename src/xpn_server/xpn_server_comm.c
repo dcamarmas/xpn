@@ -28,9 +28,6 @@
 #ifdef ENABLE_MPI_SERVER
 #include "mpi_server_comm.h"
 #endif
-#ifdef ENABLE_MPI_SERVER
-#include "sck_server_comm.h"
-#endif
 
 
 /* ... Functions / Funciones ......................................... */
@@ -48,12 +45,6 @@ int xpn_server_comm_init ( xpn_server_param_st *params )
     break;
   #endif
 
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = sck_server_comm_init( &params->server_socket, params->port_name );
-    break;
-  #endif
- 
   default:       
     printf("[XPN_SERVER] [xpn_server_comm_init] server_type '%d' not recognized\n", params->server_type);
     break;
@@ -74,12 +65,6 @@ int xpn_server_comm_destroy ( xpn_server_param_st *params )
     break;
   #endif
 
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = socket_close( params->server_socket );
-    break;
-  #endif
- 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_destroy] server_type '%d' not recognized\n", params->server_type);
     break;
@@ -100,12 +85,6 @@ int xpn_server_comm_accept ( xpn_server_param_st *params, void **new_sd )
     break;
   #endif
 
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = sck_server_comm_accept( params->server_socket, (int **)new_sd );
-    break;
-  #endif
- 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_accept] server_type '%d' not recognized\n", params->server_type);
     break;
@@ -126,12 +105,6 @@ int xpn_server_comm_disconnect ( xpn_server_param_st *params, void *sd )
     break;
   #endif
 
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = sck_server_comm_disconnect( (int *)sd );
-    break;
-  #endif
- 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_disconnect] server_type '%d' not recognized\n", params->server_type);
     break;
@@ -152,12 +125,6 @@ ssize_t xpn_server_comm_read_operation ( xpn_server_param_st *params, void *sd, 
     break;
   #endif
 
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = socket_recv(*(int*)sd, op, sizeof(*op));
-    break;
-  #endif
- 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_read_operation] server_type '%d' not recognized\n", params->server_type);
     break;
@@ -178,12 +145,6 @@ ssize_t xpn_server_comm_write_data ( xpn_server_param_st *params, void *sd, char
     break;
   #endif
 
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = socket_send(*(int*)sd, data, size);
-    break;
-  #endif
- 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_write_data] server_type '%d' not recognized\n", params->server_type);
     break;
@@ -204,12 +165,6 @@ ssize_t xpn_server_comm_read_data ( xpn_server_param_st *params, void *sd, char 
     break;
   #endif
 
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = socket_recv(*(int*)sd, data, size);
-    break;
-  #endif
- 
   default:
     printf("[XPN_SERVER] [xpn_server_comm_read_data] server_type '%d' not recognized\n", params->server_type);
     break;

@@ -37,10 +37,9 @@
 
   // PROTOCOLS
   /*
-  #define LOCAL    1
-  #define NFS    2
-  #define NFS3     3
-  #define TCP_SERVER   9
+  #define LOCAL       1
+  #define NFS         2
+  #define NFS3        3
   #define MPI_SERVER  10
   */
 

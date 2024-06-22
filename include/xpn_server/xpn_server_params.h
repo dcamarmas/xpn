@@ -58,10 +58,6 @@
     int  thread_mode_operations;
     int  server_type;  // it can be XPN_SERVER_TYPE_MPI, XPN_SERVER_TYPE_SCK
 
-    #ifdef ENABLE_SCK_SERVER
-    int server_socket; // For sck_server
-    #endif
-
     // server arguments
     int    argc;
     char **argv;

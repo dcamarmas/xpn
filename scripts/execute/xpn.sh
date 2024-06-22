@@ -100,11 +100,6 @@ start_xpn_servers() {
     srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           mkdir -p ${XPN_STORAGE_PATH}
-    if [[ ${SERVER_TYPE} == "sck" ]]; then
-      srun  -n "${NODE_NUM}" -N "${NODE_NUM}"\
-            -w "${HOSTFILE}" \
-            --export=ALL \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &
     else
       srun  -n "${NODE_NUM}" -N "${NODE_NUM}" --mpi=none \
             -w "${HOSTFILE}" \
@@ -118,10 +113,6 @@ start_xpn_servers() {
             -hostfile "${HOSTFILE}" \
             mkdir -p ${XPN_STORAGE_PATH}
 
-    if [[ ${SERVER_TYPE} == "sck" ]]; then
-      mpiexec -np       "${NODE_NUM}" \
-              -hostfile "${HOSTFILE}" \
-              "${BASE_DIR}"/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &
     else
       for ((i=1; i<=$NODE_NUM; i++))
       do
@@ -285,7 +276,7 @@ usage_details() {
   echo ""
   echo " optional arguments:"
   echo "     -h, --help                          Shows this help message and exits"
-  echo "     -e, --execute <arguments>           Server type: mpi, sck or tcp."
+  echo "     -e, --execute <arguments>           Server type: mpi."
   echo "     -a, --args <arguments>              Add various additional daemon arguments."
   echo "     -f, --foreground                    Starts the script in the foreground. Daemons are stopped by pressing 'q'."
   echo "     -c, --config   <path>               Path to configuration file."
