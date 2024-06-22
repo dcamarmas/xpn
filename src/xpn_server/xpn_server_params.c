@@ -177,11 +177,6 @@ int xpn_server_params_get ( xpn_server_param_st *params, int argc, char *argv[] 
     }
   }
 
-  // It can be done because it is not reentrant
-  if (params->server_type == XPN_SERVER_TYPE_SCK) {
-      params->thread_mode_operations = TH_NOT;
-  }
-
   debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_get] << End\n", params->rank);
 
   return 1;

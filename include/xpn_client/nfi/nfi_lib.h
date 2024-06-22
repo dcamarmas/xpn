@@ -34,7 +34,6 @@
   #include "nfi_xpn_server.h"
 
   // BEGIN OF ENABLE_MODULE BLOCK. Do not remove this line. //
-  
   // END OF ENABLE_MODULE BLOCK. Do not remove this line. //
 
 

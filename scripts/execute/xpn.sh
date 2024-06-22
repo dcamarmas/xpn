@@ -106,7 +106,6 @@ start_xpn_servers() {
           --export=ALL \
           "${BASE_DIR}"/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} "${ARGS}" &
     
-
   else
     # Create dir
     mpiexec -np       "${NODE_NUM}" \

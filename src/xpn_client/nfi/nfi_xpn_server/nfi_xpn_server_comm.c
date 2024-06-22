@@ -47,11 +47,6 @@ int nfi_xpn_server_comm_init ( struct nfi_xpn_server *params )
     ret = nfi_mpi_server_comm_init( params->xpn_thread );
     break;
   #endif
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = 0;
-    break;
-  #endif
   
   default:
     printf("[NFI_XPN_SERVER] [nfi_xpn_server_comm_init] server_type '%d' not recognized\n",params->server_type);
@@ -70,11 +65,6 @@ int nfi_xpn_server_comm_destroy ( struct nfi_xpn_server *params )
   #ifdef ENABLE_MPI_SERVER
   case XPN_SERVER_TYPE_MPI:
     ret = nfi_mpi_server_comm_destroy( );
-    break;
-  #endif
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = 0;
     break;
   #endif
   
@@ -137,11 +127,6 @@ int nfi_xpn_server_comm_write_operation ( struct nfi_xpn_server *params, int op)
     ret = nfi_mpi_server_comm_write_operation(params->server_comm, op);
     break;
   #endif
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = socket_send(params->server_socket, &op, sizeof(op));
-    break;
-  #endif
   
   default:
     printf("[NFI_XPN_SERVER] [nfi_xpn_server_comm_write_operation] server_type '%d' not recognized\n",params->server_type);
@@ -162,11 +147,6 @@ ssize_t nfi_xpn_server_comm_write_data ( struct nfi_xpn_server *params, char *da
     ret = nfi_mpi_server_comm_write_data(params->server_comm, data, size);
     break;
   #endif
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = socket_send(params->server_socket, data, size);
-    break;
-  #endif
   
   default:
     printf("[NFI_XPN_SERVER] [nfi_xpn_server_comm_write_data] server_type '%d' not recognized\n",params->server_type);
@@ -185,11 +165,6 @@ ssize_t nfi_xpn_server_comm_read_data ( struct nfi_xpn_server *params, char *dat
   #ifdef ENABLE_MPI_SERVER
   case XPN_SERVER_TYPE_MPI:
     ret = nfi_mpi_server_comm_read_data(params->server_comm, data, size);
-    break;
-  #endif
-  #ifdef ENABLE_SCK_SERVER
-  case XPN_SERVER_TYPE_SCK:
-    ret = socket_recv(params->server_socket, data, size);
     break;
   #endif
   
