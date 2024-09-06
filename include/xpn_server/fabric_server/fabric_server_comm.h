@@ -20,8 +20,8 @@
  */
 
 
-#ifndef _XPN_SERVER_CONF_H_
-#define _XPN_SERVER_CONF_H_
+#ifndef _FABRIC_SERVER_COMM_H_
+#define _FABRIC_SERVER_COMM_H_
 
   #ifdef  __cplusplus
     extern "C" {
@@ -30,34 +30,27 @@
   /* ... Include / Inclusion ........................................... */
 
   #include "all_system.h"
-  #ifdef ENABLE_MPI_SERVER
-  #include "mpi.h"
-  #endif
-
+  #include "base/utils.h"
+  #include "base/time_misc.h"
+  #include "base/fabric.h"
 
   /* ... Const / Const ................................................. */
 
-  #define XPN_SERVER_TYPE_MPI 0
-  #define XPN_SERVER_TYPE_SCK 1
-  #define XPN_SERVER_TYPE_FABRIC 2
 
-
-  /* MAX_BUFFER_SIZE */
-  #ifndef MAX_BUFFER_SIZE
-    #define MAX_BUFFER_SIZE (1*MB)
-  #endif
-
-  #ifdef MPI_MAX_PORT_NAME
-  #define XPN_SERVER_MAX_PORT_NAME MPI_MAX_PORT_NAME
-  #else
-  #define XPN_SERVER_MAX_PORT_NAME 1024
-  #endif
-  
   /* ... Data structures / Estructuras de datos ........................ */
 
 
   /* ... Functions / Funciones ......................................... */
 
+  // int      fabric_server_comm_init            ( int argc, char *argv[], int thread_mode, char * port_name );
+  // int      fabric_server_comm_destroy         ( char * port_name );
+
+  int      fabric_server_comm_accept          ( struct fabric_domain *fabric_domain, char * dest_addr, char * port_name, struct fabric_comm **new_sd );
+  int      fabric_server_comm_disconnect      ( struct fabric_comm *fd );
+
+  // ssize_t  fabric_server_comm_read_operation  ( struct fabric_comm *fd, int *op, int *rank_client_id, int *tag_client_id );
+  // ssize_t  fabric_server_comm_write_data      ( struct fabric_comm *fd, char *data, ssize_t size, int  rank_client_id, int tag_client_id );
+  // ssize_t  fabric_server_comm_read_data       ( struct fabric_comm *fd, char *data, ssize_t size, int  rank_client_id, int tag_client_id );
 
   /* ................................................................... */
 

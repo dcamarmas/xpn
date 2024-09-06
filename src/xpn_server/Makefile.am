@@ -15,6 +15,7 @@ XPN_SERVER_HEADER=		@top_srcdir@/include/xpn_server/xpn_server_params.h \
 				@top_srcdir@/include/xpn_server/xpn_server_comm.h
 MPI_SERVER_HEADER=		@top_srcdir@/include/xpn_server/mpi_server/mpi_server_comm.h
 SCK_SERVER_HEADER=		@top_srcdir@/include/xpn_server/sck_server/sck_server_comm.h
+FABRIC_SERVER_HEADER=		@top_srcdir@/include/xpn_server/fabric_server/fabric_server_comm.h
 
 SERVER_HEADER=$(XPN_SERVER_HEADER)
 SERVER_HEADER+=$(COMMON_HEADER)
@@ -26,6 +27,10 @@ endif
 
 if ENABLE_SCK_SERVER
 SERVER_HEADER+=$(SCK_SERVER_HEADER)
+endif
+
+if ENABLE_FABRIC_SERVER
+SERVER_HEADER+=$(FABRIC_SERVER_HEADER)
 endif
 
 
@@ -58,6 +63,7 @@ XPN_SERVER_OBJECTS=	@top_srcdir@/src/xpn_server/xpn_server.c \
 
 MPI_SERVER_OBJECTS=	@top_srcdir@/src/xpn_server/mpi_server/mpi_server_comm.c
 SCK_SERVER_OBJECTS=	@top_srcdir@/src/xpn_server/sck_server/sck_server_comm.c
+FABRIC_SERVER_OBJECTS=	@top_srcdir@/src/xpn_server/fabric_server/fabric_server_comm.c
 					
 SERVER_OBJECTS=$(XPN_SERVER_OBJECTS)
 SERVER_OBJECTS+=$(BASE_OBJECTS)
@@ -70,6 +76,10 @@ if ENABLE_SCK_SERVER
 SERVER_OBJECTS+=$(SCK_SERVER_OBJECTS)
 endif
 
+if ENABLE_FABRIC_SERVER
+SERVER_OBJECTS+=$(FABRIC_SERVER_OBJECTS)
+BASE_OBJECTS+=	@top_srcdir@/src/base/fabric.c
+endif
 
 
 ############

@@ -43,6 +43,11 @@ BASE_SOURCE=	@top_srcdir@/src/base/darray.c \
 				@top_srcdir@/src/base/utils.c
 
 
+if ENABLE_FABRIC_SERVER
+BASE_HEADER+=	@top_srcdir@/include/base/fabric.h
+BASE_SOURCE+=	@top_srcdir@/src/base/fabric.c 
+endif
+
 #############
 # LIBRARIES #
 #############

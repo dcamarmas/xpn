@@ -118,7 +118,7 @@ start_xpn_servers() {
             -hostfile "${HOSTFILE}" \
             mkdir -p ${XPN_STORAGE_PATH}
 
-    if [[ ${SERVER_TYPE} == "sck" ]]; then
+    if [[ ${SERVER_TYPE} == "sck" || ${SERVER_TYPE} == "fabric" ]]; then
       mpiexec -np       "${NODE_NUM}" \
               -hostfile "${HOSTFILE}" \
               "${BASE_DIR}"/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &

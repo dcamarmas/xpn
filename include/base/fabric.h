@@ -20,8 +20,8 @@
  */
 
 
-#ifndef _SOCKET_H_
-#define _SOCKET_H_
+#ifndef _FABRIC_H_
+#define _FABRIC_H_
 
   #ifdef  __cplusplus
     extern "C" {
@@ -31,26 +31,46 @@
 
   #include "all_system.h"
   #include "debug_msg.h"
+  #include <rdma/fabric.h>
+  #include <rdma/fi_domain.h>
+  #include <rdma/fi_endpoint.h>
+  #include <rdma/fi_cm.h>
 
 
   /* ... Const / Const ................................................. */
 
-  #define DEFAULT_XPN_SCK_PORT 3456
-  #define SOCKET_ACCEPT_CODE 123
-  #define SOCKET_FINISH_CODE 666
-  #define SOCKET_FINISH_CODE_AWAIT 667
 
   /* ... Data structures / Estructuras de datos ........................ */
 
+  struct fabric_domain
+  {
+    struct fi_info *hints, *info;
+    struct fid_fabric *fabric;
+    struct fid_domain *domain;
+  };
+
+  struct fabric_comm
+  {
+    struct fabric_domain * fabric_domain;
+    struct fid_ep *ep;
+    struct fid_av *av;
+    struct fid_cq *cq;
+    fi_addr_t fi_addr;
+  };
 
   /* ... Functions / Funciones ......................................... */
 
-  int socket_send ( int socket, void * buffer, int size );
-  int socket_recv ( int socket, void * buffer, int size );
-  int socket_server_create ( int *out_socket );
-  int socket_server_accept ( int socket, int *out_conection_socket, char *addr);
-  int socket_client_connect ( char * srv_name, int *out_socket );
-  int socket_close ( int socket );
+  int fabric_init ( struct fabric_domain *fabric );
+
+  int fabric_new_comm ( struct fabric_domain *domain, struct fabric_comm *out_fabric_comm );
+  
+  int fabric_get_addr( struct fabric_comm *fabric_comm, char * out_addr, size_t size_addr );
+  int fabric_register_addr( struct fabric_comm *fabric_comm, char * addr_buf );
+  int fabric_send ( struct fabric_comm *fabric, void * buffer, size_t size );
+  int fabric_recv ( struct fabric_comm *fabric, void * buffer, size_t size );
+  int fabric_close ( struct fabric_comm *fabric );
+  int fabric_close_comm ( struct fabric_comm *fabric_comm );
+  int fabric_destroy ( struct fabric_domain *domain );
 
   /* ... Macros / Macros .................................................. */
 

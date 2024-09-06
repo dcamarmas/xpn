@@ -30,12 +30,19 @@
 #ifdef ENABLE_SCK_SERVER
 #include "nfi_sck_server_comm.h"
 #endif
-
+#ifdef ENABLE_FABRIC_SERVER
+#include "nfi_fabric_server_comm.h"
+#include "fabric.h"
+#endif
 /* ... Const / Const ................................................. */
 
 
 /* ... Global variables / Variables globales ........................ */
 
+#ifdef ENABLE_FABRIC_SERVER
+int fabric_initialiced = 0;
+struct fabric_domain fabric_domain;
+#endif
 
 /* ... Functions / Funciones ......................................... */
 
@@ -54,6 +61,16 @@ int nfi_xpn_server_comm_init ( struct nfi_xpn_server *params )
   #ifdef ENABLE_SCK_SERVER
   case XPN_SERVER_TYPE_SCK:
     ret = 0;
+    break;
+  #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  case XPN_SERVER_TYPE_FABRIC:
+    if (fabric_initialiced == 0){
+      ret = fabric_init( &fabric_domain );
+      fabric_initialiced = 1;
+    }else{
+      ret = 0;
+    }
     break;
   #endif
   
@@ -83,6 +100,16 @@ int nfi_xpn_server_comm_destroy ( struct nfi_xpn_server *params )
     ret = 0;
     break;
   #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  case XPN_SERVER_TYPE_FABRIC:
+    if (fabric_initialiced == 1){
+      ret = fabric_destroy( &fabric_domain );
+      fabric_initialiced = 0;
+    }else{
+      ret = 0;
+    }
+    break;
+  #endif
   
   default:
     printf("[NFI_XPN_SERVER] [nfi_xpn_server_comm_destroy] server_type '%d' not recognized\n",params->server_type);
@@ -108,6 +135,11 @@ int nfi_xpn_server_comm_connect ( struct nfi_xpn_server *params )
   #ifdef ENABLE_SCK_SERVER
   case XPN_SERVER_TYPE_SCK:
     ret = nfi_sck_server_comm_connect(params->srv_name, params->port_name, &params->server_socket);
+    break;
+  #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  case XPN_SERVER_TYPE_FABRIC:
+    ret = nfi_fabric_server_comm_connect(&fabric_domain, params->srv_name, params->port_name, &params->fabric_comm);
     break;
   #endif
   
@@ -137,6 +169,11 @@ int nfi_xpn_server_comm_disconnect ( struct nfi_xpn_server *params )
     ret = nfi_sck_server_comm_disconnect(params->server_socket);
     break;
   #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  case XPN_SERVER_TYPE_FABRIC:
+    ret = nfi_fabric_server_comm_disconnect(&params->fabric_comm);
+    break;
+  #endif
   
   default:
     printf("[NFI_XPN_SERVER] [nfi_xpn_server_comm_disconnect] server_type '%d' not recognized\n",params->server_type);
@@ -162,6 +199,11 @@ int nfi_xpn_server_comm_write_operation ( struct nfi_xpn_server *params, int op)
   #ifdef ENABLE_SCK_SERVER
   case XPN_SERVER_TYPE_SCK:
     ret = socket_send(params->server_socket, &op, sizeof(op));
+    break;
+  #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  case XPN_SERVER_TYPE_FABRIC:
+    ret = fabric_send(&params->fabric_comm, &op, sizeof(op));
     break;
   #endif
   
@@ -191,6 +233,11 @@ ssize_t nfi_xpn_server_comm_write_data ( struct nfi_xpn_server *params, char *da
     ret = socket_send(params->server_socket, data, size);
     break;
   #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  case XPN_SERVER_TYPE_FABRIC:
+    ret = fabric_send(&params->fabric_comm, data, size);
+    break;
+  #endif
   
   default:
     printf("[NFI_XPN_SERVER] [nfi_xpn_server_comm_write_data] server_type '%d' not recognized\n",params->server_type);
@@ -216,6 +263,11 @@ ssize_t nfi_xpn_server_comm_read_data ( struct nfi_xpn_server *params, char *dat
   #ifdef ENABLE_SCK_SERVER
   case XPN_SERVER_TYPE_SCK:
     ret = socket_recv(params->server_socket, data, size);
+    break;
+  #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  case XPN_SERVER_TYPE_FABRIC:
+    ret = fabric_recv(&params->fabric_comm, data, size);
     break;
   #endif
   

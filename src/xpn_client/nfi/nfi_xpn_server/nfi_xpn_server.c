@@ -19,6 +19,7 @@
  *
  */
 
+
 /* ... Include / Inclusion ........................................... */
 
 #include "nfi_xpn_server.h"
@@ -373,7 +374,7 @@ int nfi_xpn_server_init ( char *url, struct nfi_server *serv, int server_type )
   debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_init] Locality enable: %d\n", serv->id, server_aux->xpn_locality);
 
   // Initialize MPI Client communication side...
-  debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_init] Initialize MPI Client communication side\n", serv->id);
+  debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_init] Initialize Client communication side\n", serv->id);
 
   ret = nfi_xpn_server_comm_init(server_aux);
   if (ret < 0)

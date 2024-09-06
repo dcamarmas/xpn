@@ -19,6 +19,7 @@
  *
  */
 
+
 /* ... Include / Inclusion ........................................... */
 
 #include "all_system.h"
@@ -112,18 +113,21 @@ void xpn_server_dispatcher ( struct st_th th )
     debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_server_dispatcher] End\n", th.id);
 }
 
-void xpn_server_accept ( void )
+void xpn_server_accept ( char *addr, char *port, void **comm )
 {
     debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_server_up] Start accepting\n", 0);
     int ret;
-    void *comm = NULL;
-    struct st_th th_arg;
-    ret = xpn_server_comm_accept(&params, &comm);
+    ret = xpn_server_comm_accept(&params, addr, port, comm);
     if (ret < 0) {
         return;
     }
-
     debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_server_up] Accept received\n", 0);
+}
+
+void xpn_server_dispatch(void *comm)
+{
+    struct st_th th_arg;
+    debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_server_dispatch] Accept received\n", 0);
 
     // Launch dispatcher per aplication
     th_arg.params = &params;
@@ -160,6 +164,8 @@ int xpn_server_up ( void )
     int connection_socket;
     int recv_code = 0;
     int await_stop = 0;
+	char str_addr[INET_ADDRSTRLEN];
+    void *comm = NULL;
 
     debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_server_up] >> Begin\n", 0);
 
@@ -207,7 +213,7 @@ int xpn_server_up ( void )
     while (!the_end)
     {
         debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_server_up] Listening to conections\n", 0);
-        ret = socket_server_accept(server_socket, &connection_socket);
+        ret = socket_server_accept(server_socket, &connection_socket, str_addr);
         if (ret < 0) continue;
 
         ret = socket_recv(connection_socket, &recv_code, sizeof(recv_code));
@@ -217,8 +223,47 @@ int xpn_server_up ( void )
         switch (recv_code)
         {
             case SOCKET_ACCEPT_CODE:
-                socket_send(connection_socket, params.port_name, MPI_MAX_PORT_NAME);
-                xpn_server_accept();
+                if (params.server_type == XPN_SERVER_TYPE_FABRIC){
+                    char aux_port[256] = {0};
+                    char addr_buf[64];
+                    size_t addr_buf_size = 64, addr_buf_size_aux = 64;
+
+                    xpn_server_accept(str_addr, aux_port, &comm);
+                    socket_send(connection_socket, aux_port, MPI_MAX_PORT_NAME);
+
+                    struct fabric_comm *fabric_comm = (struct fabric_comm*)comm;
+                    debug_info("fabric_get_addr\n");
+                    ret = fabric_get_addr(fabric_comm, addr_buf, addr_buf_size_aux);
+                    if (ret < 0){
+                        printf("Error: fabric_get_addr\n");
+                        return ret;
+                    }
+                    
+                    debug_info("socket_send addr_buf\n");
+                    ret = socket_send(connection_socket, addr_buf, addr_buf_size);
+                    if (ret < 0)
+                    {
+                        debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket send\n");
+                        socket_close(connection_socket);
+                        return -1;
+                    }
+                        
+                    debug_info("socket_recv addr_buf\n");
+                    ret = socket_recv(connection_socket, addr_buf, addr_buf_size);
+                    if (ret < 0)
+                    {
+                        debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket read\n");
+                        socket_close(connection_socket);
+                        return -1;
+                    }
+                    debug_info("fabric_register_addr addr_buf\n");
+                    fabric_register_addr(fabric_comm, addr_buf);
+                    xpn_server_dispatch(comm);
+                }else{
+                    socket_send(connection_socket, params.port_name, MPI_MAX_PORT_NAME);
+                    xpn_server_accept(str_addr, params.port_name, &comm);
+                    xpn_server_dispatch(comm);
+                }
                 break;
 
             case SOCKET_FINISH_CODE:

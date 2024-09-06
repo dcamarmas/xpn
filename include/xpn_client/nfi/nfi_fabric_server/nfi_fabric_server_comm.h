@@ -20,8 +20,8 @@
  */
 
 
-#ifndef _XPN_SERVER_CONF_H_
-#define _XPN_SERVER_CONF_H_
+#ifndef _NFI_FABRIC_SERVER_COMM_H_
+#define _NFI_FABRIC_SERVER_COMM_H_
 
   #ifdef  __cplusplus
     extern "C" {
@@ -30,35 +30,24 @@
   /* ... Include / Inclusion ........................................... */
 
   #include "all_system.h"
-  #ifdef ENABLE_MPI_SERVER
-  #include "mpi.h"
-  #endif
+  #include "base/utils.h"
+  #include "base/ns.h"
+  #include "socket.h"
+  #include "fabric.h"
+  #include "xpn_server/xpn_server_ops.h"
 
 
   /* ... Const / Const ................................................. */
 
-  #define XPN_SERVER_TYPE_MPI 0
-  #define XPN_SERVER_TYPE_SCK 1
-  #define XPN_SERVER_TYPE_FABRIC 2
 
-
-  /* MAX_BUFFER_SIZE */
-  #ifndef MAX_BUFFER_SIZE
-    #define MAX_BUFFER_SIZE (1*MB)
-  #endif
-
-  #ifdef MPI_MAX_PORT_NAME
-  #define XPN_SERVER_MAX_PORT_NAME MPI_MAX_PORT_NAME
-  #else
-  #define XPN_SERVER_MAX_PORT_NAME 1024
-  #endif
-  
   /* ... Data structures / Estructuras de datos ........................ */
 
 
   /* ... Functions / Funciones ......................................... */
+  
+  int   nfi_fabric_server_comm_connect       ( struct fabric_domain *fabric_domain, char * srv_name, char * port_name, struct fabric_comm *out_fabric_comm );
 
-
+  int   nfi_fabric_server_comm_disconnect    ( struct fabric_comm *fabric_comm );
   /* ................................................................... */
 
   #ifdef  __cplusplus

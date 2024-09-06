@@ -24,19 +24,22 @@
 function usage {
     echo ""
     echo " Usage:"
-    echo " $0  -m <mpicc path>  -i <Install path> -s <Source path>"
+    echo " $0  -m <mpicc path> -l <libfabric path> -i <Install path> -s <Source path>"
     echo " Where:"
     echo " * <mpicc   path> = full path where the mpicc is installed."
+    echo " * <libfabric   path> = full path where the libfabric is installed."
     echo " * <Install path> = full path where XPN is going to be installed."
     echo " * <Source  path> = full path to the source code XPN."
     echo ""
 }
 
-
+LIBFABRIC_PATH=""
 ## get arguments
-while getopts "m:i:s:" opt; do
+while getopts "m:l:i:s:" opt; do
     case "${opt}" in
           m) MPICC_PATH=${OPTARG}
+             ;;
+          l) LIBFABRIC_PATH=${OPTARG}
              ;;
           i) INSTALL_PATH=${OPTARG}
              ;;
@@ -86,7 +89,11 @@ echo " * XPN: compiling and installing..."
 pushd .
 cd "$SRC_PATH"
 ACLOCAL_FLAGS="-I /usr/share/aclocal/" autoreconf -v -i -s -W all
-./configure --prefix="${INSTALL_PATH}/xpn" --enable-sck_server --enable-mpi_server="${MPICC_PATH}" 
+if [ "$LIBFABRIC_PATH" == "" ]; then
+   ./configure --prefix="${INSTALL_PATH}/xpn" --enable-sck_server --enable-mpi_server="${MPICC_PATH}"
+else
+   ./configure --prefix="${INSTALL_PATH}/xpn" --enable-sck_server --enable-mpi_server="${MPICC_PATH}" --enable-fabric_server="${LIBFABRIC_PATH}"
+fi
 make clean
 make -j 8
 #doxygen doc/doxygen-XPN.cfg

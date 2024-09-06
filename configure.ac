@@ -184,7 +184,8 @@ INCLUDEFLAGS="\
 -I\$(top_srcdir)/include/xpn_client/nfi/nfi_local \
 -I\$(top_srcdir)/include/xpn_server/ \
 -I\$(top_srcdir)/include/xpn_server/mpi_server/ \
--I\$(top_srcdir)/include/xpn_server/sck_server/"
+-I\$(top_srcdir)/include/xpn_server/sck_server/ \
+-I\$(top_srcdir)/include/xpn_server/fabric_server/"
 
 
 
@@ -268,6 +269,29 @@ AC_SUBST(NFI_SCK_SERVER)
 AC_SUBST(NFI_SCK_SERVER_OBJECTS)
 AM_CONDITIONAL([ENABLE_SCK_SERVER], [test "$NFI_SCK_SERVER" = "nfi_sck_server"])
 ### END OF SCK_SERVER BLOCK. Do not remove this line. ###
+
+
+### BEGIN OF FABRIC_SERVER BLOCK. Do not remove this line. ###
+#
+# Defines the necessary variables if fabric_server is enabled.
+#
+AC_ARG_ENABLE(  [fabric_server],
+                [AS_HELP_STRING([--enable-fabric_server@<:@=/path/to/fabric/@:>@ (Don't use '~')],[Enable fabric_server module.])],
+                [
+                  [CDEFS="$CDEFS -DENABLE_FABRIC_SERVER"]
+                  [INCLUDEFLAGS="$INCLUDEFLAGS -I$enableval/include -I\$(top_srcdir)/include/xpn_client/nfi/nfi_fabric_server"]
+                  [NFI_FABRIC_SERVER="nfi_fabric_server"]
+                  [NFI_FABRIC_SERVER_OBJECTS="\$(NFI_FABRIC_SERVER_OBJECTS)"]
+                  [LIBLINK+=" -lfabric"]
+                  [LIBS=$LFLAGS" "$LIBS" -L$enableval/lib -lfabric"]
+                ]
+)
+AC_SUBST(NFI_FABRIC_SERVER)
+AC_SUBST(NFI_FABRIC_SERVER_OBJECTS)
+AC_SUBST(LIBLINK)
+AC_SUBST(LIBS)
+AM_CONDITIONAL([ENABLE_FABRIC_SERVER], [test "$NFI_FABRIC_SERVER" = "nfi_fabric_server"])
+### END OF FABRIC_SERVER BLOCK. Do not remove this line. ###
 
 
 ### BEGIN OF MQTT BLOCK. Do not remove this line. ###

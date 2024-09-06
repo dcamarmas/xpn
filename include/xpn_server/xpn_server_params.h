@@ -37,6 +37,9 @@
   #include "base/utils.h"
   #include "base/workers.h"
   #include "xpn_server_conf.h"
+  #ifdef ENABLE_FABRIC_SERVER
+  #include "base/fabric.h"
+  #endif
 
   /* ... Const / Const ................................................. */
 
@@ -60,6 +63,10 @@
 
     #ifdef ENABLE_SCK_SERVER
     int server_socket; // For sck_server
+    #endif
+
+    #ifdef ENABLE_FABRIC_SERVER
+    struct fabric_domain fabric_domain; // For fabric_server
     #endif
 
     int await_stop;
