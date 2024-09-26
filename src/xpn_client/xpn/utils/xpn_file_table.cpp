@@ -24,6 +24,14 @@
 
 namespace XPN
 {
+    xpn_file_table::~xpn_file_table()
+    {   
+        for (auto [key,file] : m_files)
+        {
+            remove(key);
+        }
+    }
+
     int xpn_file_table::insert(const xpn_file& file)
     {
         int fd;
@@ -33,7 +41,11 @@ namespace XPN
             fd = m_free_keys.front();
             m_free_keys.pop();
         }
-        auto pair = std::make_pair(fd, new xpn_file(file));
+        auto file_ptr = new (std::nothrow) xpn_file(file);
+        if (file_ptr == nullptr){
+            return -1;
+        }
+        auto pair = std::make_pair(fd, file_ptr);
         pair.second->m_links++;
         m_files.insert(pair);
         return fd;
