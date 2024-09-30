@@ -23,17 +23,18 @@
 
 #include "xpn_server_params.hpp"
 
-#include "base_c/debug_msg.h"
+#include "base_cpp/debug.hpp"
 #include "base_cpp/workers.hpp"
+#include "base_cpp/ns.hpp"
 
 namespace XPN {
 
 /* ... Functions / Funciones ......................................... */
 
 void xpn_server_params::show() {
-    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show] >> Begin\n", rank);
+    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show] >> Begin");
 
-    printf(" | * MPI server current configuration:\n");
+    printf(" | * XPN server current configuration:\n");
 
     // * server_type
     if (server_type == XPN_SERVER_TYPE_MPI) {
@@ -58,17 +59,17 @@ void xpn_server_params::show() {
     // * shutdown_file
     printf(" |\t-f  <path>:\t'%s'\n", shutdown_file.c_str());
     // * host
-    printf(" |\t-h  <host>:\t'%s'\n", srv_name);
+    printf(" |\t-h  <host>:\t'%s'\n", srv_name.c_str());
     // * await
     if (await_stop == 1) {
         printf(" |\t-w  await true\n");
     }
 
-    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show] << End\n", rank);
+    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show] << End");
 }
 
 void xpn_server_params::show_usage() {
-    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin\n", -1);
+    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin");
 
     printf("Usage:\n");
     printf("\t-s  <server_type>:   mpi (for mpi server); sck (for sck server)\n");
@@ -77,15 +78,15 @@ void xpn_server_params::show_usage() {
     printf("\t-h  <host>:          host server to be shutdown\n");
     printf("\t-w                   await for servers to stop\n");
 
-    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End\n", -1);
+    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End");
 }
 
-xpn_server_params::xpn_server_params(int argc, char *argv[]) {
-    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_get] >> Begin\n", params->rank);
+xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
+    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_get] >> Begin");
 
     // set default values
-    argc = argc;
-    argv = argv;
+    argc = _argc;
+    argv = _argv;
     size = 0;
     rank = 0;
     thread_mode_connections = workers_mode::sequential;
@@ -95,11 +96,11 @@ xpn_server_params::xpn_server_params(int argc, char *argv[]) {
     server_type = XPN_SERVER_TYPE_MPI;
 #endif
     await_stop = 0;
-    strcpy(port_name, "");
-    strcpy(srv_name, "");
+    port_name = "";
+    srv_name = "";
 
     // update user requests
-    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_get] Get user configuration\n", rank);
+    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_get] Get user configuration");
 
     for (int i = 0; i < argc; i++) {
         switch (argv[i][0]) {
@@ -156,7 +157,7 @@ xpn_server_params::xpn_server_params(int argc, char *argv[]) {
                         break;
 
                     case 'h':
-                        strcpy(srv_name, argv[i + 1]);
+                        srv_name = argv[i + 1];
                         break;
                     case 'w':
                         await_stop = 1;
@@ -180,7 +181,7 @@ xpn_server_params::xpn_server_params(int argc, char *argv[]) {
         thread_mode_operations = workers_mode::sequential;
     }
 
-    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_get] << End\n", rank);
+    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_get] << End");
 }
 
 /* ................................................................... */
