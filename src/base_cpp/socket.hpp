@@ -24,6 +24,7 @@
 #include <string>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 
 namespace XPN
 {
@@ -37,7 +38,7 @@ namespace XPN
     private:
         static int get_xpn_port();
     public:
-        static int64_t send ( int socket, void * buffer, int64_t size );
+        static int64_t send ( int socket, const void * buffer, int64_t size );
         static int64_t recv ( int socket, void * buffer, int64_t size );
         static int server_create ( int &out_socket );
         static int server_accept ( int socket, int &out_conection_socket );

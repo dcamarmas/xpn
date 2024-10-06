@@ -99,6 +99,18 @@ namespace XPN
         local_offset = block_line * block_size + (offset % block_size);
     }
 
+    void xpn_file::inverted_map_offset(int block_size, int replication_level, int nserv, int serv, int64_t local_offset, int first_node, int64_t &offset, int &replication)
+    {
+        int64_t block_line = local_offset / block_size;
+        int64_t block_replication = block_line * nserv + (((serv - first_node) % nserv + nserv) % nserv);
+        // round down
+        int64_t block = block_replication / (replication_level + 1);
+        // Calculate the offset
+        offset = block * block_size + (local_offset % block_size);
+        // Calculate the actual replication block
+        replication = block_replication % (replication_level + 1);
+    }
+
     void xpn_file::map_offset_mdata(int64_t offset, int replication, int64_t &local_offset, int &serv)
     {
         // Without expand or shrink
@@ -281,11 +293,11 @@ namespace XPN
             return res;
         }
         auto& api = xpn_api::get_instance();
-        api.m_worker->launch([&res, this, index](){
-            res = this->m_part.m_data_serv[index]->nfi_open(this->m_path, O_RDWR | O_CREAT, S_IRWXU, this->m_data_vfh[index]);
+        auto result = api.m_worker->launch([&res, this, index](){
+            return this->m_part.m_data_serv[index]->nfi_open(this->m_path, O_RDWR | O_CREAT, S_IRWXU, this->m_data_vfh[index]);
         });
 
-        api.m_worker->wait();
+        res = result.get();
         
         XPN_DEBUG_END_CUSTOM(index<<", "<<m_path);
         return res;
@@ -305,11 +317,11 @@ namespace XPN
             return res;
         }
         auto& api = xpn_api::get_instance();
-        api.m_worker->launch([&res, this, index](){
-            res = this->m_part.m_data_serv[index]->nfi_opendir(this->m_path, this->m_data_vfh[index]);
+        auto result = api.m_worker->launch([&res, this, index](){
+            return this->m_part.m_data_serv[index]->nfi_opendir(this->m_path, this->m_data_vfh[index]);
         });
 
-        api.m_worker->wait();
+        res = result.get();
         
         XPN_DEBUG_END_CUSTOM(index<<", "<<m_path);
         return res;

@@ -21,39 +21,38 @@
 
 #pragma once
 
-#include "workers.hpp"
-#include <condition_variable> 
-#include <mutex> 
-#include <queue> 
-#include <thread> 
-#include <variant> 
+#include "mpi.h"
+#include <string>
+#include <memory>
+
+#include "xpn_server/xpn_server_comm.hpp"
 
 namespace XPN
 {
-    class workers_pool : public workers
-    {
-    public:
-        workers_pool();
-        ~workers_pool();
+  
+  class sck_server_comm : public xpn_server_comm
+  {
+  public:
+    sck_server_comm(int socket) : m_socket(socket) {}
+    ~sck_server_comm() override {}
 
-        std::future<int> launch(std::function<int()> task) override;
-        void launch_no_future(std::function<void()> task) override;
-        void wait_all() override;
-    private:
-        std::vector<std::thread> m_threads;
-        std::queue<std::variant<std::packaged_task<int()>,std::function<void()>>> m_tasks;
-        std::mutex m_queue_mutex;
-        std::condition_variable m_cv;
+    int64_t read_operation(int &op, int &rank_client_id, int &tag_client_id) override;
+    int64_t read_data(void *data, int64_t size, int rank_client_id, int tag_client_id) override;
+    int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
+  public:
+    int m_socket;
+  };
+  
+  class sck_server_control_comm : public xpn_server_control_comm
+  {
+  public:
+    sck_server_control_comm();
+    ~sck_server_control_comm() override;
+    
+    xpn_server_comm* accept() override;
+    void disconnect(xpn_server_comm *comm) override;
+  private:
+    int m_socket;
+  };
 
-        std::mutex m_wait_mutex;
-        std::condition_variable m_wait_cv;
-
-        std::mutex m_full_mutex;
-        std::condition_variable m_full_cv;
-
-        bool m_stop = false;
-        int m_wait = 0;
-
-        size_t m_num_threads = 0;
-    };
 } // namespace XPN

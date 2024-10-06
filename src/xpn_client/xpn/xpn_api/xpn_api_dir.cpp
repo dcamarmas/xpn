@@ -73,7 +73,7 @@ namespace XPN
 
     int xpn_api::closedir(DIR *dirp)
     {
-        XPN_DEBUG_BEGIN;
+        XPN_DEBUG_BEGIN_CUSTOM(dirp->fd);
         int res = 0;
         
         if((NULL == dirp)||(!m_file_table.has(dirp->fd))){
@@ -82,16 +82,29 @@ namespace XPN
         }
 
         auto& file = m_file_table.get(dirp->fd);
-
+        XPN_DEBUG("Close : '"<<file.m_path<<"'")
+        std::vector<std::future<int>> v_res(file.m_data_vfh.size());
         for (size_t i = 0; i < file.m_data_vfh.size(); i++)
         {
             if (file.m_data_vfh[i].is_initialized()){
-                m_worker->launch([i, &file](){
-                    file.m_part.m_data_serv[i]->nfi_closedir(file.m_data_vfh[i]);
+                v_res[i] = m_worker->launch([i, &file](){
+                    return file.m_part.m_data_serv[i]->nfi_closedir(file.m_data_vfh[i]);
                 });
             }
         }
-        m_worker->wait();
+        
+        int aux_res;
+        for (auto &fut : v_res)
+        {   
+            if (!fut.valid()) continue;
+            aux_res = fut.get();
+            if (aux_res < 0)
+            {
+                res = aux_res;
+            }
+        }
+
+        m_file_table.remove(dirp->fd);
 
         delete dirp->path;
         delete dirp;
@@ -114,15 +127,15 @@ namespace XPN
         int master_dir = file.m_mdata.master_dir();
         file.initialize_vfh_dir(master_dir);
 
-        struct ::dirent * entry = new dirent;
+        struct ::dirent * entry = new (std::nothrow) dirent;
         if (entry == nullptr){
             return nullptr;
         }
-        m_worker->launch([&res, master_dir, &file, entry](){
-            res = file.m_part.m_data_serv[master_dir]->nfi_readdir(file.m_data_vfh[master_dir], *entry);
+        auto fut = m_worker->launch([master_dir, &file, &entry](){
+            return file.m_part.m_data_serv[master_dir]->nfi_readdir(file.m_data_vfh[master_dir], *entry);
         });
 
-        m_worker->wait();
+        res = fut.get();
 
         if (res < 0){
             XPN_DEBUG_END;
@@ -166,19 +179,19 @@ namespace XPN
 
         xpn_file file(file_path, m_partitions.at(part_name));
 
-        std::vector<int> v_res(file.m_part.m_data_serv.size());
+        std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
         for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             auto& serv = file.m_part.m_data_serv[i];
-            m_worker->launch([i, &v_res, &serv, &file, perm](){
-                v_res[i] = serv->nfi_mkdir(file.m_path, perm);
+            v_res[i] = m_worker->launch([&serv, &file, perm](){
+                return serv->nfi_mkdir(file.m_path, perm);
             });
         }
 
-        m_worker->wait();
-        
-        for (auto &aux_res : v_res)
-        {
+        int aux_res;
+        for (auto &fut : v_res)
+        {   
+            aux_res = fut.get();
             if (aux_res < 0)
             {
                 res = aux_res;
@@ -213,21 +226,21 @@ namespace XPN
 
         xpn_file file(file_path, m_partitions.at(part_name));
 
-        std::vector<int> v_res(file.m_part.m_data_serv.size());
+        std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
         for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             auto& serv = file.m_part.m_data_serv[i];
-            m_worker->launch([i, &v_res, &serv, &file](){
+            v_res[i] = m_worker->launch([&serv, &file](){
                 // Always wait and not async because it can fail in other ways
-                v_res[i] = serv->nfi_rmdir(file.m_path, false);
+                return serv->nfi_rmdir(file.m_path, false);
                 // v_res[i] = serv->nfi_rmdir(file.m_path, file.m_mdata.master_file()==static_cast<int>(i));
             });
         }
-
-        m_worker->wait();
         
-        for (auto &aux_res : v_res)
-        {
+        int aux_res;
+        for (auto &fut : v_res)
+        {   
+            aux_res = fut.get();
             if (aux_res < 0)
             {
                 res = aux_res;
