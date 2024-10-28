@@ -41,6 +41,8 @@ void xpn_server_params::show() {
         printf(" |\t-s  <int>:\tmpi_server\n");
     } else if (server_type == XPN_SERVER_TYPE_SCK) {
         printf(" |\t-s  <int>:\tsck_server\n");
+    } else if (server_type == XPN_SERVER_TYPE_FABRIC) {
+        printf(" |\t-s  <int>:\tfabric_server\n");
     } else {
         printf(" |\t-s  <int>:\tError: unknown\n");
     }
@@ -148,6 +150,8 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
                                 server_type = XPN_SERVER_TYPE_MPI;
                             } else if (strcmp("sck", argv[i + 1]) == 0) {
                                 server_type = XPN_SERVER_TYPE_SCK;
+                            } else if (strcmp("fabric", argv[i + 1]) == 0) {
+                                server_type = XPN_SERVER_TYPE_FABRIC;
                             } else {
                                 printf("ERROR: unknown option %s\n", argv[i + 1]);
                                 show_usage();
@@ -177,7 +181,7 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
 
     // In sck_server worker for operations has to be sequential because you don't want to have to make a socket per
     // operation. It can be done because it is not reentrant
-    if (server_type == XPN_SERVER_TYPE_SCK) {
+    if (server_type == XPN_SERVER_TYPE_SCK || server_type == XPN_SERVER_TYPE_FABRIC) {
         thread_mode_operations = workers_mode::sequential;
     }
 

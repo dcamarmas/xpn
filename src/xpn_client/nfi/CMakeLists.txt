@@ -8,6 +8,7 @@ file(GLOB_RECURSE XPN_NFI_SOURCE
 )
 
 add_library(xpn_nfi OBJECT ${XPN_NFI_HEADERS} ${XPN_NFI_SOURCE})
+target_link_libraries(xpn_nfi PRIVATE xpn_base_cpp)
 
 target_include_directories(xpn_nfi PRIVATE
 	"${PROJECT_SOURCE_DIR}/src"

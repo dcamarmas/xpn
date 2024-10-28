@@ -39,7 +39,7 @@ namespace XPN
         int stop();
         int print_stats();
 
-        void accept();
+        void accept(int socket);
         void dispatcher(xpn_server_comm *comm);
         void do_operation(xpn_server_comm *comm, xpn_server_ops op, int rank_client_id, int tag_client_id, timer timer);
         void finish();

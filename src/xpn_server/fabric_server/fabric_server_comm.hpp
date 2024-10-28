@@ -18,42 +18,41 @@
  *  along with Expand.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 #pragma once
 
-#include "mpi.h"
 #include <string>
 #include <memory>
 
 #include "xpn_server/xpn_server_comm.hpp"
+#include "base_cpp/fabric.hpp"
 
 namespace XPN
 {
   
-  class mpi_server_comm : public xpn_server_comm
+  class fabric_server_comm : public xpn_server_comm
   {
   public:
-    mpi_server_comm(MPI_Comm &comm) : m_comm(comm) {}
-    ~mpi_server_comm() override {}
+    fabric_server_comm(fabric::comm comm) : m_comm(comm) {}
+    ~fabric_server_comm() override {}
 
     int64_t read_operation(xpn_server_ops &op, int &rank_client_id, int &tag_client_id) override;
     int64_t read_data(void *data, int64_t size, int rank_client_id, int tag_client_id) override;
     int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
   public:
-    MPI_Comm m_comm;
+    fabric::comm m_comm;
   };
   
-  class mpi_server_control_comm : public xpn_server_control_comm
+  class fabric_server_control_comm : public xpn_server_control_comm
   {
   public:
-    mpi_server_control_comm(xpn_server_params &params);
-    ~mpi_server_control_comm() override;
+    fabric_server_control_comm();
+    ~fabric_server_control_comm() override;
     
     xpn_server_comm* accept(int socket) override;
     void disconnect(xpn_server_comm *comm) override;
-
   private:
-    int m_rank, m_size;
-    bool m_thread_mode;
+    fabric::domain m_domain;
   };
 
 } // namespace XPN

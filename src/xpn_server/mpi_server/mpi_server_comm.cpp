@@ -20,6 +20,7 @@
  */
 #include "mpi_server_comm.hpp"
 #include "base_cpp/debug.hpp"
+#include "base_cpp/socket.hpp"
 #include "base_cpp/ns.hpp"
 
 namespace XPN
@@ -122,13 +123,19 @@ mpi_server_control_comm::~mpi_server_control_comm()
 }
 
 // accept, disconnect
-xpn_server_comm* mpi_server_control_comm::accept ( )
+xpn_server_comm* mpi_server_control_comm::accept ( int socket )
 {
   int ret;
 
   MPI_Comm comm;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] >> Begin");
+
+  ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
+  if (ret < 0){
+    print("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] ERROR: socket send port fails");
+    return nullptr;
+  }
 
   // Accept
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] Accept");

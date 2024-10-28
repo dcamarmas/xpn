@@ -111,25 +111,31 @@ sck_server_control_comm::~sck_server_control_comm()
   socket::close(m_socket);
 }
 
-xpn_server_comm* sck_server_control_comm::accept ( )
+xpn_server_comm* sck_server_control_comm::accept ( int socket )
 {
   int    ret, sc, flag;
   struct sockaddr_in client_addr;
   socklen_t size = sizeof(struct sockaddr_in);
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_accept] >> Begin");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] >> Begin");
+
+  ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
+  if (ret < 0){
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: socket send port fails");
+    return nullptr;
+  }
 
   // Accept
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_accept] Accept");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Accept");
 
   sc = ::accept(m_socket, (struct sockaddr *)&client_addr, &size);
   if (sc < 0)
   {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_destroy] ERROR: accept fails");
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] ERROR: accept fails");
     return nullptr;
   }
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_destroy] desp. accept conection from "<<sc);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] desp. accept conection from "<<sc);
   // tcp_nodelay
   flag = 1;
   ret = ::setsockopt(sc, IPPROTO_TCP, TCP_NODELAY, & flag, sizeof(flag));
@@ -156,7 +162,7 @@ xpn_server_comm* sck_server_control_comm::accept ( )
     return nullptr;
   }
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_accept] << End");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] << End");
 
   return new (std::nothrow) sck_server_comm(sc);
 }

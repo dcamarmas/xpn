@@ -25,6 +25,7 @@
 #include "xpn_server_comm.hpp"
 #include "mpi_server/mpi_server_comm.hpp"
 #include "sck_server/sck_server_comm.hpp"
+#include "fabric_server/fabric_server_comm.hpp"
 
 namespace XPN
 {
@@ -36,6 +37,8 @@ namespace XPN
             return std::make_unique<mpi_server_control_comm>(params);
         case XPN_SERVER_TYPE_SCK:  
             return std::make_unique<sck_server_control_comm>();
+        case XPN_SERVER_TYPE_FABRIC:  
+            return std::make_unique<fabric_server_control_comm>();
         default:  fprintf(stderr, "[XPN_SERVER] [xpn_server_control_comm] server_type '%d' not recognized\n", params.server_type);
         }
         return nullptr;

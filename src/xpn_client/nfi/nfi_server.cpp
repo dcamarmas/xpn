@@ -78,7 +78,8 @@ namespace XPN
                 return std::make_unique<nfi_local>(parser);
             }
         if (url.find(server_protocols::mpi_server) == 0 ||
-            url.find(server_protocols::sck_server) == 0){
+            url.find(server_protocols::sck_server) == 0 ||
+            url.find(server_protocols::fabric_server) == 0 ){
                 return std::make_unique<nfi_xpn_server>(parser);
             }
         

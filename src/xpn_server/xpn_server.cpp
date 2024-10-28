@@ -82,11 +82,11 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] End");
 }
 
-void xpn_server::accept ( )
+void xpn_server::accept ( int connection_socket )
 {
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Start accepting");
     
-    xpn_server_comm* comm = m_control_comm->accept();
+    xpn_server_comm* comm = m_control_comm->accept(connection_socket);
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Accept received");
 
@@ -178,8 +178,7 @@ int xpn_server::run()
         switch (recv_code)
         {
             case socket::ACCEPT_CODE:
-                socket::send(connection_socket, m_control_comm->m_port_name.data(), MAX_PORT_NAME);
-                accept();
+                accept(connection_socket);
                 break;
 
             case socket::STATS_wINDOW_CODE:
