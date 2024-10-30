@@ -35,11 +35,11 @@ function usage {
 
 LIBFABRIC_PATH=""
 ## get arguments
-while getopts "m:l:i:s:" opt; do
+while getopts "m:f:i:s:" opt; do
     case "${opt}" in
           m) MPICC_PATH=${OPTARG}
              ;;
-          l) LIBFABRIC_PATH=${OPTARG}
+          f) LIBFABRIC_PATH=${OPTARG}
              ;;
           i) INSTALL_PATH=${OPTARG}
              ;;
@@ -85,13 +85,15 @@ echo " * XPN: preparing directories..."
 rm -fr "${INSTALL_PATH}/xpn"
 
 echo " * XPN: compiling and installing..."
+echo " * XPN mpi: $MPICC_PATH"
+echo " * XPN libfabric: $LIBFABRIC_PATH"
 pushd .
 cd "$SRC_PATH"
 rm -r build
 mkdir -p build
 cd build
 
-cmake -S .. -B . -D BUILD_TESTS=ON -D CMAKE_INSTALL_PREFIX="${INSTALL_PATH}/xpn" -D CMAKE_C_COMPILER="${MPICC_PATH}"/mpicc -D CMAKE_CXX_COMPILER="${MPICC_PATH}"/mpicxx -D FABRIC_PATH="${LIBFABRIC_PATH}"
+cmake -S .. -B . -D BUILD_TESTS=ON -D CMAKE_INSTALL_PREFIX="${INSTALL_PATH}/xpn" -D CMAKE_C_COMPILER="${MPICC_PATH}"/mpicc -D CMAKE_CXX_COMPILER="${MPICC_PATH}"/mpicxx -D ENABLE_FABRIC_SERVER="${LIBFABRIC_PATH}"
 
 cmake --build . -j
 
