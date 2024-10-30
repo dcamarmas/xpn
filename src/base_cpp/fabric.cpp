@@ -81,7 +81,7 @@ int fabric::init ( domain &fabric )
 {
 	int ret;
 
-  	debug_info("[FABRIC] [fabric_init] Start\n");
+  	debug_info("[FABRIC] [fabric_init] Start");
 	
 	std::unique_lock<std::mutex> lock(s_mutex);
 	/*
@@ -108,7 +108,7 @@ int fabric::init ( domain &fabric )
 	}
 
 	#ifdef DEBUG
-		debug_info("[FABRIC] [fabric_init] %s", fi_tostr(fabric.info, FI_TYPE_INFO));
+		debug_info("[FABRIC] [fabric_init] "<<fi_tostr(fabric.info, FI_TYPE_INFO));
 	#endif
 	/*
 	 * Initialize our fabric. The fabric network represents a collection of
@@ -146,7 +146,7 @@ int fabric::new_comm ( domain &domain, comm &out_fabric_comm )
 	struct fi_av_attr av_attr = {};
 	int ret;
 
-  	debug_info("[FABRIC] [fabric_new_comm] Start\n");
+  	debug_info("[FABRIC] [fabric_new_comm] Start");
 	std::unique_lock<std::mutex> lock(s_mutex);
 
 	// First asing the domain to the fabric_comm
@@ -252,26 +252,26 @@ int fabric::new_comm ( domain &domain, comm &out_fabric_comm )
 int fabric::get_addr( comm &fabric_comm, char * out_addr, size_t &size_addr )
 {
 	int ret = -1;
-  	debug_info("[FABRIC] [fabric_get_addr] Start\n");
+  	debug_info("[FABRIC] [fabric_get_addr] Start");
 	ret = fi_getname(&fabric_comm.ep->fid, out_addr, &size_addr);
 	if (ret) {
 		printf("fi_getname error %d\n", ret);
 		return ret;
 	}
-  	debug_info("[FABRIC] [fabric_end_addr] Start\n");
+  	debug_info("[FABRIC] [fabric_get_addr] End = "<<ret);
 	return ret;
 }
 
 int fabric::register_addr( comm &fabric_comm, char * addr_buf )
 {
 	int ret = -1;
-  	debug_info("[FABRIC] [fabric_register_addr] Start\n");
+  	debug_info("[FABRIC] [fabric_register_addr] Start");
 	ret = fi_av_insert(fabric_comm.av, addr_buf, 1, &fabric_comm.fi_addr, 0, NULL);
 	if (ret != 1) {
 		printf("av insert error\n");
 		return -FI_ENOSYS;
 	}
-  	debug_info("[FABRIC] [fabric_register_addr] End\n");
+  	debug_info("[FABRIC] [fabric_register_addr] End = "<<ret);
 	return ret;
 }
 
@@ -280,14 +280,13 @@ int fabric::wait ( comm &fabric_comm )
 	struct fi_cq_err_entry comp;
 	int ret;
 
-  	debug_info("[FABRIC] [fabric_wait] Start\n");
-
-	ret = fi_cq_sreadfrom(fabric_comm.cq, &comp, 1, &fabric_comm.fi_addr, NULL, -1);
-  	debug_info("[FABRIC] [fabric_wait] fi_cq_sread = "<<ret);
-
+  	debug_info("[FABRIC] [fabric_wait] Start");
+	// ret = fi_cq_sreadfrom(fabric_comm.cq, &comp, 1, &fabric_comm.fi_addr, NULL, -1);
+	ret = fi_cq_sread(fabric_comm.cq, &comp, 1, NULL, -1);
 	if (ret < 0){
 		printf("error reading cq (%d)\n", ret);
 	}
+  	debug_info("[FABRIC] [fabric_wait] End = "<<ret);
 
 	return ret;
 }
@@ -296,7 +295,7 @@ int fabric::send ( comm &fabric_comm, const void * buffer, size_t size )
 {
 	int ret;
 
-  	debug_info("[FABRIC] [fabric_send] Start\n");
+  	debug_info("[FABRIC] [fabric_send] Start");
 	do { 
 		ret = fi_send(fabric_comm.ep, buffer, size, NULL, fabric_comm.fi_addr, NULL);
 		
@@ -314,7 +313,7 @@ int fabric::send ( comm &fabric_comm, const void * buffer, size_t size )
 		return -1;
 	} 
 	
-  	debug_info("[FABRIC] [fabric_send] fi_send "<<size);
+  	debug_info("[FABRIC] [fabric_send] End = "<<size);
 	return size;
 }
 
@@ -322,7 +321,7 @@ int fabric::recv ( comm &fabric_comm, void * buffer, size_t size )
 {
 	int ret;
 
-  	debug_info("[FABRIC] [fabric_recv] Start\n");
+  	debug_info("[FABRIC] [fabric_recv] Start");
 	do { 
 		ret = fi_recv(fabric_comm.ep, buffer, size, NULL, fabric_comm.fi_addr, NULL);
 
@@ -340,31 +339,33 @@ int fabric::recv ( comm &fabric_comm, void * buffer, size_t size )
 		return -1;
 	} 
 
-  	debug_info("[FABRIC] [fabric_recv] fi_recv "<<size);
+  	debug_info("[FABRIC] [fabric_recv] End = "<<size);
 	return size;
 }
 
 int fabric::close ( comm &fabric_comm )
 {
 	int ret;
-	debug_info("[FABRIC] [fabric_close_comm] Start\n");
+	debug_info("[FABRIC] [fabric_close_comm] Start");
 
 	std::unique_lock<std::mutex> lock(s_mutex);
 
-	debug_info("[FABRIC] [fabric_close_comm] Close endpoint\n");
+	debug_info("[FABRIC] [fabric_close_comm] Close endpoint");
 	ret = fi_close(&fabric_comm.ep->fid);
 	if (ret)
 		printf("warning: error closing EP (%d)\n", ret);
 
-	debug_info("[FABRIC] [fabric_close_comm] Close address vector\n");
+	debug_info("[FABRIC] [fabric_close_comm] Close address vector");
 	ret = fi_close(&fabric_comm.av->fid);
 	if (ret)
 		printf("warning: error closing AV (%d)\n", ret);
 
-	debug_info("[FABRIC] [fabric_close_comm] Close completion queue\n");
+	debug_info("[FABRIC] [fabric_close_comm] Close completion queue");
 	ret = fi_close(&fabric_comm.cq->fid);
 	if (ret)
 		printf("warning: error closing CQ (%d)\n", ret);
+		
+	debug_info("[FABRIC] [fabric_close_comm] End = "<<ret);
 	
 	return ret;
 }
@@ -373,27 +374,29 @@ int fabric::destroy ( domain &domain )
 {
 	int ret;
 
-	debug_info("[FABRIC] [fabric_destroy] Start\n");
+	debug_info("[FABRIC] [fabric_destroy] Start");
 
 	std::unique_lock<std::mutex> lock(s_mutex);
   	
-	debug_info("[FABRIC] [fabric_close_comm] Close domain\n");
+	debug_info("[FABRIC] [fabric_destroy] Close domain");
 	ret = fi_close(&domain.domain->fid);
 	if (ret)
 		printf("warning: error closing domain (%d)\n", ret);
 
-	debug_info("[FABRIC] [fabric_close_comm] Close fabric\n");
+	debug_info("[FABRIC] [fabric_destroy] Close fabric");
 	ret = fi_close(&domain.fabric->fid);
 	if (ret)
 		printf("warning: error closing fabric (%d)\n", ret);
 
-	debug_info("[FABRIC] [fabric_close_comm] Free hints \n");
+	debug_info("[FABRIC] [fabric_destroy] Free hints ");
 	if (domain.hints)
-		fi_freeinfo(domain.info);
+		fi_freeinfo(domain.hints);
 
-	debug_info("[FABRIC] [fabric_close_comm] Free info \n");
+	debug_info("[FABRIC] [fabric_destroy] Free info ");
 	if (domain.info)
 		fi_freeinfo(domain.info);
+
+	debug_info("[FABRIC] [fabric_destroy] End = "<<ret);
 
 	return ret;
 }
