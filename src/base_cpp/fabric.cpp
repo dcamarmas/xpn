@@ -19,6 +19,7 @@
  *
  */
 
+#define DEBUG
 #include "base_cpp/fabric.hpp"
 #include "base_cpp/debug.hpp"
 
@@ -27,10 +28,10 @@ namespace XPN
 
 std::mutex fabric::s_mutex;
 	
-int set_hints( struct ::fi_info * hints)
+int fabric::set_hints( domain &fabric_domain )
 {
-	hints = fi_allocinfo();
-	if (!hints)
+	fabric_domain.hints = fi_allocinfo();
+	if (!fabric_domain.hints)
 		return -FI_ENOMEM;
 
 	/*
@@ -38,13 +39,13 @@ int set_hints( struct ::fi_info * hints)
 	 * to reliably send messages to peers without having to
 	 * listen/connect/accept.
 	 */
-	hints->ep_attr->type = FI_EP_RDM;
+	fabric_domain.hints->ep_attr->type = FI_EP_RDM;
 
 	/*
 	 * Request basic messaging capabilities from the provider (no tag
 	 * matching, no RMA, no atomic operations)
 	 */
-	hints->caps = FI_MSG;
+	fabric_domain.hints->caps = FI_MSG;
 
 	/*
 	 * Default to FI_DELIVERY_COMPLETE which will make sure completions do
@@ -52,7 +53,7 @@ int set_hints( struct ::fi_info * hints)
 	 * Otherwise, the client might get a completion and exit before the
 	 * server receives the message. This is to make the test simpler.
 	 */
-	hints->tx_attr->op_flags = FI_DELIVERY_COMPLETE;
+	fabric_domain.hints->tx_attr->op_flags = FI_DELIVERY_COMPLETE;
 
 	/*
 	 * Set the mode bit to 0. Mode bits are used to convey requirements
@@ -61,16 +62,16 @@ int set_hints( struct ::fi_info * hints)
 	 * domain. On input to fi_getinfo, applications set the mode bits that
 	 * they support.
 	 */
-	hints->mode = 0;
+	fabric_domain.hints->mode = FI_CONTEXT;
 
 	/*
 	 * Set mr_mode to 0. mr_mode is used to specify the type of memory
 	 * registration capabilities the application requires. In this example
 	 * we are not using memory registration so this bit will be set to 0.
 	 */
-	hints->domain_attr->mr_mode = 0;
+	// hints->domain_attr->mr_mode = 0;
 
-	hints->domain_attr->threading = FI_THREAD_SAFE;
+	// hints->domain_attr->threading = FI_THREAD_SAFE;
 
 	/* Done setting hints */
 
@@ -96,7 +97,7 @@ int fabric::init ( domain &fabric )
 	 * for the client because the fields refer to the server, not the
 	 * caller (client).
 	 */
-	set_hints(fabric.hints);
+	set_hints(fabric);
 	
 	ret = fi_getinfo(fi_version(), NULL, NULL, 0,
 			 fabric.hints, &fabric.info);
@@ -140,7 +141,7 @@ int fabric::init ( domain &fabric )
 	return 0;
 }
 
-int fabric::new_comm ( domain &domain, comm &out_fabric_comm )
+int fabric::new_comm ( domain &fabric_domain, comm &out_fabric_comm )
 {
     struct fi_cq_attr cq_attr = {};
 	struct fi_av_attr av_attr = {};
@@ -148,9 +149,6 @@ int fabric::new_comm ( domain &domain, comm &out_fabric_comm )
 
   	debug_info("[FABRIC] [fabric_new_comm] Start");
 	std::unique_lock<std::mutex> lock(s_mutex);
-
-	// First asing the domain to the fabric_comm
-	out_fabric_comm.fabric_domain = &domain;
 
 	/*
 	 * Initialize our endpoint. Endpoints are transport level communication
@@ -163,7 +161,7 @@ int fabric::new_comm ( domain &domain, comm &out_fabric_comm )
 	 * Different providers support different types of endpoints.
 	 */
 
-	ret = fi_endpoint(out_fabric_comm.fabric_domain->domain, out_fabric_comm.fabric_domain->info, &out_fabric_comm.ep, NULL);
+	ret = fi_endpoint(fabric_domain.domain, fabric_domain.info, &out_fabric_comm.ep, NULL);
   	debug_info("[FABRIC] [fabric_new_comm] fi_endpoint = "<<ret);
 	if (ret) {
 		printf("fi_endpoint error (%d)\n", ret);
@@ -180,7 +178,7 @@ int fabric::new_comm ( domain &domain, comm &out_fabric_comm )
 	cq_attr.size = 128;
 	cq_attr.format = FI_CQ_FORMAT_MSG;
 	cq_attr.wait_obj = FI_WAIT_UNSPEC;
-	ret = fi_cq_open(out_fabric_comm.fabric_domain->domain, &cq_attr, &out_fabric_comm.cq, NULL);
+	ret = fi_cq_open(fabric_domain.domain, &cq_attr, &out_fabric_comm.cq, NULL);
   	debug_info("[FABRIC] [fabric_new_comm] fi_cq_open = "<<ret);
 	if (ret) {
 		printf("fi_cq_open error (%d)\n", ret);
@@ -215,7 +213,7 @@ int fabric::new_comm ( domain &domain, comm &out_fabric_comm )
 
 	av_attr.type = FI_AV_TABLE;
 	av_attr.count = 1;
-	ret = fi_av_open(out_fabric_comm.fabric_domain->domain, &av_attr, &out_fabric_comm.av, NULL);
+	ret = fi_av_open(fabric_domain.domain, &av_attr, &out_fabric_comm.av, NULL);
   	debug_info("[FABRIC] [fabric_new_comm] fi_av_open = "<<ret);
 	if (ret) {
 		printf("fi_av_open error (%d)\n", ret);
@@ -297,7 +295,7 @@ int fabric::send ( comm &fabric_comm, const void * buffer, size_t size )
 
   	debug_info("[FABRIC] [fabric_send] Start");
 	do { 
-		ret = fi_send(fabric_comm.ep, buffer, size, NULL, fabric_comm.fi_addr, NULL);
+		ret = fi_send(fabric_comm.ep, buffer, size, NULL, fabric_comm.fi_addr, &fabric_comm.send_context);
 		
 		if (ret == -FI_EAGAIN)
 			(void) fi_cq_read(fabric_comm.cq, NULL, 0);
@@ -323,7 +321,7 @@ int fabric::recv ( comm &fabric_comm, void * buffer, size_t size )
 
   	debug_info("[FABRIC] [fabric_recv] Start");
 	do { 
-		ret = fi_recv(fabric_comm.ep, buffer, size, NULL, fabric_comm.fi_addr, NULL);
+		ret = fi_recv(fabric_comm.ep, buffer, size, NULL, fabric_comm.fi_addr, &fabric_comm.recv_context);
 
 		if (ret == -FI_EAGAIN)
 			(void) fi_cq_read(fabric_comm.cq, NULL, 0);

@@ -39,13 +39,15 @@ public:
     };
 
     struct comm {
-        struct domain *fabric_domain;
         struct fid_ep *ep;
         struct fid_av *av;
         struct fid_cq *cq;
         fi_addr_t fi_addr;
+        struct fi_context recv_context;
+        struct fi_context send_context;
     };
-
+private:
+    static int set_hints(domain &fabric_domain);
 public:
     static int init(domain &fabric);
 
