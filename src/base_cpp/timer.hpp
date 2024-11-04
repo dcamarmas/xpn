@@ -40,13 +40,28 @@ namespace XPN
 
 		float elapsed()
 		{
-			return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - m_Start).count();
+			return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - m_Start).count() * 0.001f * 0.001f * 0.001f;
 		}
 		
 		template<typename precision>
 		float elapsed()
 		{
 			return std::chrono::duration_cast<precision>(std::chrono::high_resolution_clock::now() - m_Start).count();
+		}
+
+		float elapsedNano()
+		{
+			return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - m_Start).count();
+		}
+		
+		float elapsedMicro()
+		{
+			return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - m_Start).count() * 0.001f;
+		}
+
+		float elapsedMilli()
+		{
+			return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - m_Start).count() * 0.001f * 0.001f;
 		}
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> get_start()

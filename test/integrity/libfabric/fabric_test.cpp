@@ -31,7 +31,10 @@
 #include <netinet/tcp.h>
 #include <fcntl.h>
 #include <vector>
+#include <iostream>
+#include <iomanip>
 #include <base_cpp/fabric.hpp>
+#include <base_cpp/timer.hpp>
 
 using namespace XPN;
 
@@ -265,6 +268,7 @@ static int post_send(void)
 static int run(void)
 {
 	int ret;
+	timer timer;
 
 	if (dst_addr) {
 		printf("Client: send to server %s\n", dst_addr);
@@ -275,11 +279,14 @@ static int run(void)
 			ret = post_send();
 			if (ret<0)
 				return ret;
-
+			std::cout<<"Send "<<BUF_SIZE<<" in "<<std::fixed<<std::setprecision(3)<<timer.elapsedMilli()<<" ms"<<std::endl;
+			timer.reset();
 			printf("Client: post buffer and wait for message from server\n");
 			ret = post_recv();
 			if (ret<0)
 				return ret;
+			std::cout<<"Recv "<<BUF_SIZE<<" in "<<std::fixed<<std::setprecision(3)<<timer.elapsedMilli()<<" ms"<<std::endl;
+			timer.reset();
 
 			printf("This is the message I received: %s\n", buf.data());
 		}
@@ -295,12 +302,16 @@ static int run(void)
 			if (ret<0)
 				return ret;
 
+			std::cout<<"Recv "<<BUF_SIZE<<" in "<<std::fixed<<std::setprecision(3)<<timer.elapsedMilli()<<" ms"<<std::endl;
+			timer.reset();
 			printf("This is the message I received: %s\n", buf.data());
 
 			printf("Server: send buffer and wait for the client to recv\n");
 			ret = post_send();
 			if (ret<0)
 				return ret;
+			std::cout<<"Send "<<BUF_SIZE<<" in "<<std::fixed<<std::setprecision(3)<<timer.elapsedMilli()<<" ms"<<std::endl;
+			timer.reset();
 		}
 	}
 
@@ -331,6 +342,9 @@ int main(int argc, char **argv)
     ret = fabric::init(fabric_domain);
 	if (ret)
 		goto out;
+	
+	std::cout << "[FABRIC] [fabric_init] "<<fi_tostr(fabric_domain.info, FI_TYPE_INFO)<<std::endl;
+
     ret = fabric::new_comm(fabric_domain, fabric_comm);
 	if (ret)
 		goto out;
