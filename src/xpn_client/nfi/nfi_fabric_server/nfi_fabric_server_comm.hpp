@@ -33,13 +33,13 @@ namespace XPN
   class nfi_fabric_server_comm : public nfi_xpn_server_comm
   {
   public:
-    nfi_fabric_server_comm(fabric::comm comm) : m_comm(comm) {}
+    nfi_fabric_server_comm(fabric::fabric_comm& comm) : m_comm(comm) {}
 
     int64_t write_operation(xpn_server_ops op) override;
     int64_t read_data(void *data, int64_t size) override;
     int64_t write_data(const void *data, int64_t size) override;
   public:
-    fabric::comm m_comm;
+    fabric::fabric_comm& m_comm;
   };
   
   class nfi_fabric_server_control_comm : public nfi_xpn_server_control_comm
@@ -52,7 +52,7 @@ namespace XPN
     void disconnect(nfi_xpn_server_comm* comm) override;
 
   private:
-    fabric::domain m_domain;
+    static fabric::fabric_ep m_ep;
   };
 
 } // namespace XPN

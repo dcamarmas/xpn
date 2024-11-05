@@ -47,8 +47,8 @@ int listen_sock, oob_sock;
 std::vector<char> buf(BUF_SIZE);
 std::vector<char> msg(BUF_SIZE);
 
-fabric::comm fabric_comm;
-fabric::domain fabric_domain;
+fabric::fabric_ep fabric_ep;
+fabric::fabric_comm* fabric_comm;
 
 static int sock_listen(char *node, const char *service)
 {
@@ -212,7 +212,7 @@ static int exchange_addresses(void)
 	int ret;
 	size_t addrlen = BUF_SIZE_AUX;
 
-    ret = fabric::get_addr(fabric_comm, addr_buf, addrlen);
+    ret = fabric::get_addr(fabric_ep, addr_buf, addrlen);
 	if (ret) {
 		printf("fi_getname error %d\n", ret);
 		return ret;
@@ -231,22 +231,24 @@ static int exchange_addresses(void)
 		return ret;
 	}
 
-    ret = fabric::register_addr(fabric_comm, addr_buf);
+    ret = fabric::register_addr(fabric_ep, *fabric_comm, addr_buf);
 	if (ret != 1) {
 		printf("av insert error\n");
 		return -FI_ENOSYS;
 	}
+
+	
 
 	return 0;
 }
 
 static int post_recv(void)
 {
-	int ret;
+	fabric::fabric_msg ret;
 
-    ret = fabric::recv(fabric_comm, buf.data(), buf.size()*sizeof(buf[0]));
+    ret = fabric::recv(fabric_ep, *fabric_comm, buf.data(), buf.size()*sizeof(buf[0]), 0);
 
-	return ret;
+	return ret.size;
 }
 
 static int post_send(void)
@@ -258,11 +260,11 @@ static int post_send(void)
 	}else{
 		sprintf(msg.data(), "Hello, client! I am the server you've been waiting for! %d", count++);
 	}
-	int ret;
+	fabric::fabric_msg ret;
 
-    ret = fabric::send(fabric_comm, msg.data(), msg.size()*sizeof(msg[0]));
+    ret = fabric::send(fabric_ep, *fabric_comm, msg.data(), msg.size()*sizeof(msg[0]), 0);
 
-	return ret;
+	return ret.size;
 }
 
 static int run(void)
@@ -339,13 +341,13 @@ int main(int argc, char **argv)
 	 * provider.
 	 */
 
-    ret = fabric::init(fabric_domain);
+    ret = fabric::init(fabric_ep);
 	if (ret)
 		goto out;
 	
-	std::cout << "[FABRIC] [fabric_init] "<<fi_tostr(fabric_domain.info, FI_TYPE_INFO)<<std::endl;
+	std::cout << "[FABRIC] [fabric_init] "<<fi_tostr(fabric_ep.info, FI_TYPE_INFO)<<std::endl;
 
-    ret = fabric::new_comm(fabric_domain, fabric_comm);
+    fabric_comm = &fabric::new_comm(fabric_ep);
 	if (ret)
 		goto out;
         
@@ -355,7 +357,7 @@ int main(int argc, char **argv)
 
 	ret = run();
 out:
-    fabric::close(fabric_comm);
-    fabric::destroy(fabric_domain);
+    fabric::close(fabric_ep, *fabric_comm);
+    fabric::destroy(fabric_ep);
 	return ret;
 }

@@ -25,41 +25,90 @@
 #include <rdma/fi_cm.h>
 #include <rdma/fi_domain.h>
 #include <rdma/fi_endpoint.h>
+#include <rdma/fi_tagged.h>
 
 #include <mutex>
+#include <condition_variable>
+#include <unordered_map>
+#include <thread>
+#include <atomic>
 
 namespace XPN {
 
 class fabric {
 public:
-    struct domain {
-        struct fi_info *hints, *info;
-        struct fid_fabric *fabric;
-        struct fid_domain *domain;
+    constexpr static const uint32_t FABRIC_ANY_RANK = 0xFFFFFFFF;
+
+    struct fabric_ep;
+
+    struct fabric_context{
+        // context necesary for fabric interface
+        struct fi_context context;
+        uint32_t rank;
+        struct fi_cq_err_entry entry; 
     };
 
-    struct comm {
-        struct fid_ep *ep;
-        struct fid_av *av;
-        struct fid_cq *cq;
+    struct fabric_comm{
+        uint32_t rank_peer;
+        uint32_t rank_self_in_peer;
+        
         fi_addr_t fi_addr;
-        struct fi_context recv_context;
-        struct fi_context send_context;
+
+        fabric_ep *m_ep;
+
+        std::mutex comm_mutex;
+        std::condition_variable comm_cv;
+        bool wait_context = true;
+        fabric_context context;
     };
+
+    struct fabric_ep {
+        struct fi_info *hints = nullptr;
+        struct fi_info *info = nullptr;
+        struct fid_fabric *fabric = nullptr;
+        struct fid_domain *domain = nullptr;
+        struct fid_ep *ep = nullptr;
+        struct fid_av *av = nullptr;
+        struct fid_cq *cq = nullptr;
+        std::unordered_map<uint32_t, fabric_comm> m_comms;
+
+        std::thread thread_cq;
+        std::mutex thread_cq_mutex;
+        std::mutex thread_fi_mutex;
+        std::condition_variable thread_cq_cv;
+        bool thread_cq_is_running = true;
+        std::atomic_uint32_t subs_to_wait = 0;
+    };
+
+    struct fabric_msg{
+        uint64_t size = 0;
+        uint32_t rank_peer = 0;
+        uint32_t rank_self_in_peer = 0;
+        uint32_t tag = 0;
+        int32_t error = 0;
+    };
+
 private:
-    static int set_hints(domain &fabric_domain);
+    static int set_hints(fabric_ep &fabric_ep);
+    static int run_thread_cq(fabric_ep &fabric_ep);
+    static fabric_comm& any_comm(fabric_ep &fabric_ep);
 public:
-    static int init(domain &fabric);
+    static int init(fabric_ep &fabric);
+    static int init_thread_cq(fabric_ep &fabric_ep);
 
-    static int new_comm(domain &domain, comm &out_fabric_comm);
+    static int destroy(fabric_ep &fabric_ep);
+    static int destroy_thread_cq(fabric_ep &fabric_ep);
 
-    static int get_addr(comm &fabric_comm, char *out_addr, size_t &size_addr);
-    static int register_addr(comm &fabric_comm, char *addr_buf);
-    static int wait(comm &fabric_comm);
-    static int send(comm &fabric, const void *buffer, size_t size);
-    static int recv(comm &fabric, void *buffer, size_t size);
-    static int close(comm &fabric);
-    static int destroy(domain &domain);
+    static fabric_comm& new_comm(fabric_ep &fabric_ep);
+    static fabric_comm& get_any_rank_comm(fabric_ep &fabric_ep);
+    static int close (fabric_ep& fabric_ep, fabric_comm &fabric_comm);
+
+    static int get_addr(fabric_ep &fabric_ep, char *out_addr, size_t &size_addr);
+    static int register_addr(fabric_ep &fabric_ep, fabric_comm& fabric_comm, char * addr_buf);
+    static int remove_addr(fabric_ep &fabric_ep, fabric_comm& fabric_comm);
+    // static fabric_msg wait(fabric_ep &fabric_ep);
+    static fabric_msg send(fabric_ep &fabric_ep, fabric_comm& fabric_comm, const void * buffer, size_t size, uint32_t tag);
+    static fabric_msg recv(fabric_ep &fabric_ep, fabric_comm& fabric_comm, void *buffer, size_t size, uint32_t tag);
 
     static std::mutex s_mutex;
 };

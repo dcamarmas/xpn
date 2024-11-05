@@ -33,7 +33,7 @@ fabric_server_control_comm::fabric_server_control_comm ()
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> Begin");
   
-  fabric::init(m_domain);
+  fabric::init(m_ep);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> End");
 }
@@ -42,7 +42,7 @@ fabric_server_control_comm::~fabric_server_control_comm()
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [~fabric_server_control_comm] >> Begin");
 
-  fabric::destroy(m_domain);
+  fabric::destroy(m_ep);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [~fabric_server_control_comm] >> End");
 }
@@ -51,46 +51,7 @@ xpn_server_comm* fabric_server_control_comm::accept ( int socket )
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_accept] >> Begin");
 
-  // // Accept
-  // debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_accept] Accept");
-
-  // sc = ::accept(m_socket, (struct sockaddr *)&client_addr, &size);
-  // if (sc < 0)
-  // {
-  //   print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_destroy] ERROR: accept fails");
-  //   return nullptr;
-  // }
-
-  // debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_destroy] desp. accept conection from "<<sc);
-  // // tcp_nodelay
-  // flag = 1;
-  // ret = ::setsockopt(sc, IPPROTO_TCP, TCP_NODELAY, & flag, sizeof(flag));
-  // if (ret < 0)
-  // {
-  //   perror("setsockopt: ");
-  //   return nullptr;
-  // }
-
-  // //NEW
-  // int val = MAX_BUFFER_SIZE; //1 MB
-  // ret = ::setsockopt(sc, SOL_SOCKET, SO_SNDBUF, (char *)&val, sizeof(int));
-  // if (ret < 0)
-  // {
-  //   perror("setsockopt: ");
-  //   return nullptr;
-  // }
-
-  // val = MAX_BUFFER_SIZE; //1 MB
-  // ret = ::setsockopt(sc, SOL_SOCKET, SO_RCVBUF, (char *)&val, sizeof(int));
-  // if (ret < 0)
-  // {
-  //   perror("setsockopt: ");
-  //   return nullptr;
-  // }
-
-
   int ret = 0;
-  fabric::comm new_comm;
   
   ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
   if (ret < 0){
@@ -98,16 +59,12 @@ xpn_server_comm* fabric_server_control_comm::accept ( int socket )
     return nullptr;
   }
 
-  ret = fabric::new_comm(m_domain, new_comm);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: fabric new_comm fails");
-    return nullptr;
-  }
+  fabric::fabric_comm &new_comm = fabric::new_comm(m_ep);
 
   // First send the server address
   size_t ad_len = MAX_PORT_NAME;
   char ad_buff[MAX_PORT_NAME];
-  ret = fabric::get_addr(new_comm, ad_buff, ad_len);
+  ret = fabric::get_addr(m_ep, ad_buff, ad_len);
   if (ret < 0){
     print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: fabric get_addr fails");
     return nullptr;
@@ -138,11 +95,35 @@ xpn_server_comm* fabric_server_control_comm::accept ( int socket )
     return nullptr;
   }
 
-  ret = fabric::register_addr(new_comm, ad_buff);
+  ret = fabric::register_addr(m_ep, new_comm, ad_buff);
   if (ret < 0){
     print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: fabric register_addr fails");
     return nullptr;
   }
+  
+  // Third send the local asigment of rank
+  ret = socket::send(socket, &new_comm.rank_peer, sizeof(new_comm.rank_peer));
+  if (ret < 0){
+    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres fails");
+    socket::close(socket);
+    return nullptr;
+  }
+
+  // Fourth recv the server asigment of rank
+  uint32_t rank;
+  ret = socket::recv(socket, &rank, sizeof(rank));
+  if (ret < 0){
+    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres fails");
+    socket::close(socket);
+    return nullptr;
+  }
+  new_comm.rank_self_in_peer = rank;
+
+  debug_info("FABRIC_SERVER_CONTROL_COMM New comm rank_peer "<<new_comm.rank_peer<<" rank_self_in_peer "<<new_comm.rank_self_in_peer); 
+
+  int buf = 123;
+  fabric::recv(m_ep, new_comm, &buf, sizeof(buf), 123);
+  fabric::send(m_ep, new_comm, &buf, sizeof(buf), 1234);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] << End");
 
@@ -156,7 +137,7 @@ void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
   
   fabric_server_comm *in_comm = static_cast<fabric_server_comm*>(comm);
 
-  fabric::close(in_comm->m_comm);
+  fabric::close(m_ep, in_comm->m_comm);
 
   delete comm;
 
@@ -166,19 +147,19 @@ void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
 
 int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_id, int &tag_client_id )
 {
-  int ret;
-  int msg[2];
+  fabric::fabric_msg ret = {};
+  int msg[2] = {};
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] Read operation");
-  ret = fabric::recv(m_comm, msg, sizeof(msg));
-  if (ret < 0) {
+  ret = fabric::recv(*m_comm.m_ep, m_comm, msg, sizeof(msg), 0);
+  if (ret.error < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] ERROR: read fails");
   }
 
-  rank_client_id = 0;
+  rank_client_id = ret.rank_peer;
   tag_client_id  = msg[0];
   op             = static_cast<xpn_server_ops>(msg[1]);
 
@@ -191,7 +172,7 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
 
 int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
 {
-  int ret;
+  fabric::fabric_msg ret = {};
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] >> Begin");
 
@@ -206,9 +187,9 @@ int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] Read data tag "<< tag_client_id);
-
-  ret = fabric::recv(m_comm, data, size);
-  if (ret < 0) {
+  auto& comm = (*m_comm.m_ep).m_comms[rank_client_id];
+  ret = fabric::recv(*m_comm.m_ep, comm, data, size, tag_client_id);
+  if (ret.error < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] ERROR: read fails");
   }
 
@@ -216,12 +197,12 @@ int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] << End");
 
   // Return bytes read
-  return size;
+  return ret.size;
 }
 
 int64_t fabric_server_comm::write_data ( const void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
 {
-  int ret;
+  fabric::fabric_msg ret = {};
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] >> Begin");
 
@@ -237,15 +218,16 @@ int64_t fabric_server_comm::write_data ( const void *data, int64_t size, [[maybe
   // Send message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] Write data tag "<< tag_client_id);
 
-  ret = fabric::send(m_comm, data, size);
-  if (ret < 0) {
+  auto& comm = (*m_comm.m_ep).m_comms[rank_client_id];
+  ret = fabric::send(*m_comm.m_ep, comm, data, size, tag_client_id);
+  if (ret.error < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] ERROR: MPI_Send fails");
   }
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] << End");
 
   // Return bytes written
-  return size;
+  return ret.size;
 }
 
 } // namespace XPN

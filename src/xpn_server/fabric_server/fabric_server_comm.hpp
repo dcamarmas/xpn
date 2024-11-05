@@ -33,14 +33,14 @@ namespace XPN
   class fabric_server_comm : public xpn_server_comm
   {
   public:
-    fabric_server_comm(fabric::comm comm) : m_comm(comm) {}
+    fabric_server_comm(fabric::fabric_comm& comm) : m_comm(comm) {}
     ~fabric_server_comm() override {}
 
     int64_t read_operation(xpn_server_ops &op, int &rank_client_id, int &tag_client_id) override;
     int64_t read_data(void *data, int64_t size, int rank_client_id, int tag_client_id) override;
     int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
   public:
-    fabric::comm m_comm;
+    fabric::fabric_comm& m_comm;
   };
   
   class fabric_server_control_comm : public xpn_server_control_comm
@@ -52,7 +52,7 @@ namespace XPN
     xpn_server_comm* accept(int socket) override;
     void disconnect(xpn_server_comm *comm) override;
   private:
-    fabric::domain m_domain;
+    fabric::fabric_ep m_ep;
   };
 
 } // namespace XPN
