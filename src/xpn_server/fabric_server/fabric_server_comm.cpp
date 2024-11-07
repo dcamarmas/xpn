@@ -29,11 +29,11 @@
 
 namespace XPN
 {
-fabric_server_control_comm::fabric_server_control_comm ()
+fabric_server_control_comm::fabric_server_control_comm (xpn_server_params &params)
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> Begin");
   
-  fabric::init(m_ep);
+  fabric::init(m_ep, params.have_threads());
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> End");
 }

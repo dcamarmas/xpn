@@ -93,7 +93,7 @@ void print_fi_cq_err_entry(const fi_cq_err_entry& entry) {
     debug_info("  err_data: " << entry.err_data);
     debug_info("  err_data_size: " << entry.err_data_size);
 }
-	
+
 int fabric::set_hints( fabric_ep &fabric_ep )
 {
 	fabric_ep.hints = fi_allocinfo();
@@ -144,7 +144,7 @@ int fabric::set_hints( fabric_ep &fabric_ep )
 	return 0;
 }
 
-int fabric::init ( fabric_ep &fabric_ep )
+int fabric::init ( fabric_ep &fabric_ep, bool have_threads )
 {
 	int ret; 
 	struct fi_cq_attr cq_attr = {};
@@ -153,6 +153,8 @@ int fabric::init ( fabric_ep &fabric_ep )
   	debug_info("[FABRIC] [fabric_init] Start");
 	
 	std::unique_lock<std::mutex> lock(s_mutex);
+
+	fabric_ep.have_thread = have_threads;
 	/*
 	 * The first libfabric call to happen for initialization is fi_getinfo
 	 * which queries libfabric and returns any appropriate providers that
@@ -311,6 +313,8 @@ int fabric::init ( fabric_ep &fabric_ep )
 
 int fabric::init_thread_cq(fabric_ep &fabric_ep)
 {
+	if (!fabric_ep.have_thread) return 0;
+
   	debug_info("[FABRIC] [init_thread_cq] Start");
     fabric_ep.thread_cq = std::thread([&fabric_ep](){
 		run_thread_cq(fabric_ep);
@@ -321,6 +325,8 @@ int fabric::init_thread_cq(fabric_ep &fabric_ep)
 
 int fabric::destroy_thread_cq(fabric_ep &fabric_ep)
 {
+	if (!fabric_ep.have_thread) return 0;
+
   	debug_info("[FABRIC] [destroy_thread_cq] Start");
 	{
 		std::lock_guard<std::mutex> lock(fabric_ep.thread_cq_mutex);
@@ -341,12 +347,12 @@ int fabric::run_thread_cq(fabric_ep &fabric_ep)
 	std::unique_lock<std::mutex> lock(fabric_ep.thread_cq_mutex);
 
 	while (fabric_ep.thread_cq_is_running) {
-		// if (fabric_ep.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&fabric_ep]{ return !fabric_ep.thread_cq_is_running; })) {
-		// 	break;
-		// }
-		if (fabric_ep.subs_to_wait == 0) {
-			fabric_ep.thread_cq_cv.wait(lock, [&fabric_ep]{ return fabric_ep.subs_to_wait != 0 || !fabric_ep.thread_cq_is_running; });
+		if (fabric_ep.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&fabric_ep]{ return !fabric_ep.thread_cq_is_running; })) {
+			break;
 		}
+		// if (fabric_ep.subs_to_wait == 0) {
+		// 	fabric_ep.thread_cq_cv.wait(lock, [&fabric_ep]{ return fabric_ep.subs_to_wait != 0 || !fabric_ep.thread_cq_is_running; });
+		// }
 		// if (!fabric_ep.thread_cq_is_running) break;
 		// if (fabric_ep.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&fabric_ep]{ return !fabric_ep.thread_cq_is_running; })) {
 		// 	break;
@@ -380,7 +386,7 @@ int fabric::run_thread_cq(fabric_ep &fabric_ep)
 				} 
 				
 				// print_fi_cq_err_entry(comp);
-				fabric_ep.subs_to_wait--;
+				// fabric_ep.subs_to_wait--;
 				comm.wait_context = false;
 				comm.comm_cv.notify_one();
 			}
@@ -473,11 +479,37 @@ int fabric::remove_addr(fabric_ep &fabric_ep, fabric_comm& fabric_comm)
 
 void fabric::wait ( fabric_ep& fabric_ep, fabric_comm &fabric_comm )
 {
-	std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
-	fabric_ep.subs_to_wait++;
-	fabric_ep.thread_cq_cv.notify_one();
-	fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
-	fabric_comm.wait_context = true;
+	if (fabric_ep.have_thread){
+		debug_info("[FABRIC] [wait] With threads");
+		std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
+		// fabric_ep.subs_to_wait++;
+		// fabric_ep.thread_cq_cv.notify_one();
+		fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
+		fabric_comm.wait_context = true;
+	}else{
+		debug_info("[FABRIC] [wait] Without threads");
+		int ret = 0;
+		fi_cq_tagged_entry comp = {};
+		do{
+			ret = fi_cq_read(fabric_ep.cq, &comp, 1);
+
+			if (ret == -FI_EAGAIN){ continue; }
+
+			//TODO: handle error
+			if (ret < 0) { continue; }
+
+			// Handle the cq entries
+			fabric_context* context = static_cast<fabric_context*>(comp.op_context);
+			context->entry = comp;
+			if (comp.flags & FI_SEND) {
+				debug_info("[FABRIC] [run_thread_cq] Send cq of rank_peer "<<context->rank);
+			}
+			if (comp.flags & FI_RECV) {
+				debug_info("[FABRIC] [run_thread_cq] Recv cq of rank_peer "<<context->rank);
+			} 
+			// print_fi_cq_err_entry(comp);
+		}while (ret == -FI_EAGAIN);
+	}
 }
 
 fabric::fabric_msg fabric::send ( fabric_ep &fabric_ep, fabric_comm& fabric_comm, const void * buffer, size_t size, uint32_t tag )

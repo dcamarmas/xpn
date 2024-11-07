@@ -46,7 +46,7 @@ namespace XPN
   class fabric_server_control_comm : public xpn_server_control_comm
   {
   public:
-    fabric_server_control_comm();
+    fabric_server_control_comm(xpn_server_params &params);
     ~fabric_server_control_comm() override;
     
     xpn_server_comm* accept(int socket) override;

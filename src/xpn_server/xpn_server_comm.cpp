@@ -38,7 +38,7 @@ namespace XPN
         case XPN_SERVER_TYPE_SCK:  
             return std::make_unique<sck_server_control_comm>();
         case XPN_SERVER_TYPE_FABRIC:  
-            return std::make_unique<fabric_server_control_comm>();
+            return std::make_unique<fabric_server_control_comm>(params);
         default:  fprintf(stderr, "[XPN_SERVER] [xpn_server_control_comm] server_type '%d' not recognized\n", params.server_type);
         }
         return nullptr;

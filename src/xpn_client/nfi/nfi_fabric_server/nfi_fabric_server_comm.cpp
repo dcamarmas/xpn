@@ -34,8 +34,10 @@ fabric::fabric_ep nfi_fabric_server_control_comm::m_ep;
 nfi_fabric_server_control_comm::nfi_fabric_server_control_comm ()
 {
   debug_info("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm] >> Begin");
-  if (m_ep.ep == nullptr)
-    fabric::init(m_ep);
+  if (m_ep.ep == nullptr){
+    int xpn_thread = xpn_env::get_instance().xpn_thread;
+    fabric::init(m_ep, xpn_thread);
+  }
 
   debug_info("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm] >> End");
 }

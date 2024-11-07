@@ -73,6 +73,7 @@ public:
         struct fid_cq *cq = nullptr;
         std::unordered_map<uint32_t, fabric_comm> m_comms;
 
+        bool have_thread = true;
         std::thread thread_cq;
         std::mutex thread_cq_mutex;
         // std::mutex thread_fi_mutex;
@@ -93,12 +94,12 @@ private:
     static int set_hints(fabric_ep &fabric_ep);
     static int run_thread_cq(fabric_ep &fabric_ep);
     static fabric_comm& any_comm(fabric_ep &fabric_ep);
-public:
-    static int init(fabric_ep &fabric);
     static int init_thread_cq(fabric_ep &fabric_ep);
+    static int destroy_thread_cq(fabric_ep &fabric_ep);
+public:
+    static int init(fabric_ep &fabric, bool have_threads = true);
 
     static int destroy(fabric_ep &fabric_ep);
-    static int destroy_thread_cq(fabric_ep &fabric_ep);
 
     static fabric_comm& new_comm(fabric_ep &fabric_ep);
     static fabric_comm& get_any_rank_comm(fabric_ep &fabric_ep);
