@@ -32,6 +32,7 @@
 #include <unordered_map>
 #include <thread>
 #include <atomic>
+#include <vector>
 
 namespace XPN {
 
@@ -45,7 +46,7 @@ public:
         // context necesary for fabric interface
         struct fi_context context;
         uint32_t rank;
-        struct fi_cq_err_entry entry; 
+        struct fi_cq_tagged_entry entry; 
     };
 
     struct fabric_comm{
@@ -74,7 +75,7 @@ public:
 
         std::thread thread_cq;
         std::mutex thread_cq_mutex;
-        std::mutex thread_fi_mutex;
+        // std::mutex thread_fi_mutex;
         std::condition_variable thread_cq_cv;
         bool thread_cq_is_running = true;
         std::atomic_uint32_t subs_to_wait = 0;
@@ -106,7 +107,7 @@ public:
     static int get_addr(fabric_ep &fabric_ep, char *out_addr, size_t &size_addr);
     static int register_addr(fabric_ep &fabric_ep, fabric_comm& fabric_comm, char * addr_buf);
     static int remove_addr(fabric_ep &fabric_ep, fabric_comm& fabric_comm);
-    // static fabric_msg wait(fabric_ep &fabric_ep);
+    static void wait(fabric_ep &fabric_ep, fabric_comm &fabric_comm);
     static fabric_msg send(fabric_ep &fabric_ep, fabric_comm& fabric_comm, const void * buffer, size_t size, uint32_t tag);
     static fabric_msg recv(fabric_ep &fabric_ep, fabric_comm& fabric_comm, void *buffer, size_t size, uint32_t tag);
 

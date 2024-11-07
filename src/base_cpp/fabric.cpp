@@ -232,9 +232,9 @@ int fabric::init ( fabric_ep &fabric_ep )
 	 * will be separate CQs for sends and receives.
 	 */
 
-	cq_attr.size = 128;
+	// cq_attr.size = 128;
 	cq_attr.format = FI_CQ_FORMAT_TAGGED;
-	cq_attr.wait_obj = FI_WAIT_UNSPEC;
+	// cq_attr.wait_obj = FI_WAIT_UNSPEC;
 	ret = fi_cq_open(fabric_ep.domain, &cq_attr, &fabric_ep.cq, NULL);
   	debug_info("[FABRIC] [fabric_init] fi_cq_open = "<<ret);
 	if (ret) {
@@ -335,38 +335,55 @@ int fabric::destroy_thread_cq(fabric_ep &fabric_ep)
 int fabric::run_thread_cq(fabric_ep &fabric_ep)
 {
 	int ret = 0;
-	struct fi_cq_err_entry comp = {};
+	const int comp_count = 100;
+	// struct fi_cq_tagged_entry comp[comp_count] = {};
+	std::vector<fi_cq_tagged_entry> comp(comp_count);
 	std::unique_lock<std::mutex> lock(fabric_ep.thread_cq_mutex);
 
 	while (fabric_ep.thread_cq_is_running) {
-		if (fabric_ep.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&fabric_ep]{ return !fabric_ep.thread_cq_is_running; })) {
-			break;
+		// if (fabric_ep.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&fabric_ep]{ return !fabric_ep.thread_cq_is_running; })) {
+		// 	break;
+		// }
+		if (fabric_ep.subs_to_wait == 0) {
+			fabric_ep.thread_cq_cv.wait(lock, [&fabric_ep]{ return fabric_ep.subs_to_wait != 0 || !fabric_ep.thread_cq_is_running; });
 		}
+		// if (!fabric_ep.thread_cq_is_running) break;
+		// if (fabric_ep.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&fabric_ep]{ return !fabric_ep.thread_cq_is_running; })) {
+		// 	break;
+		// }
 
-		if (fabric_ep.subs_to_wait == 0) { continue; }
-		{
-			std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
-			ret = fi_cq_read(fabric_ep.cq, &comp, 1);
-		}
+		// if (fabric_ep.subs_to_wait == 0) { continue; }
+		// {
+			// std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
+		ret = fi_cq_read(fabric_ep.cq, comp.data(), comp_count);
+			// ret = fi_cq_read(fabric_ep.cq, &comp[0], 8);
+		// }
 		if (ret == -FI_EAGAIN){ continue; }
 
-		fabric_context* context = static_cast<fabric_context*>(comp.op_context);
-		fabric_comm &comm = fabric_ep.m_comms[context->rank];
-		context->entry = comp;
+		//TODO: handle error
+		if (ret < 0) { continue; }
 
+		// Handle the cq entries
+		for (int i = 0; i < ret; i++)
 		{
-			std::unique_lock<std::mutex> lock(comm.comm_mutex);
-			if (comp.flags & FI_SEND) {
-				debug_info("[FABRIC] [run_thread_cq] Send cq of rank_peer "<<context->rank);
+			fabric_context* context = static_cast<fabric_context*>(comp[i].op_context);
+			fabric_comm &comm = fabric_ep.m_comms[context->rank];
+			context->entry = comp[i];
+
+			{
+				std::unique_lock<std::mutex> lock(comm.comm_mutex);
+				if (comp[i].flags & FI_SEND) {
+					debug_info("[FABRIC] [run_thread_cq] Send cq of rank_peer "<<context->rank);
+				}
+				if (comp[i].flags & FI_RECV) {
+					debug_info("[FABRIC] [run_thread_cq] Recv cq of rank_peer "<<context->rank);
+				} 
+				
+				// print_fi_cq_err_entry(comp);
+				fabric_ep.subs_to_wait--;
+				comm.wait_context = false;
+				comm.comm_cv.notify_one();
 			}
-			if (comp.flags & FI_RECV) {
-				debug_info("[FABRIC] [run_thread_cq] Recv cq of rank_peer "<<context->rank);
-			} 
-			
-			// print_fi_cq_err_entry(comp);
-			fabric_ep.subs_to_wait--;
-			comm.wait_context = false;
-			comm.comm_cv.notify_one();
 		}
 	}
 	return ret;
@@ -454,35 +471,14 @@ int fabric::remove_addr(fabric_ep &fabric_ep, fabric_comm& fabric_comm)
 	return ret;
 }
 
-// fabric::fabric_msg fabric::wait ( fabric_ep &fabric_ep )
-// {
-	// struct fi_cq_err_entry comp = {};
-	// int ret;
-	// fabric_msg msg = {};
-
-  	// debug_info("[FABRIC] [fabric_wait] Start");
-	// // ret = fi_cq_sreadfrom(fabric_ep.cq, &comp, 1, &fabric_ep.fi_addr, NULL, -1);
-	// // ret = fi_cq_sread(fabric_ep.cq, &comp, 1, NULL, -1);
-	// do {
-	// 	ret = fi_cq_read(fabric_ep.cq, &comp, 1);
-	// 	if (ret < 0 && ret != -FI_EAGAIN) {
-	// 		printf("error reading cq (%d)\n", ret);
-	// 		msg.error = ret;
-	// 		return msg;
-	// 	}
-	// } while (ret != 1);
-	// if (ret < 0){
-	// 	printf("error reading cq (%d)\n", ret);
-	// }
-	// print_fi_cq_err_entry(comp);
-	// msg.size = comp.len;
-	// msg.tag = comp.tag & 0x00000000FFFFFFFF;
-	// msg.rank = comp.tag >> 32;
-	// msg.error = ret;
-  	// debug_info("[FABRIC] [fabric_wait] End = "<<ret);
-
-	// return msg;
-// }
+void fabric::wait ( fabric_ep& fabric_ep, fabric_comm &fabric_comm )
+{
+	std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
+	fabric_ep.subs_to_wait++;
+	fabric_ep.thread_cq_cv.notify_one();
+	fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
+	fabric_comm.wait_context = true;
+}
 
 fabric::fabric_msg fabric::send ( fabric_ep &fabric_ep, fabric_comm& fabric_comm, const void * buffer, size_t size, uint32_t tag )
 {
@@ -499,32 +495,47 @@ fabric::fabric_msg fabric::send ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 
   	debug_info("[FABRIC] [fabric_send] Start size "<<size<<" rank_peer "<<fabric_comm.rank_peer<<" rank_self_in_peer "<<fabric_comm.rank_self_in_peer<<" tag "<<tag<<" send_context "<<(void*)&fabric_comm.context);
 
-	do {
-		std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
-		ret = fi_tsend(fabric_ep.ep, buffer, size, NULL, fabric_comm.fi_addr, tag_send, &fabric_comm.context);
+	if (size > fabric_ep.info->tx_attr->inject_size){
+
+
+		do {
+			// std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
+			ret = fi_tsend(fabric_ep.ep, buffer, size, NULL, fabric_comm.fi_addr, tag_send, &fabric_comm.context);
+			
+			if (ret == -FI_EAGAIN)
+				(void) fi_cq_read(fabric_ep.cq, NULL, 0);
+
+			// debug_info("fi_tsend "<<ret);
+		} while (ret == -FI_EAGAIN);
 		
-		if (ret == -FI_EAGAIN)
-			(void) fi_cq_read(fabric_ep.cq, NULL, 0);
+		if (ret){
+			printf("error posting send buffer (%d)\n", ret);
+			msg.error = -1;
+			return msg;
+		}
 
-		// debug_info("fi_tsend "<<ret);
-	} while (ret == -FI_EAGAIN);
-	
-	if (ret){
-		printf("error posting send buffer (%d)\n", ret);
-		msg.error = -1;
-		return msg;
-	}
+		debug_info("[FABRIC] [fabric_send] Waiting on mutex of rank_peer "<<fabric_comm.rank_peer);
 
-	debug_info("[FABRIC] [fabric_send] Waiting on mutex of rank_peer "<<fabric_comm.rank_peer);
-	{
-		std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
-		fabric_ep.subs_to_wait++;
-		fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
-		fabric_comm.wait_context = true;
+		wait(fabric_ep, fabric_comm);
+		// {
+		// 	std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
+		// 	fabric_ep.subs_to_wait++;
+		// 	fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
+		// 	fabric_comm.wait_context = true;
+		// }
+		// msg.error = fabric_comm.context.entry.err;
+	}else{
+		
+		do {
+			ret = fi_tinject(fabric_ep.ep, buffer, size, fabric_comm.fi_addr, tag_send);
+			
+			if (ret == -FI_EAGAIN)
+				(void) fi_cq_read(fabric_ep.cq, NULL, 0);
+		} while (ret == -FI_EAGAIN);
+		debug_info("[FABRIC] [fabric_send] fi_tinject for rank_peer "<<fabric_comm.rank_peer);
 	}
 	
 	msg.size = size;
-	msg.error = fabric_comm.context.entry.err;
 	
 	msg.tag = tag_send & 0x0000'0000'0000'FFFF;
 	msg.rank_peer = (tag_send & 0xFFFF'FF00'0000'0000) >> 40;
@@ -557,7 +568,7 @@ fabric::fabric_msg fabric::recv ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 
   	debug_info("[FABRIC] [fabric_recv] Start size "<<size<<" rank_peer "<<fabric_comm.rank_peer<<" rank_self_in_peer "<<fabric_comm.rank_self_in_peer<<" tag "<<tag<<" recv_context "<<(void*)&fabric_comm.context);
 	do { 
-		std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
+		// std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
 		ret = fi_trecv(fabric_ep.ep, buffer, size, NULL, fabric_comm.fi_addr, tag_recv, mask, &fabric_comm.context);
 
 		if (ret == -FI_EAGAIN)
@@ -572,15 +583,17 @@ fabric::fabric_msg fabric::recv ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 	}
 	
 	debug_info("[FABRIC] [fabric_recv] Waiting on mutex of rank_peer "<<fabric_comm.rank_peer);
-	{
-		std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
-		fabric_ep.subs_to_wait++;
-		fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
-		fabric_comm.wait_context = true;
-	}
+	
+	wait(fabric_ep, fabric_comm);
+	// {
+	// 	std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
+	// 	fabric_ep.subs_to_wait++;
+	// 	fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
+	// 	fabric_comm.wait_context = true;
+	// }
 
 	msg.size = size;
-	msg.error = fabric_comm.context.entry.err;
+	// msg.error = fabric_comm.context.entry.err;
 	
 	msg.tag = fabric_comm.context.entry.tag & 0x0000'0000'0000'FFFF;
 	msg.rank_self_in_peer = (fabric_comm.context.entry.tag & 0xFFFF'FF00'0000'0000) >> 40;
