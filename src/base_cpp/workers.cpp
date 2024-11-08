@@ -29,13 +29,13 @@
 
 namespace XPN
 {
-    std::unique_ptr<workers> workers::Create(workers_mode mode)
+    std::unique_ptr<workers> workers::Create(workers_mode mode, bool with_limits)
     {
         switch (mode)
         {
             case workers_mode::sequential: return std::make_unique<workers_sequential>();
             case workers_mode::thread_pool: return std::make_unique<workers_pool>();
-            case workers_mode::thread_on_demand: return std::make_unique<workers_on_demand>();
+            case workers_mode::thread_on_demand: return std::make_unique<workers_on_demand>(with_limits);
             default: std::cerr<<"Error: workers mode '"<<static_cast<int>(mode)<<"' not defined"<<std::endl; break;
         }
         return nullptr;

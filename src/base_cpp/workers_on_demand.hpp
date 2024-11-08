@@ -30,7 +30,7 @@ namespace XPN
     class workers_on_demand : public workers
     {
     public:
-        workers_on_demand();
+        workers_on_demand(bool with_limits);
         ~workers_on_demand();
 
         std::future<int> launch(std::function<int()> task) override;

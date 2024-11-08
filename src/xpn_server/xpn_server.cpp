@@ -143,7 +143,7 @@ int xpn_server::run()
     // * Workers initialization
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Workers initialization");
 
-    m_worker1 = workers::Create(m_params.thread_mode_connections);
+    m_worker1 = workers::Create(m_params.thread_mode_connections, false);
     if (m_worker1 == nullptr) {
         debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Workers initialization fails");
         return -1;
