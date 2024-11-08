@@ -73,5 +73,11 @@ namespace XPN
         }
         // XPN_STATS_DIR
         xpn_stats_dir = std::getenv("XPN_STATS_DIR");
+
+        // XPN_FABRIC_THREADS
+        char *env_fabric_threads = std::getenv("XPN_FABRIC_THREADS");
+        if ((env_fabric_threads != NULL) && (std::strlen(env_fabric_threads) > 0)){
+            xpn_fabric_threads=atoi(env_fabric_threads);
+        }
     }
 }

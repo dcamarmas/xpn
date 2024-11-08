@@ -39,7 +39,6 @@ namespace XPN {
 class fabric {
 public:
     constexpr static const uint32_t FABRIC_ANY_RANK = 0xFFFFFFFF;
-    constexpr static const int FABRIC_THREADS = 10;
 
     struct fabric_ep;
 
@@ -84,7 +83,8 @@ public:
         };
 
         bool have_thread = true;
-        std::array<thread_cq, FABRIC_THREADS> threads_cq;
+        // std::array<thread_cq, FABRIC_THREADS> threads_cq;
+        std::vector<thread_cq> threads_cq;
 
         std::atomic_uint32_t subs_to_wait = 0;
     };

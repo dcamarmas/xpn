@@ -163,7 +163,7 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
   tag_client_id  = msg[0];
   op             = static_cast<xpn_server_ops>(msg[1]);
 
-  if (op == xpn_server_ops::DISCONNECT) [[unlikely]] {
+  [[unlikely]] if (op == xpn_server_ops::DISCONNECT) {
     // Sincronization with client in disconnect
     uint32_t buff = static_cast<uint32_t>(xpn_server_ops::DISCONNECT);
     int64_t res = write_data(&buff, sizeof(buff), rank_client_id, tag_client_id);

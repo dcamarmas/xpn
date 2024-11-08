@@ -350,7 +350,9 @@ int fabric::init_thread_cq(fabric_ep &fabric_ep)
 	if (!fabric_ep.have_thread) return 0;
 
   	debug_info("[FABRIC] [init_thread_cq] Start");
-	for (int i = 0; i < FABRIC_THREADS; i++)
+	fabric_ep.threads_cq = std::vector<fabric_ep::thread_cq>(xpn_env::get_instance().xpn_fabric_threads);
+
+	for (size_t i = 0; i < fabric_ep.threads_cq.size(); i++)
 	{
 		fabric_ep.threads_cq[i].id = std::thread([&fabric_ep, i](){
 			run_thread_cq(fabric_ep, i);
@@ -366,7 +368,7 @@ int fabric::destroy_thread_cq(fabric_ep &fabric_ep)
 
   	debug_info("[FABRIC] [destroy_thread_cq] Start");
 	
-	for (int i = 0; i < FABRIC_THREADS; i++)
+	for (size_t i = 0; i < fabric_ep.threads_cq.size(); i++)
 	{	
 		auto& t = fabric_ep.threads_cq[i];
 		{
@@ -376,7 +378,9 @@ int fabric::destroy_thread_cq(fabric_ep &fabric_ep)
 		t.thread_cq_cv.notify_one();
 		t.id.join();
 	}
-	
+
+	fabric_ep.threads_cq.clear();
+
   	debug_info("[FABRIC] [destroy_thread_cq] End");
 	return 0;
 }

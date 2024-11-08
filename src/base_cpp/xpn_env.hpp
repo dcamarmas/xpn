@@ -46,6 +46,7 @@ namespace XPN
         int xpn_session_connect = 1;
         int xpn_stats = 0;
         const char * xpn_stats_dir = nullptr;
+        int xpn_fabric_threads = 10;
     public:
         static xpn_env& get_instance()
         {
