@@ -350,9 +350,12 @@ int fabric::init_thread_cq(fabric_ep &fabric_ep)
 	if (!fabric_ep.have_thread) return 0;
 
   	debug_info("[FABRIC] [init_thread_cq] Start");
-    fabric_ep.thread_cq = std::thread([&fabric_ep](){
-		run_thread_cq(fabric_ep);
-	});
+	for (int i = 0; i < FABRIC_THREADS; i++)
+	{
+		fabric_ep.threads_cq[i].id = std::thread([&fabric_ep, i](){
+			run_thread_cq(fabric_ep, i);
+			});
+	}
   	debug_info("[FABRIC] [init_thread_cq] End");
 	return 0;
 }
@@ -362,25 +365,32 @@ int fabric::destroy_thread_cq(fabric_ep &fabric_ep)
 	if (!fabric_ep.have_thread) return 0;
 
   	debug_info("[FABRIC] [destroy_thread_cq] Start");
-	{
-		std::lock_guard<std::mutex> lock(fabric_ep.thread_cq_mutex);
-		fabric_ep.thread_cq_is_running = false;
+	
+	for (int i = 0; i < FABRIC_THREADS; i++)
+	{	
+		auto& t = fabric_ep.threads_cq[i];
+		{
+			std::lock_guard<std::mutex> lock(t.thread_cq_mutex);
+			t.thread_cq_is_running = false;
+		}
+		t.thread_cq_cv.notify_one();
+		t.id.join();
 	}
-	fabric_ep.thread_cq_cv.notify_one();
-	fabric_ep.thread_cq.join();
+	
   	debug_info("[FABRIC] [destroy_thread_cq] End");
 	return 0;
 }
 
-int fabric::run_thread_cq(fabric_ep &fabric_ep)
+int fabric::run_thread_cq(fabric_ep &fabric_ep, uint32_t id)
 {
 	int ret = 0;
 	const int comp_count = 8;
 	struct fi_cq_tagged_entry comp[comp_count] = {};
-	std::unique_lock<std::mutex> lock(fabric_ep.thread_cq_mutex);
+	auto& t = fabric_ep.threads_cq[id];
+	std::unique_lock<std::mutex> lock(t.thread_cq_mutex);
 
-	while (fabric_ep.thread_cq_is_running) {
-		if (fabric_ep.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&fabric_ep]{ return !fabric_ep.thread_cq_is_running; })) {
+	while (t.thread_cq_is_running) {
+		if (t.thread_cq_cv.wait_for(lock, std::chrono::nanoseconds(1), [&t]{ return !t.thread_cq_is_running; })) {
 			break;
 		}
 		// if (fabric_ep.subs_to_wait == 0) {

@@ -39,6 +39,7 @@ namespace XPN {
 class fabric {
 public:
     constexpr static const uint32_t FABRIC_ANY_RANK = 0xFFFFFFFF;
+    constexpr static const int FABRIC_THREADS = 10;
 
     struct fabric_ep;
 
@@ -75,12 +76,16 @@ public:
         struct fid_cq *cq = nullptr;
         std::unordered_map<uint32_t, fabric_comm> m_comms;
 
+        struct thread_cq{
+            std::thread id;
+            std::mutex thread_cq_mutex;
+            std::condition_variable thread_cq_cv;
+            bool thread_cq_is_running = true;
+        };
+
         bool have_thread = true;
-        std::thread thread_cq;
-        std::mutex thread_cq_mutex;
-        // std::mutex thread_fi_mutex;
-        std::condition_variable thread_cq_cv;
-        bool thread_cq_is_running = true;
+        std::array<thread_cq, FABRIC_THREADS> threads_cq;
+
         std::atomic_uint32_t subs_to_wait = 0;
     };
 
@@ -94,7 +99,7 @@ public:
 
 private:
     static int set_hints(fabric_ep &fabric_ep);
-    static int run_thread_cq(fabric_ep &fabric_ep);
+    static int run_thread_cq(fabric_ep &fabric_ep, uint32_t id);
     static fabric_comm& any_comm(fabric_ep &fabric_ep);
     static int init_thread_cq(fabric_ep &fabric_ep);
     static int destroy_thread_cq(fabric_ep &fabric_ep);
