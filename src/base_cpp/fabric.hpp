@@ -59,7 +59,7 @@ public:
 
         std::mutex comm_mutex;
         std::condition_variable comm_cv;
-        bool wait_context = true;
+        std::atomic_bool wait_context = true;
         fabric_context context;
     };
 
@@ -69,6 +69,8 @@ public:
         struct fid_fabric *fabric = nullptr;
         struct fid_domain *domain = nullptr;
         struct fid_ep *ep = nullptr;
+        struct fid_ep *rx_ep = nullptr;
+        struct fid_ep *tx_ep = nullptr;
         struct fid_av *av = nullptr;
         struct fid_cq *cq = nullptr;
         std::unordered_map<uint32_t, fabric_comm> m_comms;

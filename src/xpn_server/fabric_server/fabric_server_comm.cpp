@@ -163,6 +163,15 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
   tag_client_id  = msg[0];
   op             = static_cast<xpn_server_ops>(msg[1]);
 
+  if (op == xpn_server_ops::DISCONNECT) [[unlikely]] {
+    // Sincronization with client in disconnect
+    uint32_t buff = static_cast<uint32_t>(xpn_server_ops::DISCONNECT);
+    int64_t res = write_data(&buff, sizeof(buff), rank_client_id, tag_client_id);
+    if (res < 0) {
+      debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] ERROR: read fails");
+    }
+  }
+
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] read (SOURCE "<<m_socket<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] << End");
 

@@ -78,8 +78,8 @@ void print_flags(uint64_t flags) {
     if (flags & FI_DIRECTED_RECV) { debug_info("    FI_DIRECTED_RECV"); }
 }
 
-void print_fi_cq_err_entry(const fi_cq_err_entry& entry) {
-    debug_info("fi_cq_err_entry:");
+void print_fi_cq_tagged_entry(const fi_cq_tagged_entry& entry) {
+    debug_info("fi_cq_tagged_entry:");
     debug_info("  op_context: " << entry.op_context);
 	print_flags(entry.flags);
     // debug_info("  flags: " << entry.flags);
@@ -87,11 +87,11 @@ void print_fi_cq_err_entry(const fi_cq_err_entry& entry) {
     debug_info("  buf: " << entry.buf);
     debug_info("  data: " << entry.data);
     debug_info("  tag: " << entry.tag);
-    debug_info("  olen: " << entry.olen);
-    debug_info("  err: " << entry.err);
-    debug_info("  prov_errno: " << entry.prov_errno);
-    debug_info("  err_data: " << entry.err_data);
-    debug_info("  err_data_size: " << entry.err_data_size);
+    // debug_info("  olen: " << entry.olen);
+    // debug_info("  err: " << entry.err);
+    // debug_info("  prov_errno: " << entry.prov_errno);
+    // debug_info("  err_data: " << entry.err_data);
+    // debug_info("  err_data_size: " << entry.err_data_size);
 }
 
 int fabric::set_hints( fabric_ep &fabric_ep )
@@ -220,41 +220,10 @@ int fabric::init ( fabric_ep &fabric_ep, bool have_threads )
 	 * Different providers support different types of endpoints.
 	 */
 
-	ret = fi_endpoint(fabric_ep.domain, fabric_ep.info, &fabric_ep.ep, NULL);
-  	debug_info("[FABRIC] [fabric_init] fi_endpoint = "<<ret);
+	ret = fi_scalable_ep(fabric_ep.domain, fabric_ep.info, &fabric_ep.ep, NULL);
+  	debug_info("[FABRIC] [fabric_init] fi_scalable_ep = "<<ret);
 	if (ret) {
-		printf("fi_endpoint error (%d)\n", ret);
-		return ret;
-	}
-
-	/*
-	 * Initialize our completion queue. Completion queues are used to
-	 * report events associated with data transfers. In this example, we
-	 * use one CQ that tracks sends and receives, but often times there
-	 * will be separate CQs for sends and receives.
-	 */
-
-	// cq_attr.size = 128;
-	cq_attr.format = FI_CQ_FORMAT_TAGGED;
-	// cq_attr.wait_obj = FI_WAIT_UNSPEC;
-	ret = fi_cq_open(fabric_ep.domain, &cq_attr, &fabric_ep.cq, NULL);
-  	debug_info("[FABRIC] [fabric_init] fi_cq_open = "<<ret);
-	if (ret) {
-		printf("fi_cq_open error (%d)\n", ret);
-		return ret;
-	}
-
-	/*
-	 * Bind our CQ to our endpoint to track any sends and receives that
-	 * come in or out on that endpoint. A CQ can be bound to multiple
-	 * endpoints but one EP can only have one send CQ and one receive CQ
-	 * (which can be the same CQ).
-	 */
-
-	ret = fi_ep_bind(fabric_ep.ep, &fabric_ep.cq->fid, FI_SEND | FI_RECV);
-  	debug_info("[FABRIC] [fabric_init] fi_ep_bind = "<<ret);
-	if (ret) {
-		printf("fi_ep_bind cq error (%d)\n", ret);
+		printf("fi_scalable_ep error (%d)\n", ret);
 		return ret;
 	}
 
@@ -284,10 +253,10 @@ int fabric::init ( fabric_ep &fabric_ep, bool have_threads )
 	 * AV.
 	 */
 
-	ret = fi_ep_bind(fabric_ep.ep, &fabric_ep.av->fid, 0);
-  	debug_info("[FABRIC] [fabric_init] fi_ep_bind = "<<ret);
+	ret = fi_scalable_ep_bind(fabric_ep.ep, &fabric_ep.av->fid, 0);
+  	debug_info("[FABRIC] [fabric_init] fi_scalable_ep_bind = "<<ret);
 	if (ret) {
-		printf("fi_ep_bind av error (%d)\n", ret);
+		printf("fi_scalable_ep_bind av error (%d)\n", ret);
 		return ret;
 	}
 
@@ -298,6 +267,71 @@ int fabric::init ( fabric_ep &fabric_ep, bool have_threads )
 
 	ret = fi_enable(fabric_ep.ep);
   	debug_info("[FABRIC] [fabric_init] fi_enable = "<<ret);
+	if (ret) {
+		printf("fi_enable error (%d)\n", ret);
+		return ret;
+	}
+
+	/*
+	 * Initialize our completion queue. Completion queues are used to
+	 * report events associated with data transfers. In this example, we
+	 * use one CQ that tracks sends and receives, but often times there
+	 * will be separate CQs for sends and receives.
+	 */
+
+	// cq_attr.size = 128;
+	cq_attr.format = FI_CQ_FORMAT_TAGGED;
+	cq_attr.wait_obj = FI_WAIT_NONE;
+	// cq_attr.wait_obj = FI_WAIT_UNSPEC;
+	ret = fi_cq_open(fabric_ep.domain, &cq_attr, &fabric_ep.cq, NULL);
+  	debug_info("[FABRIC] [fabric_init] fi_cq_open = "<<ret);
+	if (ret) {
+		printf("fi_cq_open error (%d)\n", ret);
+		return ret;
+	}
+	
+    fabric_ep.info->tx_attr->caps |= FI_MSG;
+    fabric_ep.info->tx_attr->caps |= FI_NAMED_RX_CTX;    /* Required for scalable endpoints indexing */
+    ret = fi_tx_context(fabric_ep.ep, 0, fabric_ep.info->tx_attr, &fabric_ep.tx_ep, NULL);
+  	debug_info("[FABRIC] [fabric_init] fi_tx_context tx_ep = "<<ret);
+	if (ret) {
+		printf("fi_tx_context error (%d)\n", ret);
+		return ret;
+	}
+
+    ret = fi_ep_bind(fabric_ep.tx_ep, &fabric_ep.cq->fid, FI_SEND);
+  	debug_info("[FABRIC] [fabric_init] fi_ep_bind tx_ep = "<<ret);
+	if (ret) {
+		printf("fi_ep_bind error (%d)\n", ret);
+		return ret;
+	}
+
+	ret = fi_enable(fabric_ep.tx_ep);
+  	debug_info("[FABRIC] [fabric_init] fi_enable tx_ep = "<<ret);
+	if (ret) {
+		printf("fi_enable error (%d)\n", ret);
+		return ret;
+	}
+
+
+    fabric_ep.info->rx_attr->caps |= FI_MSG;
+    fabric_ep.info->rx_attr->caps |= FI_NAMED_RX_CTX;    /* Required for scalable endpoints indexing */
+    ret = fi_rx_context(fabric_ep.ep, 0, fabric_ep.info->rx_attr, &fabric_ep.rx_ep, NULL);
+  	debug_info("[FABRIC] [fabric_init] fi_rx_context rx_ep = "<<ret);
+	if (ret) {
+		printf("fi_rx_context error (%d)\n", ret);
+		return ret;
+	}
+
+    ret = fi_ep_bind(fabric_ep.rx_ep, &fabric_ep.cq->fid, FI_RECV);
+  	debug_info("[FABRIC] [fabric_init] fi_ep_bind rx_ep = "<<ret);
+	if (ret) {
+		printf("fi_ep_bind error (%d)\n", ret);
+		return ret;
+	}
+
+	ret = fi_enable(fabric_ep.rx_ep);
+  	debug_info("[FABRIC] [fabric_init] fi_enable rx_ep = "<<ret);
 	if (ret) {
 		printf("fi_enable error (%d)\n", ret);
 		return ret;
@@ -341,9 +375,8 @@ int fabric::destroy_thread_cq(fabric_ep &fabric_ep)
 int fabric::run_thread_cq(fabric_ep &fabric_ep)
 {
 	int ret = 0;
-	const int comp_count = 100;
-	// struct fi_cq_tagged_entry comp[comp_count] = {};
-	std::vector<fi_cq_tagged_entry> comp(comp_count);
+	const int comp_count = 8;
+	struct fi_cq_tagged_entry comp[comp_count] = {};
 	std::unique_lock<std::mutex> lock(fabric_ep.thread_cq_mutex);
 
 	while (fabric_ep.thread_cq_is_running) {
@@ -361,7 +394,7 @@ int fabric::run_thread_cq(fabric_ep &fabric_ep)
 		// if (fabric_ep.subs_to_wait == 0) { continue; }
 		// {
 			// std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
-		ret = fi_cq_read(fabric_ep.cq, comp.data(), comp_count);
+		ret = fi_cq_read(fabric_ep.cq, comp, comp_count);
 			// ret = fi_cq_read(fabric_ep.cq, &comp[0], 8);
 		// }
 		if (ret == -FI_EAGAIN){ continue; }
@@ -482,33 +515,47 @@ void fabric::wait ( fabric_ep& fabric_ep, fabric_comm &fabric_comm )
 	if (fabric_ep.have_thread){
 		debug_info("[FABRIC] [wait] With threads");
 		std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
-		// fabric_ep.subs_to_wait++;
-		// fabric_ep.thread_cq_cv.notify_one();
 		fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
 		fabric_comm.wait_context = true;
 	}else{
 		debug_info("[FABRIC] [wait] Without threads");
+		std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
+		
 		int ret = 0;
-		fi_cq_tagged_entry comp = {};
-		do{
-			ret = fi_cq_read(fabric_ep.cq, &comp, 1);
+		const int comp_count = 8;
+		fi_cq_tagged_entry comp[comp_count] = {};
+		while (fabric_comm.wait_context)
+		{
+			ret = fi_cq_read(fabric_ep.cq, &comp, comp_count);
 
-			if (ret == -FI_EAGAIN){ continue; }
+			if (ret == -FI_EAGAIN){ 
+				// std::this_thread::yield();
+				continue;
+			}
 
 			//TODO: handle error
-			if (ret < 0) { continue; }
-
-			// Handle the cq entries
-			fabric_context* context = static_cast<fabric_context*>(comp.op_context);
-			context->entry = comp;
-			if (comp.flags & FI_SEND) {
-				debug_info("[FABRIC] [run_thread_cq] Send cq of rank_peer "<<context->rank);
+			if (ret < 0) { 
+				print("Error in fi_cq_read "<<ret<<" "<<fi_strerror(ret));
+				continue; 
 			}
-			if (comp.flags & FI_RECV) {
-				debug_info("[FABRIC] [run_thread_cq] Recv cq of rank_peer "<<context->rank);
-			} 
-			// print_fi_cq_err_entry(comp);
-		}while (ret == -FI_EAGAIN);
+
+			for (int i = 0; i < ret; i++)
+			{
+				// Handle the cq entries
+				fabric_context* context = static_cast<fabric_context*>(comp[i].op_context);
+				context->entry = comp[i];
+				if (comp[i].flags & FI_SEND) {
+					debug_info("[FABRIC] [wait] Send cq of rank_peer "<<context->rank);
+				}
+				if (comp[i].flags & FI_RECV) {
+					debug_info("[FABRIC] [wait] Recv cq of rank_peer "<<context->rank);
+				}
+				print_fi_cq_tagged_entry(comp[i]);
+				fabric_ep.m_comms[context->rank].wait_context = false;
+				// fabric_ep.m_comms[context->rank].comm_cv.notify_one();
+			}
+		}
+		fabric_comm.wait_context = true;
 	}
 }
 
@@ -528,16 +575,11 @@ fabric::fabric_msg fabric::send ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
   	debug_info("[FABRIC] [fabric_send] Start size "<<size<<" rank_peer "<<fabric_comm.rank_peer<<" rank_self_in_peer "<<fabric_comm.rank_self_in_peer<<" tag "<<tag<<" send_context "<<(void*)&fabric_comm.context);
 
 	if (size > fabric_ep.info->tx_attr->inject_size){
-
-
 		do {
-			// std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
-			ret = fi_tsend(fabric_ep.ep, buffer, size, NULL, fabric_comm.fi_addr, tag_send, &fabric_comm.context);
+			ret = fi_tsend(fabric_ep.tx_ep, buffer, size, NULL, fabric_comm.fi_addr, tag_send, &fabric_comm.context);
 			
 			if (ret == -FI_EAGAIN)
 				(void) fi_cq_read(fabric_ep.cq, NULL, 0);
-
-			// debug_info("fi_tsend "<<ret);
 		} while (ret == -FI_EAGAIN);
 		
 		if (ret){
@@ -546,20 +588,13 @@ fabric::fabric_msg fabric::send ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 			return msg;
 		}
 
-		debug_info("[FABRIC] [fabric_send] Waiting on mutex of rank_peer "<<fabric_comm.rank_peer);
+		debug_info("[FABRIC] [fabric_send] Waiting on rank_peer "<<fabric_comm.rank_peer);
 
 		wait(fabric_ep, fabric_comm);
-		// {
-		// 	std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
-		// 	fabric_ep.subs_to_wait++;
-		// 	fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
-		// 	fabric_comm.wait_context = true;
-		// }
-		// msg.error = fabric_comm.context.entry.err;
 	}else{
 		
 		do {
-			ret = fi_tinject(fabric_ep.ep, buffer, size, fabric_comm.fi_addr, tag_send);
+			ret = fi_tinject(fabric_ep.tx_ep, buffer, size, fabric_comm.fi_addr, tag_send);
 			
 			if (ret == -FI_EAGAIN)
 				(void) fi_cq_read(fabric_ep.cq, NULL, 0);
@@ -573,7 +608,6 @@ fabric::fabric_msg fabric::send ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 	msg.rank_peer = (tag_send & 0xFFFF'FF00'0000'0000) >> 40;
 	msg.rank_self_in_peer = (tag_send & 0x0000'00FF'FFFF'0000) >> 16;
 	
-  	debug_info("[FABRIC] [fabric_send] fabric_comm.context.entry.tag "<<fabric_comm.context.entry.tag);
   	debug_info("[FABRIC] [fabric_send] msg size "<<msg.size<<" rank_peer "<<msg.rank_peer<<" rank_self_in_peer "<<msg.rank_self_in_peer<<" tag "<<msg.tag<<" error "<<msg.error);
   	debug_info("[FABRIC] [fabric_send] End = "<<size);
 	return msg;
@@ -585,6 +619,7 @@ fabric::fabric_msg fabric::recv ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 	fabric_msg msg = {};
 
 	uint64_t mask = 0;	
+	// tag format 24 bits rank_self_in_peer 24 bits rank_peer 16 bits tag
 	uint64_t aux_rank_peer = fabric_comm.rank_peer;
 	uint64_t aux_rank_self_in_peer = fabric_comm.rank_self_in_peer;
 	uint64_t aux_tag = tag;
@@ -600,12 +635,10 @@ fabric::fabric_msg fabric::recv ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 
   	debug_info("[FABRIC] [fabric_recv] Start size "<<size<<" rank_peer "<<fabric_comm.rank_peer<<" rank_self_in_peer "<<fabric_comm.rank_self_in_peer<<" tag "<<tag<<" recv_context "<<(void*)&fabric_comm.context);
 	do { 
-		// std::unique_lock<std::mutex> lock(fabric_ep.thread_fi_mutex);
-		ret = fi_trecv(fabric_ep.ep, buffer, size, NULL, fabric_comm.fi_addr, tag_recv, mask, &fabric_comm.context);
+		ret = fi_trecv(fabric_ep.rx_ep, buffer, size, NULL, fabric_comm.fi_addr, tag_recv, mask, &fabric_comm.context);
 
 		if (ret == -FI_EAGAIN)
 			(void) fi_cq_read(fabric_ep.cq, NULL, 0);
-		// debug_info("fi_trecv "<<ret);
 	} while (ret == -FI_EAGAIN);
 	
 	if (ret){
@@ -614,15 +647,9 @@ fabric::fabric_msg fabric::recv ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 		return msg;
 	}
 	
-	debug_info("[FABRIC] [fabric_recv] Waiting on mutex of rank_peer "<<fabric_comm.rank_peer);
+	debug_info("[FABRIC] [fabric_recv] Waiting on rank_peer "<<fabric_comm.rank_peer);
 	
 	wait(fabric_ep, fabric_comm);
-	// {
-	// 	std::unique_lock<std::mutex> lock(fabric_comm.comm_mutex);
-	// 	fabric_ep.subs_to_wait++;
-	// 	fabric_comm.comm_cv.wait(lock, [&fabric_comm]{ return !fabric_comm.wait_context; });
-	// 	fabric_comm.wait_context = true;
-	// }
 
 	msg.size = size;
 	// msg.error = fabric_comm.context.entry.err;
@@ -631,7 +658,6 @@ fabric::fabric_msg fabric::recv ( fabric_ep &fabric_ep, fabric_comm& fabric_comm
 	msg.rank_self_in_peer = (fabric_comm.context.entry.tag & 0xFFFF'FF00'0000'0000) >> 40;
 	msg.rank_peer = (fabric_comm.context.entry.tag & 0x0000'00FF'FFFF'0000) >> 16;
 	
-  	debug_info("[FABRIC] [fabric_recv] fabric_comm.context.entry.tag "<<fabric_comm.context.entry.tag);
   	debug_info("[FABRIC] [fabric_recv] msg size "<<msg.size<<" rank_peer "<<msg.rank_peer<<" rank_self_in_peer "<<msg.rank_self_in_peer<<" tag "<<msg.tag<<" error "<<msg.error);
   	debug_info("[FABRIC] [fabric_recv] End = "<<size);
 	return msg;
@@ -663,6 +689,22 @@ int fabric::destroy ( fabric_ep &fabric_ep )
 
 	destroy_thread_cq(fabric_ep);
   	
+	debug_info("[FABRIC] [fabric_close_comm] Close tx_context");
+	if (fabric_ep.tx_ep){
+		ret = fi_close(&fabric_ep.tx_ep->fid);
+		if (ret)
+			printf("warning: error closing tx_context (%d)\n", ret);
+		fabric_ep.tx_ep = nullptr;
+	}
+
+	debug_info("[FABRIC] [fabric_close_comm] Close rx_context");
+	if (fabric_ep.rx_ep){
+		ret = fi_close(&fabric_ep.rx_ep->fid);
+		if (ret)
+			printf("warning: error closing rx_context (%d)\n", ret);
+		fabric_ep.rx_ep = nullptr;
+	}
+
 	debug_info("[FABRIC] [fabric_close_comm] Close endpoint");
 	if (fabric_ep.ep){
 		ret = fi_close(&fabric_ep.ep->fid);

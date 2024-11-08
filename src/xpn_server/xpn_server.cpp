@@ -50,7 +50,7 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
             return;
         }
 
-        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] OP '"<<xpn_server_op2string(type_op)<<"'; OP_ID "<< type_op);
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] OP '"<<xpn_server_ops_name(type_op)<<"'; OP_ID "<< static_cast<int>(type_op));
 
         if (type_op == xpn_server_ops::DISCONNECT) {
             debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] DISCONNECT received");

@@ -183,6 +183,13 @@ void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
     printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
   }
 
+  // Sincronization with server
+  uint32_t buff = 0;
+  ret = in_comm->read_data(&buff, sizeof(buff));
+  if (ret < 0) {
+    printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
+  }
+
   // Disconnect
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] Disconnect");
 
