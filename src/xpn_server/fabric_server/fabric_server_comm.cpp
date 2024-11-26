@@ -26,14 +26,24 @@
 #include "base_cpp/socket.hpp"
 #include "base_c/filesystem.h"
 #include <csignal>
+#include "lfi.h"
 
 namespace XPN
 {
-fabric_server_control_comm::fabric_server_control_comm (xpn_server_params &params)
+fabric_server_control_comm::fabric_server_control_comm ()
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> Begin");
   
-  fabric::init(m_ep, params.have_threads());
+  int port = 0;
+  m_server_comm = lfi_server_create(NULL, &port);
+
+  m_port_name = std::to_string(port);
+
+  if (m_server_comm < 0)
+  {
+    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_init] ERROR: bind fails");
+    std::raise(SIGTERM);
+  }
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> End");
 }
@@ -42,7 +52,7 @@ fabric_server_control_comm::~fabric_server_control_comm()
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [~fabric_server_control_comm] >> Begin");
 
-  fabric::destroy(m_ep);
+  lfi_server_close(m_server_comm);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [~fabric_server_control_comm] >> End");
 }
@@ -59,71 +69,11 @@ xpn_server_comm* fabric_server_control_comm::accept ( int socket )
     return nullptr;
   }
 
-  fabric::fabric_comm &new_comm = fabric::new_comm(m_ep);
-
-  // First send the server address
-  size_t ad_len = MAX_PORT_NAME;
-  char ad_buff[MAX_PORT_NAME];
-  ret = fabric::get_addr(m_ep, ad_buff, ad_len);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: fabric get_addr fails");
+  int new_comm = lfi_server_accept(m_server_comm);
+  if (new_comm < 0){
+    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: accept fails");
     return nullptr;
   }
-
-  ret = socket::send(socket, &ad_len, sizeof(ad_len));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: socket send addres size fails");
-    return nullptr;
-  }
-  
-  ret = socket::send(socket, ad_buff, ad_len);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: socket send addres fails");
-    return nullptr;
-  }
-  
-  // Second recv the client address
-  ret = socket::recv(socket, &ad_len, sizeof(ad_len));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: socket recv addres size fails");
-    return nullptr;
-  }
-  
-  ret = socket::recv(socket, ad_buff, ad_len);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: socket recv addres fails");
-    return nullptr;
-  }
-
-  ret = fabric::register_addr(m_ep, new_comm, ad_buff);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: fabric register_addr fails");
-    return nullptr;
-  }
-  
-  // Third send the local asigment of rank
-  ret = socket::send(socket, &new_comm.rank_peer, sizeof(new_comm.rank_peer));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres fails");
-    socket::close(socket);
-    return nullptr;
-  }
-
-  // Fourth recv the server asigment of rank
-  uint32_t rank;
-  ret = socket::recv(socket, &rank, sizeof(rank));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres fails");
-    socket::close(socket);
-    return nullptr;
-  }
-  new_comm.rank_self_in_peer = rank;
-
-  debug_info("FABRIC_SERVER_CONTROL_COMM New comm rank_peer "<<new_comm.rank_peer<<" rank_self_in_peer "<<new_comm.rank_self_in_peer); 
-
-  int buf = 123;
-  fabric::recv(m_ep, new_comm, &buf, sizeof(buf), 123);
-  fabric::send(m_ep, new_comm, &buf, sizeof(buf), 1234);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] << End");
 
@@ -137,7 +87,7 @@ void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
   
   fabric_server_comm *in_comm = static_cast<fabric_server_comm*>(comm);
 
-  fabric::close(m_ep, in_comm->m_comm);
+  lfi_client_close(in_comm->m_comm);
 
   delete comm;
 
@@ -147,32 +97,23 @@ void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
 
 int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_id, int &tag_client_id )
 {
-  fabric::fabric_msg ret = {};
   int msg[2] = {};
+  int ret = 0;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] Read operation");
-  ret = fabric::recv(*m_comm.m_ep, m_comm, msg, sizeof(msg), 0);
-  if (ret.error < 0) {
+  ret = lfi_trecv(m_comm, msg, sizeof(msg), 0);
+  if (ret < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] ERROR: read fails");
   }
 
-  rank_client_id = ret.rank_peer;
+  rank_client_id = m_comm;
   tag_client_id  = msg[0];
   op             = static_cast<xpn_server_ops>(msg[1]);
 
-  [[unlikely]] if (op == xpn_server_ops::DISCONNECT) {
-    // Sincronization with client in disconnect
-    uint32_t buff = static_cast<uint32_t>(xpn_server_ops::DISCONNECT);
-    int64_t res = write_data(&buff, sizeof(buff), rank_client_id, tag_client_id);
-    if (res < 0) {
-      debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] ERROR: read fails");
-    }
-  }
-
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] read (SOURCE "<<m_socket<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] read (SOURCE "<<m_comm<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] << End");
 
   // Return OK
@@ -181,7 +122,7 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
 
 int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
 {
-  fabric::fabric_msg ret = {};
+  int64_t ret = 0;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] >> Begin");
 
@@ -196,22 +137,21 @@ int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] Read data tag "<< tag_client_id);
-  auto& comm = (*m_comm.m_ep).m_comms[rank_client_id];
-  ret = fabric::recv(*m_comm.m_ep, comm, data, size, tag_client_id);
-  if (ret.error < 0) {
+  ret = lfi_trecv(m_comm, data, size, tag_client_id);
+  if (ret < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] ERROR: read fails");
   }
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] read (SOURCE "<<m_socket<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] read (SOURCE "<<m_comm<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] << End");
 
   // Return bytes read
-  return ret.size;
+  return ret;
 }
 
 int64_t fabric_server_comm::write_data ( const void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
 {
-  fabric::fabric_msg ret = {};
+  int64_t ret = 0;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] >> Begin");
 
@@ -227,16 +167,15 @@ int64_t fabric_server_comm::write_data ( const void *data, int64_t size, [[maybe
   // Send message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] Write data tag "<< tag_client_id);
 
-  auto& comm = (*m_comm.m_ep).m_comms[rank_client_id];
-  ret = fabric::send(*m_comm.m_ep, comm, data, size, tag_client_id);
-  if (ret.error < 0) {
+  ret = lfi_tsend(m_comm, data, size, tag_client_id);
+  if (ret < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] ERROR: MPI_Send fails");
   }
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] << End");
 
   // Return bytes written
-  return ret.size;
+  return ret;
 }
 
 } // namespace XPN

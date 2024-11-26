@@ -25,7 +25,6 @@
 #include <memory>
 
 #include "nfi/nfi_xpn_server_comm.hpp"
-#include "base_cpp/fabric.hpp"
 
 namespace XPN
 {
@@ -33,26 +32,25 @@ namespace XPN
   class nfi_fabric_server_comm : public nfi_xpn_server_comm
   {
   public:
-    nfi_fabric_server_comm(fabric::fabric_comm& comm) : m_comm(comm) {}
+    nfi_fabric_server_comm(int& comm) : m_comm(comm) {}
 
     int64_t write_operation(xpn_server_ops op) override;
     int64_t read_data(void *data, int64_t size) override;
     int64_t write_data(const void *data, int64_t size) override;
   public:
-    fabric::fabric_comm& m_comm;
+    int m_comm;
   };
   
   class nfi_fabric_server_control_comm : public nfi_xpn_server_control_comm
   {
   public:
-    nfi_fabric_server_control_comm();
-    ~nfi_fabric_server_control_comm();
+    nfi_fabric_server_control_comm() = default;
+    ~nfi_fabric_server_control_comm() = default;
     
     nfi_xpn_server_comm* connect(const std::string &srv_name) override;
     void disconnect(nfi_xpn_server_comm* comm) override;
 
   private:
-    static fabric::fabric_ep m_ep;
   };
 
 } // namespace XPN

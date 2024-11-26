@@ -26,148 +26,60 @@
 #include "base_cpp/ns.hpp"
 #include <csignal>
 #include <xpn_server/xpn_server_ops.hpp>
+#include "lfi.h"
 
 namespace XPN {
-
-fabric::fabric_ep nfi_fabric_server_control_comm::m_ep;
-
-nfi_fabric_server_control_comm::nfi_fabric_server_control_comm ()
-{
-  debug_info("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm] >> Begin");
-  if (m_ep.ep == nullptr){
-    int xpn_thread = xpn_env::get_instance().xpn_thread;
-    fabric::init(m_ep, xpn_thread);
-  }
-
-  debug_info("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm] >> End");
-}
-
-nfi_fabric_server_control_comm::~nfi_fabric_server_control_comm()
-{
-  debug_info("[NFI_FABRIC_SERVER_CONTROL_COMM] [~nfi_fabric_server_control_comm] >> Begin");
-
-  if (m_ep.ep != nullptr && m_ep.m_comms.size() == 1)
-    fabric::destroy(m_ep);
-
-  debug_info("[NFI_FABRIC_SERVER_CONTROL_COMM] [~nfi_fabric_server_control_comm] >> End");
-}
 
 nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string &srv_name )
 {
   int ret;
   int connection_socket;
-  
   char port_name[MAX_PORT_NAME];
 
-  debug_info("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] >> Begin\n");
-  
-  fabric::fabric_comm& new_fabric_comm = fabric::new_comm(m_ep);
+  debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] >> Begin");
 
   // Lookup port name
-  ret = socket::client_connect(srv_name, socket::get_xpn_port() ,connection_socket);
+  ret = socket::client_connect(srv_name, socket::get_xpn_port(), connection_socket);
   if (ret < 0)
   {
-    debug_error("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket connect\n");
+    debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket connect\n");
     return nullptr;
   }
   int buffer = socket::ACCEPT_CODE;
   ret = socket::send(connection_socket, &buffer, sizeof(buffer));
   if (ret < 0)
   {
-    debug_error("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send\n");
+    debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket send\n");
     socket::close(connection_socket);
     return nullptr;
   }
   ret = socket::recv(connection_socket, port_name, MAX_PORT_NAME);
   if (ret < 0)
   {
-    debug_error("[NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket read\n");
+    debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket read\n");
     socket::close(connection_socket);
     return nullptr;
   }
-
-  // First recv the server address
-  size_t ad_len = MAX_PORT_NAME;
-  char ad_buff[MAX_PORT_NAME];
-  ret = socket::recv(connection_socket, &ad_len, sizeof(ad_len));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket recv addres size fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-  
-  ret = socket::recv(connection_socket, ad_buff, ad_len);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket recv addres fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-
-  ret = fabric::register_addr(m_ep, new_fabric_comm, ad_buff);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: fabric register_addr fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-
-  // Second send the client address
-  ret = fabric::get_addr(m_ep, ad_buff, ad_len);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: fabric get_addr fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-
-  ret = socket::send(connection_socket, &ad_len, sizeof(ad_len));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres size fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-  
-  ret = socket::send(connection_socket, ad_buff, ad_len);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-
-  // Third recv the server asigment of rank
-  uint32_t rank;
-  ret = socket::recv(connection_socket, &rank, sizeof(rank));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-  new_fabric_comm.rank_self_in_peer = rank;
-
-  // Fourth send the local asigment of rank
-  ret = socket::send(connection_socket, &new_fabric_comm.rank_peer, sizeof(new_fabric_comm.rank_peer));
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [NFI_FABRIC_SERVER_CONTROL_COMM] [nfi_fabric_server_control_comm_connect] ERROR: socket send addres fails");
-    socket::close(connection_socket);
-    return nullptr;
-  }
-
-  debug_info("NFI_FABRIC_SERVER_CONTROL_COMM New comm rank_peer "<<new_fabric_comm.rank_peer<<" rank_self_in_peer "<<new_fabric_comm.rank_self_in_peer); 
-
   socket::close(connection_socket);
 
   if (ret < 0) {
-    print("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: Lookup "<<srv_name<<" Port "<<port_name);
+    printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: Lookup %s Port %s\n", srv_name.c_str(), port_name);
     return nullptr;
   }
 
   debug_info("[NFI_FABRIC_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name);
 
-  int buf = 123;
-  fabric::send(m_ep, new_fabric_comm, &buf, sizeof(buf), 123);
-  fabric::recv(m_ep, new_fabric_comm, &buf, sizeof(buf), 1234);
+  int new_comm = lfi_client_create(srv_name.c_str(), atoi(port_name));
+
+  if (new_comm < 0)
+  {
+    printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: connect fails\n");
+    return nullptr;
+  }
 
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] << End\n");
 
-  return new (std::nothrow) nfi_fabric_server_comm(new_fabric_comm);
+  return new (std::nothrow) nfi_fabric_server_comm(new_comm);
 }
 
 void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm) 
@@ -183,17 +95,10 @@ void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
     printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
   }
 
-  // Sincronization with server
-  uint32_t buff = 0;
-  ret = in_comm->read_data(&buff, sizeof(buff));
-  if (ret < 0) {
-    printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
-  }
-
   // Disconnect
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] Disconnect");
-
-  ret = fabric::close(m_ep, in_comm->m_comm);
+  
+  ret = lfi_client_close(in_comm->m_comm);
   if (ret < 0) {
     printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: MPI_Comm_disconnect fails");
   }
@@ -204,7 +109,7 @@ void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
 }
 
 int64_t nfi_fabric_server_comm::write_operation(xpn_server_ops op) {
-    fabric::fabric_msg ret;
+    int ret;
     int msg[2];
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] >> Begin");
@@ -216,8 +121,8 @@ int64_t nfi_fabric_server_comm::write_operation(xpn_server_ops op) {
     // Send message
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] Write operation send tag "<< msg[0]);
 
-    ret = fabric::send(*m_comm.m_ep, m_comm, msg, sizeof(msg), 0);
-    if (ret.error < 0) {
+    ret = lfi_tsend(m_comm, msg, sizeof(msg), 0);
+    if (ret < 0) {
         debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] ERROR: socket::send < 0 : "<< ret);
         return -1;
     }
@@ -229,7 +134,7 @@ int64_t nfi_fabric_server_comm::write_operation(xpn_server_ops op) {
 }
 
 int64_t nfi_fabric_server_comm::write_data(const void *data, int64_t size) {
-    fabric::fabric_msg ret;
+    int ret;
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_data] >> Begin");
 
@@ -247,19 +152,20 @@ int64_t nfi_fabric_server_comm::write_data(const void *data, int64_t size) {
     // Send message
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_data] Write data");
 
-    ret = fabric::send(*m_comm.m_ep, m_comm, data, size, tag);
-    if (ret.error < 0) {
-        printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_data] ERROR: MPI_Send fails");
+    ret = lfi_tsend(m_comm, data, size, tag);
+    if (ret < 0) {
+        printf("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_data] ERROR: MPI_Send fails");
+        size = 0;
     }
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_data] << End");
 
     // Return bytes written
-    return ret.size;
+    return size;
 }
 
 int64_t nfi_fabric_server_comm::read_data(void *data, ssize_t size) {
-    fabric::fabric_msg ret;
+    int ret;
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_read_data] >> Begin");
 
@@ -277,15 +183,16 @@ int64_t nfi_fabric_server_comm::read_data(void *data, ssize_t size) {
     // Get message
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_read_data] Read data");
 
-    ret = fabric::recv(*m_comm.m_ep, m_comm, data, size, tag);
-    if (ret.error < 0) {
+    ret = lfi_trecv(m_comm, data, size, tag);
+    if (ret < 0) {
         printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_read_data] ERROR: MPI_Recv fails");
+        size = 0;
     }
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_read_data] << End");
 
     // Return bytes read
-    return ret.size;
+    return size;
 }
 
 } //namespace XPN
