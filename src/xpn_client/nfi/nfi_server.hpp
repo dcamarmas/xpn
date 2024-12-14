@@ -28,6 +28,7 @@
 #include <sys/statvfs.h>
 #include <dirent.h>
 
+#include "xpn_server/xpn_server_ops.hpp"
 #include "nfi_xpn_server_comm.hpp"
 #include "base_cpp/debug.hpp"
 
@@ -51,7 +52,7 @@ namespace XPN
     class nfi_server 
     {
     public:
-        nfi_server(const std::string &url);
+        nfi_server(const nfi_parser &url);
         int init_comm();
         int destroy_comm();
         static bool is_local_server(const std::string &server);
@@ -93,7 +94,7 @@ namespace XPN
     protected:
     
         template<typename msg_struct>
-        int nfi_write_operation( int op, msg_struct &msg )
+        int nfi_write_operation( xpn_server_ops op, msg_struct &msg )
         {
             int ret;
 
@@ -117,10 +118,14 @@ namespace XPN
         }
 
         template<typename msg_struct, typename req_struct>
-        int nfi_do_request ( int op, msg_struct &msg, req_struct &req )
+        int nfi_do_request ( xpn_server_ops op, msg_struct &msg, req_struct &req )
         {
             ssize_t ret;
             debug_info("[NFI_XPN] [nfi_server_do_request] >> Begin");
+
+            if (!xpn_env::get_instance().xpn_session_connect && m_comm == nullptr){
+                m_comm = m_control_comm->connect(m_server);
+            }
 
             // send request...
             debug_info("[NFI_XPN] [nfi_server_do_request] Send operation: "<<op);
@@ -138,6 +143,10 @@ namespace XPN
                 return -1;
             }
 
+            if (!xpn_env::get_instance().xpn_session_connect){
+                m_control_comm->disconnect(m_comm);
+                m_comm = nullptr;
+            }
             debug_info("[NFI_XPN] [nfi_server_do_request] >> End");
 
             return 0;

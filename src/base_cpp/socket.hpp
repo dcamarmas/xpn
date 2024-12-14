@@ -32,17 +32,18 @@ namespace XPN
 	{
     public:
         constexpr static const int DEFAULT_XPN_SCK_PORT = 3456;
-        constexpr static const int ACCEPT_CODE = 123;
-        constexpr static const int FINISH_CODE = 666;
-        constexpr static const int FINISH_CODE_AWAIT = 667;
-    private:
-        static int get_xpn_port();
+        constexpr static const int ACCEPT_CODE          = 123;
+        constexpr static const int FINISH_CODE          = 666;
+        constexpr static const int FINISH_CODE_AWAIT    = 667;
+        constexpr static const int STATS_CODE           = 444;
+        constexpr static const int STATS_wINDOW_CODE    = 445;
     public:
+        static int get_xpn_port();
         static int64_t send ( int socket, const void * buffer, int64_t size );
         static int64_t recv ( int socket, void * buffer, int64_t size );
-        static int server_create ( int &out_socket );
+        static int server_create ( int port, int &out_socket );
         static int server_accept ( int socket, int &out_conection_socket );
-        static int client_connect ( const std::string &srv_name, int &out_socket );
+        static int client_connect ( const std::string &srv_name, int port, int &out_socket );
         static int close ( int socket );
 	};
 } // namespace XPN

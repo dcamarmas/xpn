@@ -26,10 +26,10 @@
 
 namespace XPN
 {
-    std::string xpn_api::check_remove_path_from_path(const std::string &path, std::string& out_path)
+    std::string xpn_api::check_remove_part_from_path(const std::string &path, std::string& out_path)
     {
         std::string name_part = xpn_path::get_first_dir(path);
-        XPN_DEBUG("First dir "<<name_part);
+        // XPN_DEBUG("First dir "<<name_part);
         auto it = m_partitions.find(name_part);
         if (it == m_partitions.end())
         {
@@ -51,7 +51,7 @@ namespace XPN
         int res = 0;
 
         std::string file_path;
-        auto part_name = check_remove_path_from_path(path, file_path);
+        auto part_name = check_remove_part_from_path(path, file_path);
         if (part_name.empty()){
             errno = ENOENT;
             XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
@@ -143,7 +143,7 @@ namespace XPN
 
     int xpn_api::close(int fd)
     {
-        XPN_DEBUG_BEGIN;
+        XPN_DEBUG_BEGIN_CUSTOM(fd);
         int res = 0;
         
         if (!m_file_table.has(fd))
@@ -178,7 +178,7 @@ namespace XPN
         
         m_file_table.remove(fd);
 
-        XPN_DEBUG_END;
+        XPN_DEBUG_END_CUSTOM(fd);
         return res;
     }
 
@@ -188,7 +188,7 @@ namespace XPN
         int res = 0;
 
         std::string file_path;
-        auto part_name = check_remove_path_from_path(path, file_path);
+        auto part_name = check_remove_part_from_path(path, file_path);
         if (part_name.empty()){
             errno = ENOENT;
             XPN_DEBUG_END_CUSTOM(path);
@@ -236,14 +236,14 @@ namespace XPN
         XPN_DEBUG_BEGIN_CUSTOM(path<<", "<<newpath);
         int res = 0;
         std::string file_path;
-        auto part_name = check_remove_path_from_path(path, file_path);
+        auto part_name = check_remove_part_from_path(path, file_path);
         if (part_name.empty()){
             errno = ENOENT;
             XPN_DEBUG_END_CUSTOM(path<<", "<<newpath);
             return -1;
         }
         std::string new_file_path;
-        auto new_part_name = check_remove_path_from_path(newpath, new_file_path);
+        auto new_part_name = check_remove_part_from_path(newpath, new_file_path);
         if (new_part_name.empty()){
             errno = ENOENT;
             XPN_DEBUG_END_CUSTOM(path<<", "<<newpath);
@@ -303,7 +303,7 @@ namespace XPN
 
     int xpn_api::dup(int fd)
     {
-        XPN_DEBUG_BEGIN;
+        XPN_DEBUG_BEGIN_CUSTOM(fd);
         int res = 0;
         if (!m_file_table.has(fd))
         {
@@ -312,22 +312,22 @@ namespace XPN
             return -1;
         }
         res = m_file_table.dup(fd);
-        XPN_DEBUG_END;
+        XPN_DEBUG_END_CUSTOM(fd);
         return res;
     }
 
     int xpn_api::dup2(int fd, int fd2)
     {
-        XPN_DEBUG_BEGIN;
+        XPN_DEBUG_BEGIN_CUSTOM(fd<<", "<<fd2);
         int res = 0;
         if (!m_file_table.has(fd))
         {
             errno = EBADF;
-            XPN_DEBUG_END_CUSTOM(fd);
+            XPN_DEBUG_END_CUSTOM(fd<<", "<<fd2);
             return -1;
         }
         res = m_file_table.dup(fd, fd2);
-        XPN_DEBUG_END;
+        XPN_DEBUG_END_CUSTOM(fd<<", "<<fd2);
         return res;
     }
 

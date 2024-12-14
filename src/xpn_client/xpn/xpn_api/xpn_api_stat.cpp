@@ -38,7 +38,8 @@ namespace XPN
         auto& file = m_file_table.get(fd);
 
         // Redirect to stat to not duplicate code
-        res = stat(file.m_path.c_str(), sb);
+        std::string file_path = file.m_part.m_name + "/" + file.m_path;
+        res = stat(file_path.c_str(), sb);
 
         XPN_DEBUG_END_CUSTOM(fd);
         return res;
@@ -49,7 +50,7 @@ namespace XPN
         XPN_DEBUG_BEGIN_CUSTOM(path);
         int res = 0;
         std::string file_path;
-        auto name_part = check_remove_path_from_path(path, file_path);
+        auto name_part = check_remove_part_from_path(path, file_path);
         if (name_part.empty()){
             errno = ENOENT;
             XPN_DEBUG_END_CUSTOM(path);
@@ -140,7 +141,7 @@ namespace XPN
         int res = 0;
 
         std::string file_path;
-        auto name_part = check_remove_path_from_path(path, file_path);
+        auto name_part = check_remove_part_from_path(path, file_path);
         if (name_part.empty()){
             errno = ENOENT;
             res = -1;
@@ -175,6 +176,10 @@ namespace XPN
                     buf->f_blocks += aux_buf.f_blocks;
                     buf->f_bfree += aux_buf.f_bfree;
                     buf->f_bavail += aux_buf.f_bavail;
+                    
+                    buf->f_files += aux_buf.f_files;
+                    buf->f_ffree += aux_buf.f_ffree;
+                    buf->f_favail += aux_buf.f_favail;
                 }
                 return res;
             });
@@ -208,7 +213,8 @@ namespace XPN
         auto& file = m_file_table.get(fd);
 
         // Redirect to statvfs to not duplicate code
-        res = statvfs(file.m_path.c_str(), buf);
+        std::string file_path = file.m_part.m_name + "/" + file.m_path;
+        res = statvfs(file_path.c_str(), buf);
 
         XPN_DEBUG_END;
         return res;
