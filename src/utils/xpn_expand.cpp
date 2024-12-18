@@ -200,7 +200,7 @@
 
       while(entry != NULL)
       {
-        debug_info("Rank "<<rank<<" readdir "<<dir_name<<" readed "<<<<entry->d_name);
+        debug_info("Rank "<<rank<<" readdir "<<dir_name<<" readed "<<entry->d_name);
         if (! strcmp(entry->d_name, ".")){
           entry = readdir(dir);
           continue;

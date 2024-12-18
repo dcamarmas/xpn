@@ -67,11 +67,11 @@ void print_stats(std::string hostfile, std::string action)
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] >> Begin");
 
     // Open host file
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] Open host file "<< m_params.shutdown_file);
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] Open host file "<< hostfile);
 
     file = fopen(hostfile.c_str(), "r");
     if (file == NULL) {
-        debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: invalid file "<< m_params.shutdown_file);
+        debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: invalid file "<< hostfile);
         exit(EXIT_FAILURE);
     }
 
