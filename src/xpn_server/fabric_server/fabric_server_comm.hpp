@@ -50,6 +50,7 @@ namespace XPN
     
     xpn_server_comm* accept(int socket) override;
     void disconnect(xpn_server_comm *comm) override;
+    static void disconnect(int id);
   private:
     int m_server_comm; 
   };

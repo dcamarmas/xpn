@@ -181,7 +181,7 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
 
     // In sck_server worker for operations has to be sequential because you don't want to have to make a socket per
     // operation. It can be done because it is not reentrant
-    if (server_type == XPN_SERVER_TYPE_SCK || server_type == XPN_SERVER_TYPE_FABRIC) {
+    if (server_type == XPN_SERVER_TYPE_SCK) {
         thread_mode_operations = workers_mode::sequential;
     }
 

@@ -94,22 +94,32 @@ void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_disconnect] << End");
 }
 
+void fabric_server_control_comm::disconnect ( int id )
+{
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_disconnect] >> Begin");
+  
+  lfi_client_close(id);
+
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_disconnect] << End");
+}
+
 
 int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_id, int &tag_client_id )
 {
   int msg[2] = {};
   int ret = 0;
+  int source = -1;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] Read operation");
-  ret = lfi_trecv(m_comm, msg, sizeof(msg), 0);
+  ret = lfi_any_trecv(msg, sizeof(msg), 0, &source);
   if (ret < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] ERROR: read fails");
   }
 
-  rank_client_id = m_comm;
+  rank_client_id = source;
   tag_client_id  = msg[0];
   op             = static_cast<xpn_server_ops>(msg[1]);
 
@@ -137,7 +147,7 @@ int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] Read data tag "<< tag_client_id);
-  ret = lfi_trecv(m_comm, data, size, tag_client_id);
+  ret = lfi_trecv(rank_client_id, data, size, tag_client_id);
   if (ret < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] ERROR: read fails");
   }
@@ -167,7 +177,7 @@ int64_t fabric_server_comm::write_data ( const void *data, int64_t size, [[maybe
   // Send message
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] Write data tag "<< tag_client_id);
 
-  ret = lfi_tsend(m_comm, data, size, tag_client_id);
+  ret = lfi_tsend(rank_client_id, data, size, tag_client_id);
   if (ret < 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] ERROR: MPI_Send fails");
   }
