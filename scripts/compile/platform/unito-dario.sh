@@ -31,10 +31,14 @@ spack load pkg-config
 #MPICC_PATH=$HOME/opt/spack/linux-ubuntu20.04-zen/gcc-9.4.0/openmpi-4.1.3-4bpvwm3lcbftmjki6en35c4i5od6wjbr/bin/mpicc
 #MPICC_PATH=$HOME/opt/spack/linux-ubuntu20.04-zen/gcc-9.4.0/mpich-4.0.2-a76rmlxbneoqdvemzjsyewp2akiiuxlj/bin/mpicc
 # MPICC_PATH=$HOME/dariomnz/bin/mpich/bin/mpicc
-MPICC_PATH=$HOME/dariomnz/bin/mpich/bin
+MPICC_PATH=$HOME/dariomnz/bin/mpich-ch4-fabric/bin
 FABRIC_PATH=/opt/libfabric
+FABRIC_PATH=$HOME/dariomnz/bin/libfabric-2.0.0
 INSTALL_PATH=$HOME/dariomnz/bin/
 BASE_PATH=$(dirname $0)
+
+export LD_LIBRARY_PATH=$HOME/dariomnz/bin/mpich-ch4-fabric/lib:$HOME/dariomnz/bin/libfabric-2.0.0/lib:$LD_LIBRARY_PATH
+export PATH=$HOME/dariomnz/bin/mpich-ch4-fabric/bin:$PATH
 
 # 3) preconfigure build-me...
 $BASE_PATH/../software/xpn.sh         -m $MPICC_PATH -f $FABRIC_PATH -i $INSTALL_PATH -s $BASE_PATH/../../../../xpn
