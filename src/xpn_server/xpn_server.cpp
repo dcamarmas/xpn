@@ -160,7 +160,7 @@ void xpn_server::accept ( int connection_socket )
             });
         }
     }else{
-        auto fut = m_worker1->launch_no_future([this, comm]{
+        m_worker1->launch_no_future([this, comm]{
             this->dispatcher(comm);
             return 0;
         });
