@@ -26,6 +26,8 @@
 
 #include "xpn_server/xpn_server_comm.hpp"
 
+#include "impl/fabric.hpp"
+
 namespace XPN
 {
   
@@ -40,6 +42,9 @@ namespace XPN
     int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
   public:
     int m_comm;
+    std::unique_ptr<LFI::fabric_request> shm_request, peer_request;
+    int shm_msg[2] = {};
+    int peer_msg[2] = {};
   };
   
   class fabric_server_control_comm : public xpn_server_control_comm

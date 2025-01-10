@@ -27,6 +27,8 @@
 #include "base_c/filesystem.h"
 #include <csignal>
 #include "lfi.h"
+#include "impl/fabric.hpp"
+#include <cassert>
 
 namespace XPN
 {
@@ -106,31 +108,84 @@ void fabric_server_control_comm::disconnect ( int id )
 
 int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_id, int &tag_client_id )
 {
-  int msg[2] = {};
-  int ret = 0;
-  int source = -1;
-
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
 
-  // Get message
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] Read operation");
-  ret = lfi_any_trecv(msg, sizeof(msg), 0, &source);
-  if (ret < 0) {
-    debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] ERROR: read fails");
+  if (!shm_request){
+    // Check if comm exists
+    LFI::fabric_comm *shm_comm = LFI::LFI::get_comm(LFI::LFI::LFI_ANY_COMM_SHM);
+    if (shm_comm == nullptr){
+        return -1;
+    }
+    shm_request = std::make_unique<LFI::fabric_request>(*shm_comm);
+
+    LFI::fabric_msg msg = LFI::LFI::async_recv(shm_msg, sizeof(shm_msg), 0, *shm_request);
+    if (msg.error < 0){
+        return -1;
+    }
   }
 
-  rank_client_id = source;
-  tag_client_id  = msg[0];
-  op             = static_cast<xpn_server_ops>(msg[1]);
+  if (!peer_request){
+    // Check if comm exists
+    LFI::fabric_comm *peer_comm = LFI::LFI::get_comm(LFI::LFI::LFI_ANY_COMM_PEER);
+    if (peer_comm == nullptr){
+        return -1;
+    }
+    peer_request = std::make_unique<LFI::fabric_request>(*peer_comm);
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] read (SOURCE "<<m_comm<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
+    LFI::fabric_msg msg = LFI::LFI::async_recv(peer_msg, sizeof(peer_msg), 0, *peer_request);
+    if (msg.error < 0){
+        return -1;
+    }
+  }
+
+  std::vector<std::reference_wrapper<LFI::fabric_request>> requests = {*shm_request, *peer_request};
+
+  int completed = LFI::LFI::wait_num(requests, 1);
+
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request shm  (RANK "<<((shm_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16)<<", TAG "<<shm_msg[0]<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request peer (RANK "<<((peer_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16)<<", TAG "<<peer_msg[0]<<")");
+  if (completed == 0){
+    rank_client_id = (shm_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16;
+    tag_client_id  = shm_msg[0];
+    op             = static_cast<xpn_server_ops>(shm_msg[1]);
+    
+    shm_msg[0] = -1;
+    shm_msg[1] = -1;
+
+    shm_request.release();
+    
+    // shm_request->reset();
+    // LFI::fabric_msg msg = LFI::LFI::async_recv(shm_msg, sizeof(shm_msg), 0, *shm_request);
+    // if (msg.error < 0){
+    //     return -1;
+    // }
+  }else if (completed == 1){
+    rank_client_id = (peer_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16;
+    tag_client_id  = peer_msg[0];
+    op             = static_cast<xpn_server_ops>(peer_msg[1]);
+
+    peer_msg[0] = -1;
+    peer_msg[1] = -1;
+
+    peer_request.release();
+  
+    // peer_request->reset();
+    // LFI::fabric_msg msg = LFI::LFI::async_recv(peer_msg, sizeof(peer_msg), 0, *peer_request);
+    // if (msg.error < 0){
+    //     return -1;
+    // }
+  }else{
+    return -1;
+  }
+
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] read (SOURCE "<<m_comm<<", RANK "<<rank_client_id<<", TAG "<<tag_client_id<<", MPI_ERROR "<<0<<")");
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] << End");
 
   // Return OK
   return 0;
 }
 
-int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
+int64_t fabric_server_comm::read_data ( void *data, int64_t size, int rank_client_id, int tag_client_id )
 {
   int64_t ret = 0;
 
@@ -159,7 +214,7 @@ int64_t fabric_server_comm::read_data ( void *data, int64_t size, [[maybe_unused
   return ret;
 }
 
-int64_t fabric_server_comm::write_data ( const void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
+int64_t fabric_server_comm::write_data ( const void *data, int64_t size, int rank_client_id, int tag_client_id )
 {
   int64_t ret = 0;
 

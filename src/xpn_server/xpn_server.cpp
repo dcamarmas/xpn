@@ -154,13 +154,13 @@ void xpn_server::accept ( int connection_socket )
         static bool only_one = true;
         if (only_one){
             only_one = false;
-            auto fut = m_worker1->launch([this, general_comm]{
+            m_worker1->launch_no_future([this, general_comm]{
                 this->fabric_dispatcher(general_comm);
                 return 0;
             });
         }
     }else{
-        auto fut = m_worker1->launch([this, comm]{
+        auto fut = m_worker1->launch_no_future([this, comm]{
             this->dispatcher(comm);
             return 0;
         });
