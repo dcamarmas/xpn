@@ -42,7 +42,8 @@ namespace XPN
     int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
   public:
     int m_comm;
-    std::unique_ptr<LFI::fabric_request> shm_request, peer_request;
+    std::unique_ptr<lfi_request, void (*)(lfi_request *)> shm_request = {nullptr, nullptr};
+    std::unique_ptr<lfi_request, void (*)(lfi_request *)> peer_request = {nullptr, nullptr};
     int shm_msg[2] = {};
     int peer_msg[2] = {};
   };

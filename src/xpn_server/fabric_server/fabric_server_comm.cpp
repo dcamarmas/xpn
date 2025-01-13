@@ -27,6 +27,7 @@
 #include "base_c/filesystem.h"
 #include <csignal>
 #include "lfi.h"
+#include "lfi_async.h"
 #include "impl/fabric.hpp"
 #include <cassert>
 
@@ -111,69 +112,63 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
 
   if (!shm_request){
-    // Check if comm exists
-    LFI::fabric_comm *shm_comm = LFI::LFI::get_comm(LFI::LFI::LFI_ANY_COMM_SHM);
-    if (shm_comm == nullptr){
-        return -1;
+    shm_request = {lfi_request_create(LFI_ANY_COMM_SHM), lfi_request_free};
+    if (!shm_request){
+        print("Error shm_request is null");
     }
-    shm_request = std::make_unique<LFI::fabric_request>(*shm_comm);
 
-    LFI::fabric_msg msg = LFI::LFI::async_recv(shm_msg, sizeof(shm_msg), 0, *shm_request);
-    if (msg.error < 0){
+    if (lfi_trecv_async(shm_request.get(), shm_msg, sizeof(shm_msg), 0) < 0){
+        print("Error in lfi_trecv_async")
         return -1;
     }
   }
 
   if (!peer_request){
-    // Check if comm exists
-    LFI::fabric_comm *peer_comm = LFI::LFI::get_comm(LFI::LFI::LFI_ANY_COMM_PEER);
-    if (peer_comm == nullptr){
-        return -1;
+    peer_request = {lfi_request_create(LFI_ANY_COMM_PEER), lfi_request_free};
+    if (!peer_request){
+        print("Error peer_request is null");
     }
-    peer_request = std::make_unique<LFI::fabric_request>(*peer_comm);
 
-    LFI::fabric_msg msg = LFI::LFI::async_recv(peer_msg, sizeof(peer_msg), 0, *peer_request);
-    if (msg.error < 0){
+    if (lfi_trecv_async(peer_request.get(), peer_msg, sizeof(peer_msg), 0) < 0){
+        print("Error in lfi_trecv_async")
         return -1;
     }
   }
 
-  std::vector<std::reference_wrapper<LFI::fabric_request>> requests = {*shm_request, *peer_request};
+  lfi_request *requests[2] = {shm_request.get(), peer_request.get()};
 
-  int completed = LFI::LFI::wait_num(requests, 1);
+  int completed = lfi_wait_many(requests, 2, 1);
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request shm  (RANK "<<((shm_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16)<<", TAG "<<shm_msg[0]<<")");
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request peer (RANK "<<((peer_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16)<<", TAG "<<peer_msg[0]<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request shm  (RANK "<<lfi_request_source(shm_request.get())<<", TAG "<<shm_msg[0]<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request peer (RANK "<<lfi_request_source(peer_request.get())<<", TAG "<<peer_msg[0]<<")");
   if (completed == 0){
-    rank_client_id = (shm_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16;
+    rank_client_id = lfi_request_source(shm_request.get());
     tag_client_id  = shm_msg[0];
     op             = static_cast<xpn_server_ops>(shm_msg[1]);
     
     shm_msg[0] = -1;
     shm_msg[1] = -1;
 
-    shm_request.release();
-    
-    // shm_request->reset();
-    // LFI::fabric_msg msg = LFI::LFI::async_recv(shm_msg, sizeof(shm_msg), 0, *shm_request);
-    // if (msg.error < 0){
-    //     return -1;
-    // }
+    // One option is to free the request and create another one or reuse the requets for a new recv
+    // shm_request.release();
+    if (lfi_trecv_async(shm_request.get(), shm_msg, sizeof(shm_msg), 0) < 0){
+        print("Error in lfi_trecv_async")
+        return -1;
+    }
   }else if (completed == 1){
-    rank_client_id = (peer_request->entry.tag & 0x0000'00FF'FFFF'0000) >> 16;
+    rank_client_id = lfi_request_source(peer_request.get());
     tag_client_id  = peer_msg[0];
     op             = static_cast<xpn_server_ops>(peer_msg[1]);
 
     peer_msg[0] = -1;
     peer_msg[1] = -1;
 
-    peer_request.release();
-  
-    // peer_request->reset();
-    // LFI::fabric_msg msg = LFI::LFI::async_recv(peer_msg, sizeof(peer_msg), 0, *peer_request);
-    // if (msg.error < 0){
-    //     return -1;
-    // }
+    // One option is to free the request and create another one or reuse the requets for a new recv
+    // peer_request.release();
+    if (lfi_trecv_async(peer_request.get(), peer_msg, sizeof(peer_msg), 0) < 0){
+        print("Error in lfi_trecv_async")
+        return -1;
+    }
   }else{
     return -1;
   }
