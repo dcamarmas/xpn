@@ -28,7 +28,6 @@
 #include <csignal>
 #include "lfi.h"
 #include "lfi_async.h"
-#include "impl/fabric.hpp"
 #include <cassert>
 
 namespace XPN

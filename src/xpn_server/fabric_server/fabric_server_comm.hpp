@@ -25,8 +25,7 @@
 #include <memory>
 
 #include "xpn_server/xpn_server_comm.hpp"
-
-#include "impl/fabric.hpp"
+#include "lfi_async.h"
 
 namespace XPN
 {
