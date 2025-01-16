@@ -81,14 +81,14 @@ namespace XPN
             return -1;
         }
 
-        auto& file = m_file_table.get(dirp->fd);
-        XPN_DEBUG("Close : '"<<file.m_path<<"'")
-        std::vector<std::future<int>> v_res(file.m_data_vfh.size());
-        for (size_t i = 0; i < file.m_data_vfh.size(); i++)
+        auto file = m_file_table.get(dirp->fd);
+        XPN_DEBUG("Close : '"<<file->m_path<<"'")
+        std::vector<std::future<int>> v_res(file->m_data_vfh.size());
+        for (size_t i = 0; i < file->m_data_vfh.size(); i++)
         {
-            if (file.m_data_vfh[i].is_initialized()){
+            if (file->m_data_vfh[i].is_initialized()){
                 v_res[i] = m_worker->launch([i, &file](){
-                    return file.m_part.m_data_serv[i]->nfi_closedir(file.m_data_vfh[i]);
+                    return file->m_part.m_data_serv[i]->nfi_closedir(file->m_data_vfh[i]);
                 });
             }
         }
@@ -122,17 +122,17 @@ namespace XPN
             return nullptr;
         }
 
-        auto& file = m_file_table.get(dirp->fd);
+        auto file = m_file_table.get(dirp->fd);
 
-        int master_dir = file.m_mdata.master_dir();
-        file.initialize_vfh_dir(master_dir);
+        int master_dir = file->m_mdata.master_dir();
+        file->initialize_vfh_dir(master_dir);
 
         struct ::dirent * entry = new (std::nothrow) dirent;
         if (entry == nullptr){
             return nullptr;
         }
         auto fut = m_worker->launch([master_dir, &file, &entry](){
-            return file.m_part.m_data_serv[master_dir]->nfi_readdir(file.m_data_vfh[master_dir], *entry);
+            return file->m_part.m_data_serv[master_dir]->nfi_readdir(file->m_data_vfh[master_dir], *entry);
         });
 
         res = fut.get();
