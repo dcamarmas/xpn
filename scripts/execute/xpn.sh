@@ -97,16 +97,16 @@ start_xpn_servers() {
   if command -v srun &> /dev/null
   then
     # Create dir
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           mkdir -p ${XPN_STORAGE_PATH}
     if [[ ${SERVER_TYPE} == "sck" ]]; then
-      srun  -n "${NODE_NUM}" -N "${NODE_NUM}"\
+      srun -n "${NODE_NUM}" -N "${NODE_NUM}"\
             -w "${HOSTFILE}" \
             --export=ALL \
             "${BASE_DIR_BUILD}"/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &
     else
-      srun  -n "${NODE_NUM}" -N "${NODE_NUM}" --mpi=none \
+      srun -n "${NODE_NUM}" -N "${NODE_NUM}" --mpi=none \
             -w "${HOSTFILE}" \
             --export=ALL \
             "${BASE_DIR_BUILD}"/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &
@@ -224,11 +224,11 @@ rebuild_xpn_servers() {
   if command -v srun &> /dev/null
   then
     # Create dir
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           mkdir -p ${XPN_STORAGE_PATH}
     hosts=$(cat ${DEATH_FILE} ${REBUILD_FILE} | sort | paste -sd "," -)
-    srun  -n "${NODE_NUM_SUM}" \
+    srun -n "${NODE_NUM_SUM}" \
           -w "${hosts}" \
           "${BASE_DIR_BUILD}"/utils/xpn_rebuild_active_reader "${XPN_STORAGE_PATH}" "${DEATH_FILE}" "${REBUILD_FILE}" 524288 "${XPN_REPLICATION_LEVEL}" 
   else
@@ -254,7 +254,7 @@ preload_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR_BUILD}"/utils/xpn_preload "${SOURCE_PATH}" "${XPN_STORAGE_PATH}" 524288 "${XPN_REPLICATION_LEVEL}"
   else
@@ -274,7 +274,7 @@ flush_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR_BUILD}"/utils/xpn_flush "${XPN_STORAGE_PATH}" "${DEST_PATH}" 524288 "${XPN_REPLICATION_LEVEL}"
   else
@@ -296,7 +296,7 @@ expand_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR_BUILD}"/utils/xpn_expand "${XPN_STORAGE_PATH}" "${NODE_NUM_REST}"
   else
@@ -326,7 +326,7 @@ shrink_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR_BUILD}"/utils/xpn_shrink "${XPN_STORAGE_PATH}" "${hostlist}"
   else
@@ -367,7 +367,7 @@ usage_details() {
   echo ""
   echo " optional arguments:"
   echo "     -h, --help                          Shows this help message and exits"
-  echo "     -e, --execute <arguments>           Server type: mpi, sck or tcp."
+  echo "     -S, --server_type <arguments>           Server type: mpi, sck or tcp."
   echo "     -a, --args <arguments>              Add various additional daemon arguments."
   echo "     -f, --foreground                    Starts the script in the foreground. Daemons are stopped by pressing 'q'."
   echo "     -c, --config   <path>               Path to configuration file."
@@ -390,14 +390,14 @@ usage_details() {
 get_opts() {
    # Taken the general idea from https://stackoverflow.com/questions/70951038/how-to-use-getopt-long-option-in-bash-script
    mkconf_name=$(basename "$0")
-   mkconf_short_opt=e:r:w:s:t:x:d:k:p:n:a:c:m:l:b:fvh
-   mkconf_long_opt=execute:,rootdir:,workdir:,source_path:,destination_path:,xpn_storage_path:,numnodes:,args:,config:,deployment_file:,foreground_file,hostfile:,deathfile:,rebuildfile:,host:,replication_level:,verbose,help
+   mkconf_short_opt=S:r:w:s:t:x:d:k:p:n:a:c:m:l:b:fvh
+   mkconf_long_opt=server_type:,rootdir:,workdir:,source_path:,destination_path:,xpn_storage_path:,numnodes:,args:,config:,deployment_file:,foreground_file,hostfile:,deathfile:,rebuildfile:,host:,replication_level:,verbose,help
    TEMP=$(getopt -o $mkconf_short_opt --long $mkconf_long_opt --name "$mkconf_name" -- "$@")
    eval set -- "${TEMP}"
 
    while :; do
       case "${1}" in
-         -e | --execute          ) SERVER_TYPE=$2;              shift 2 ;;
+         -S | --server_type      ) SERVER_TYPE=$2;              shift 2 ;;
          -r | --rootdir          ) DIR_ROOT=$2;                 shift 2 ;;
          -w | --workdir          ) WORKDIR=$2;                  shift 2 ;;
          -s | --source_path      ) SOURCE_PATH=$2;              shift 2 ;;

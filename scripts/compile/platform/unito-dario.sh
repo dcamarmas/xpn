@@ -25,7 +25,7 @@
 # 1) software (if needed)...
 #spack load openmpi
 #spack load mpich
-spack load pkg-config
+#spack load pkg-config
 
 # 2) working path...
 #MPICC_PATH=$HOME/opt/spack/linux-ubuntu20.04-zen/gcc-9.4.0/openmpi-4.1.3-4bpvwm3lcbftmjki6en35c4i5od6wjbr/bin/mpicc
@@ -44,4 +44,4 @@ export PATH=$HOME/dariomnz/bin/mpich-ch4-fabric/bin:$PATH
 $BASE_PATH/../software/xpn.sh         -m $MPICC_PATH -f $FABRIC_PATH -i $INSTALL_PATH -s $BASE_PATH/../../../../xpn
 $BASE_PATH/../software/ior.sh         -m $MPICC_PATH/mpicc -i $INSTALL_PATH -s $BASE_PATH/../../../../ior
 # $BASE_PATH/../software/lz4.sh         -m $MPICC_PATH -i $INSTALL_PATH -s $BASE_PATH/../../../../io500/build/pfind/lz4/
-# $BASE_PATH/../software/io500.sh       -m $MPICC_PATH -i $INSTALL_PATH -s $BASE_PATH/../../../../io500
+# $BASE_PATH/../software/io500.sh       -m $MPICC_PATH/mpicc -i $INSTALL_PATH -s $BASE_PATH/../../../../io500
