@@ -62,9 +62,9 @@ void monitor_stats(std::filesystem::path csv_path) {
         worker->launch_no_future([name, &comb_stats_mutex, &comb_stats]() {
             int socket;
             int ret;
-            int buffer = socket::STATS_wINDOW_CODE;
+            int buffer = socket::xpn_server::STATS_wINDOW_CODE;
             xpn_stats stat_buff;
-            ret = socket::client_connect(name, socket::get_xpn_port(), socket);
+            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
             if (ret < 0) {
                 debug_error("[TH_ID=" << std::this_thread::get_id()
                                 << "] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);

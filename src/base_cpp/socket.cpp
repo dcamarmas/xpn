@@ -21,6 +21,7 @@
 
 #include "socket.hpp"
 #include "xpn_env.hpp"
+#include "debug.hpp"
 #include "base_c/filesystem.h"
 
 #include <string>
@@ -34,24 +35,7 @@
 
 namespace XPN
 {
-    int socket::get_xpn_port()
-    {
-        const char *sck_port = xpn_env::get_instance().xpn_sck_port;
-        int port = DEFAULT_XPN_SCK_PORT;
-        if (sck_port != NULL)
-        {
-            int aux_port = atoi(sck_port);
-            if (aux_port != 0){
-                port = aux_port;
-            }
-            else{
-                std::cerr<<"Error: env XPN_SCK_PORT '"<<sck_port<<"' is not a number, using default '"<<DEFAULT_XPN_SCK_PORT<<"'"<<std::endl;
-            }
-        }
-        return port;
-    }
-
-    int64_t socket::send ( int socket, const void * buffer, int64_t size )
+    int64_t socket::send ( int socket, const void * buffer, size_t size )
     {
         int64_t ret;
 
@@ -63,7 +47,7 @@ namespace XPN
         return size;
     }
 
-    int64_t socket::recv ( int socket, void * buffer, int64_t size )
+    int64_t socket::recv ( int socket, void * buffer, size_t size )
     {
         int64_t ret;
 
@@ -73,6 +57,103 @@ namespace XPN
         }
 
         return size;
+    }
+    
+    int64_t socket::send_line ( int socket, const char *buffer )
+    {
+        return socket::send(socket, buffer, strlen(buffer)+1);
+    }
+
+    int64_t socket::recv_line ( int socket, char *buffer, size_t n )
+    {
+        int64_t numRead;  /* bytes read in the last read() */
+        size_t totRead;   /* total bytes read so far */
+        char *buf;
+        char ch;
+
+        if (n <= 0 || buffer == NULL) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        buf = buffer;
+        totRead = 0;
+
+        while (1)
+        {
+            numRead = socket::recv(socket, &ch, 1);  /* read one byte */
+
+            if (numRead == -1) {
+                if (errno == EINTR)      /* interrupted -> restart read() */
+                    continue;
+                else return -1;          /* another type of error */
+            } else if (numRead == 0) {   /* EOF */
+                if (totRead == 0)        /* no bytes read -> return 0 */
+                    return 0;
+                else break;
+            } else {                     /* numRead must be 1 here */
+                if (ch == '\n') break;
+                if (ch == '\0') break;
+                if (totRead < n - 1) {   /* discard > (n-1) bytes */
+                    totRead++;
+                    *buf++ = ch;
+                }
+            }
+        }
+
+        *buf = '\0';
+        return totRead;
+    }
+
+    int64_t socket::send_str ( int socket, const std::string& str )
+    {
+        return socket::send_str(socket, std::string_view(str));
+    }
+
+    int64_t socket::send_str ( int socket, const std::string_view& str )
+    {
+        int64_t ret;
+        size_t size_str = str.size();
+        debug_info("Send_str size "<<size_str);
+        ret = socket::send(socket, &size_str, sizeof(size_str));
+        if (ret != sizeof(size_str)){
+            print_error("send size of string");
+            return ret;
+        }
+        if (size_str == 0){
+            return 0;
+        }
+        debug_info("Send_str "<<str);
+        ret = socket::send(socket, &str[0], size_str);
+        if (ret != static_cast<int64_t>(size_str)){
+            print_error("send string");
+            return ret;
+        }
+        return ret;
+    }
+
+    int64_t socket::recv_str ( int socket, std::string& str )
+    {
+        int64_t ret;
+        size_t size_str = 0;
+        ret = socket::recv(socket, &size_str, sizeof(size_str));
+        if (ret != sizeof(size_str)){
+            print_error("send size of string");
+            return ret;
+        }
+        debug_info("Recv_str size "<<size_str);
+        if (size_str == 0){
+            return 0;
+        }
+        str.clear();
+        str.resize(size_str, '\0');
+        ret = socket::recv(socket, &str[0], size_str);
+        if (ret != static_cast<int64_t>(size_str)){
+            print_error("send string");
+            return ret;
+        }
+        debug_info("Recv_str "<<str);
+        return ret;
     }
 
     int socket::server_create ( int port, int &out_socket )
@@ -190,7 +271,7 @@ namespace XPN
         int status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
         if (status < 0) 
         {
-            debug_error_f("[SOCKET] [socket::read] ERROR: socket connection failed to %s in port %d %s\n", srv_name.c_str(), get_xpn_port(), strerror(errno));
+            debug_error_f("[SOCKET] [socket::read] ERROR: socket connection failed to %s in port %d %s\n", srv_name.c_str(), xpn_env::get_instance().xpn_sck_port, strerror(errno));
             close(client_fd);
             return -1;
         }

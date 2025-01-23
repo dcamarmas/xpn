@@ -50,6 +50,7 @@ add_subdirectory(src/base_cpp)
 add_subdirectory(src/bypass)
 add_subdirectory(src/xpn_client)
 add_subdirectory(src/xpn_server)
+add_subdirectory(src/xpn_controller)
 add_subdirectory(src/utils)
 
 

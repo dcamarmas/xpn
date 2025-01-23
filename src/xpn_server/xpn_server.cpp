@@ -25,6 +25,7 @@
 #include <thread>
 #include "base_cpp/socket.hpp"
 #include "base_cpp/timer.hpp"
+#include "base_cpp/xpn_env.hpp"
 #include "xpn_server_comm.hpp"
 #include "fabric_server/fabric_server_comm.hpp"
 
@@ -229,7 +230,7 @@ int xpn_server::run()
     }
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Control socket initialization");
-    ret = socket::server_create(socket::get_xpn_port(), server_socket);
+    ret = socket::server_create(xpn_env::get_instance().xpn_sck_port, server_socket);
     if (ret < 0) {
         debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Socket initialization fails");
         return -1;
@@ -238,6 +239,7 @@ int xpn_server::run()
     std::cout << " | * Time to initialize XPN server: " << timer.elapsed() << std::endl;
 
     int the_end = 0;
+    uint32_t ack = 0;
     while (!the_end)
     {
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Listening to conections");
@@ -250,28 +252,32 @@ int xpn_server::run()
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] socket recv: "<<recv_code);
         switch (recv_code)
         {
-            case socket::ACCEPT_CODE:
+            case socket::xpn_server::ACCEPT_CODE:
                 accept(connection_socket);
                 break;
 
-            case socket::STATS_wINDOW_CODE:
+            case socket::xpn_server::STATS_wINDOW_CODE:
                 if (m_window_stats){
                     socket::send(connection_socket, &m_window_stats->get_current_stats(), sizeof(m_stats));
                 }else{
                     socket::send(connection_socket, &m_stats, sizeof(m_stats));
                 }
                 break;
-            case socket::STATS_CODE:
+            case socket::xpn_server::STATS_CODE:
                 socket::send(connection_socket, &m_stats, sizeof(m_stats));
                 break;
 
-            case socket::FINISH_CODE:
-            case socket::FINISH_CODE_AWAIT:
+            case socket::xpn_server::FINISH_CODE:
+            case socket::xpn_server::FINISH_CODE_AWAIT:
                 finish();
                 the_end = 1;
-                if (recv_code == socket::FINISH_CODE_AWAIT){
+                if (recv_code == socket::xpn_server::FINISH_CODE_AWAIT){
                     socket::send(connection_socket, &recv_code, sizeof(recv_code));
                 }
+                break;
+
+            case socket::xpn_server::PING_CODE:
+                socket::send(connection_socket, &ack, sizeof(ack));
                 break;
 
             default:
@@ -398,11 +404,11 @@ int xpn_server::stop()
             printf(" * Stopping server (%s)\n", name.c_str());
             int socket;
             int ret;
-            int buffer = socket::FINISH_CODE;
+            int buffer = socket::xpn_server::FINISH_CODE;
             if (m_params.await_stop == 1){
-                buffer = socket::FINISH_CODE_AWAIT;
+                buffer = socket::xpn_server::FINISH_CODE_AWAIT;
             }
-            ret = socket::client_connect(name, socket::get_xpn_port(), socket);
+            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
             if (ret < 0) {
                 print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: socket connection " << name);
                 return ret;
@@ -475,9 +481,9 @@ int xpn_server::print_stats()
     {
         int socket;
         int ret;
-        int buffer = socket::STATS_CODE;
+        int buffer = socket::xpn_server::STATS_CODE;
         xpn_stats stat_buff;
-        ret = socket::client_connect(name.data(), socket::get_xpn_port(), socket);
+        ret = socket::client_connect(name.data(), xpn_env::get_instance().xpn_sck_port, socket);
         if (ret < 0) {
             print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);
             continue;

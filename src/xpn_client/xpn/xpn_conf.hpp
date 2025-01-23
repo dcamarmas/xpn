@@ -33,20 +33,25 @@ namespace XPN
         constexpr const char * TAG_PARTITION_NAME = "partition_name";
         constexpr const char * TAG_REPLICATION_LEVEL = "replication_level";
         constexpr const char * TAG_BLOCKSIZE = "bsize";
+        constexpr const char * TAG_CONTROLER_URL = "controler_url";
         constexpr const char * TAG_SERVER_URL = "server_url";
+        constexpr const char * DEFAULT_CONTROLER_URL = "localhost";
         constexpr const int DEFAULT_REPLICATION_LEVEL = 0;
         constexpr const int DEFAULT_BLOCKSIZE = 512 * 1024;
-
-        constexpr const char * DEFAULT_PATH = "/etc/xpn/xpn.conf";
+        constexpr const char * DEFAULT_SERVER_TYPE = "mpi";
+        constexpr const char * DEFAULT_STORAGE_PATH = "/tmp/expand/data";
+        constexpr const char * DEFAULT_PARTITION_NAME= "xpn";
     }
 
     class xpn_conf
     {
+    public:
         struct partition
         {
-            std::string partition_name;
+            std::string partition_name = XPN_CONF::DEFAULT_PARTITION_NAME;
             int bsize = XPN_CONF::DEFAULT_BLOCKSIZE;
             int replication_level = XPN_CONF::DEFAULT_REPLICATION_LEVEL;
+            std::string controler_url = XPN_CONF::DEFAULT_CONTROLER_URL;
             std::vector<std::string> server_urls;
 
             partition() = default;
@@ -55,9 +60,10 @@ namespace XPN
             std::string to_string()
             {
                 std::stringstream out;
-                out << std::endl << XPN_CONF::TAG_PARTITION << std::endl;
+                out << XPN_CONF::TAG_PARTITION << std::endl;
                 out << XPN_CONF::TAG_PARTITION_NAME << " = " << partition_name << std::endl;
                 out << XPN_CONF::TAG_BLOCKSIZE << " = " << bsize << std::endl;
+                out << XPN_CONF::TAG_CONTROLER_URL << " = " << controler_url << std::endl;
                 out << XPN_CONF::TAG_REPLICATION_LEVEL << " = " << replication_level << std::endl;
                 for (auto &srv : server_urls)
                 {

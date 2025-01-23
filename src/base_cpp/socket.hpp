@@ -22,6 +22,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
@@ -31,16 +32,31 @@ namespace XPN
     class socket
 	{
     public:
-        constexpr static const int DEFAULT_XPN_SCK_PORT = 3456;
-        constexpr static const int ACCEPT_CODE          = 123;
-        constexpr static const int FINISH_CODE          = 666;
-        constexpr static const int FINISH_CODE_AWAIT    = 667;
-        constexpr static const int STATS_CODE           = 444;
-        constexpr static const int STATS_wINDOW_CODE    = 445;
+        class xpn_controller {
+        public:
+            constexpr static const int DEFAULT_XPN_CONTROLLER_SCK_PORT = 34567;
+            constexpr static const int COMMAND_CODE                   = 111;
+            constexpr static const int ACTION_CODE                    = 222;
+        };
+
+        class xpn_server {
+        public:
+            constexpr static const int DEFAULT_XPN_SCK_PORT = 3456;
+            constexpr static const int ACCEPT_CODE          = 123;
+            constexpr static const int FINISH_CODE          = 666;
+            constexpr static const int FINISH_CODE_AWAIT    = 667;
+            constexpr static const int STATS_CODE           = 444;
+            constexpr static const int STATS_wINDOW_CODE    = 445;
+            constexpr static const int PING_CODE            = 333;
+        };
     public:
-        static int get_xpn_port();
-        static int64_t send ( int socket, const void * buffer, int64_t size );
-        static int64_t recv ( int socket, void * buffer, int64_t size );
+        static int64_t send ( int socket, const void * buffer, size_t size );
+        static int64_t recv ( int socket, void * buffer, size_t size );
+        static int64_t send_line ( int socket, const char *buffer );
+        static int64_t recv_line ( int socket, char *buffer, size_t n );
+        static int64_t send_str ( int socket, const std::string& str );
+        static int64_t send_str ( int socket, const std::string_view& str );
+        static int64_t recv_str ( int socket, std::string& str );
         static int server_create ( int port, int &out_socket );
         static int server_accept ( int socket, int &out_conection_socket );
         static int client_connect ( const std::string &srv_name, int port, int &out_socket );

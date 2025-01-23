@@ -22,13 +22,36 @@
 #include "xpn_env.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 namespace XPN
 {
     xpn_env::xpn_env()
-    {   
+    {
         // XPN_SCK_PORT
-        xpn_sck_port = std::getenv("XPN_SCK_PORT");
+        char *env_xpn_sck_port = std::getenv("XPN_SCK_PORT");
+        if (env_xpn_sck_port != NULL)
+        {
+            int aux_port = atoi(env_xpn_sck_port);
+            if (aux_port != 0){
+                xpn_sck_port = aux_port;
+            }
+            else{
+                std::cerr<<"Error: env XPN_SCK_PORT '"<<env_xpn_sck_port<<"' is not a number, using default '"<<xpn_sck_port<<"'"<<std::endl;
+            }
+        }
+        // XPN_SCK_PORT
+        char *env_xpn_controller_sck_port = std::getenv("XPN_CONTROLLER_SCK_PORT");
+        if (env_xpn_controller_sck_port != NULL)
+        {
+            int aux_port = atoi(env_xpn_controller_sck_port);
+            if (aux_port != 0){
+                xpn_controller_sck_port = aux_port;
+            }
+            else{
+                std::cerr<<"Error: env XPN_CONTROLLER_SCK_PORT '"<<env_xpn_controller_sck_port<<"' is not a number, using default '"<<xpn_controller_sck_port<<"'"<<std::endl;
+            }
+        }
         // XPN_CONF
         xpn_conf = std::getenv("XPN_CONF");
         // XPN_DEBUG

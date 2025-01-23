@@ -116,7 +116,7 @@ nfi_mpi_server_control_comm::~nfi_mpi_server_control_comm() {
 nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv_name) {
     int ret, err;
     int connection_socket;
-    int buffer = socket::ACCEPT_CODE;
+    int buffer = socket::xpn_server::ACCEPT_CODE;
     char port_name[MAX_PORT_NAME];
     MPI_Comm out_comm;
 
@@ -133,11 +133,11 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     // Send connect intention
     if (m_rank == 0) {
         err = 0;
-        ret = socket::client_connect(srv_name, socket::get_xpn_port(), connection_socket);
+        ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, connection_socket);
         if (ret < 0) {
             // Do one retry in 1 second
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            ret = socket::client_connect(srv_name, socket::get_xpn_port(), connection_socket);
+            ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, connection_socket);
             if (ret < 0) {
                 debug_error("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] ERROR: socket connect");
                 err = -1;

@@ -35,7 +35,8 @@ namespace XPN
         xpn_env(xpn_env&&) = delete;
         // Delete move assignment operator
         xpn_env& operator=(xpn_env&&) = delete;
-        const char * xpn_sck_port = nullptr;
+        int xpn_sck_port = 3456;
+        int xpn_controller_sck_port = 34567;
         const char * xpn_conf = nullptr;
         int xpn_debug = 0;
         int xpn_profiler = 0;

@@ -100,9 +100,9 @@ void print_stats(std::string hostfile, std::string action)
     {
         int socket;
         int ret;
-        int buffer = socket::STATS_CODE;
+        int buffer = socket::xpn_server::STATS_CODE;
         xpn_stats stat_buff;
-        ret = socket::client_connect(name, socket::get_xpn_port(), socket);
+        ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
         if (ret < 0) {
             print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);
             continue;
