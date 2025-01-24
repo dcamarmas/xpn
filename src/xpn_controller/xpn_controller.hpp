@@ -35,21 +35,35 @@ namespace XPN {
 class xpn_controller {
    public:
     enum class action {
-        NONE,           // Default
-        RUN,            // Without actions run
-        STOP,           // Send the stop to the controler
-        START_SERVERS,  // Send the start of the servers to the controler
-        STOP_SERVERS,   // Send the stop of the servers to the controler
-        EXPAND,         // Send the expand of the servers to the controler
-        SHRINK,         // Send the shrink of the servers to the controler
+        NONE, // Default. Error
+        MK_CONFIG,
+        START,
+        STOP,
+        PING_SERVERS,
+        START_SERVERS,
+        STOP_SERVERS,
+        EXPAND,
+        SHRINK,
     };
-    std::unordered_map<std::string, action> actions_str = {
-        {"", action::RUN},
-        {"stop", action::STOP},
-        {"start_servers", action::START_SERVERS},
-        {"stop_servers", action::STOP_SERVERS},
-        {"expand", action::EXPAND},
-        {"shrink", action::SHRINK},
+    std::vector<std::pair<std::string, action>> actions_str = {
+        {"mk_config",       action::MK_CONFIG},
+        {"start",           action::START},
+        {"stop",            action::STOP},
+        {"ping_servers",    action::PING_SERVERS},
+        {"start_servers",   action::START_SERVERS},
+        {"stop_servers",    action::STOP_SERVERS},
+        {"expand",          action::EXPAND},
+        {"shrink",          action::SHRINK},
+    };
+    std::unordered_map<action, std::string> actions_str_help = {
+        {action::MK_CONFIG,     "Make the necesary config file. Necesary before the start"},
+        {action::START,         "Start the controler and servers. Necesary to run as daemon or in background '&'"},
+        {action::STOP,          "Send the stop to the controler"},
+        {action::PING_SERVERS,  "Send the ping of the servers to the controler to check correct status of servers"},
+        {action::START_SERVERS, "Send the start of the servers to the controler"},
+        {action::STOP_SERVERS,  "Send the stop of the servers to the controler"},
+        {action::EXPAND,        "Send the expand of the servers to the controler"},
+        {action::SHRINK,        "Send the shrink of the servers to the controler"},
     };
 
    public:
@@ -61,21 +75,23 @@ class xpn_controller {
     subprocess::process m_servers_process;
 
     // Options
-    const args::option option_shared_dir        {"-s", "--shared_dir"       , "Shared dir in the job to use as temporal storage", XPN::args::option::opt_type::value};
     const args::option option_hostfile          {"-f", "--hostfile"         , "Hostfile with one line per host"                 , XPN::args::option::opt_type::value};
     const args::option option_bsize             {"-b", "--block_size"       , "Block size to use in the XPN partition"          , XPN::args::option::opt_type::value};
     const args::option option_replication_level {"-r", "--replication_level", "Replication level to use in the XPN partition"   , XPN::args::option::opt_type::value};
     const args::option option_server_type       {"-t", "--server_type"      , "Server type: mpi, fabric, sck"                   , XPN::args::option::opt_type::value};
     const args::option option_storage_path      {"-p", "--storage_path"     , "Storage path for the servers in local storage"   , XPN::args::option::opt_type::value};
     const args::option option_await             {"-w", "--await"            , "Await in the stop_servers"                       , XPN::args::option::opt_type::flag};
+    const args::option option_server_cores      {"-c", "--server_cores"     , "Number of cores each server use (default: all cores with overlap)", XPN::args::option::opt_type::value};
+    const args::option option_shared_dir        {"-s", "--shared_dir"       , "Shared dir in the job to use as temporal storage", XPN::args::option::opt_type::value};
     const std::vector<XPN::args::option> m_options = {
-        option_shared_dir,
         option_hostfile,
         option_bsize,
         option_replication_level,
         option_server_type,
         option_storage_path,
         option_await,
+        option_server_cores,
+        option_shared_dir,
     };
     args m_args;
 
@@ -83,11 +99,11 @@ class xpn_controller {
     // ops
     std::string usage();
     int run();
-    int first_mk_config();
+    int local_mk_config();
     int mk_config(const std::string_view& hostfile, const char* conffile, const std::string_view& bsize,
                   const std::string_view& replication_level, const std::string_view& server_type,
                   const std::string_view& storage_path);
-    int start_servers(bool await);
+    int start_servers(bool await, int server_cores);
     int stop_servers(bool await);
     int ping_servers();
 
@@ -98,6 +114,7 @@ class xpn_controller {
     int send_mk_config(int socket);
     int send_start_servers(int socket);
     int send_stop_servers(int socket);
+    int send_ping_servers(int socket);
 
    public:
     // recv ops
@@ -107,6 +124,7 @@ class xpn_controller {
     int recv_mk_config(int socket);
     int recv_start_servers(int socket);
     int recv_stop_servers(int socket);
+    int recv_ping_servers(int socket);
 
    public:
     static int get_conf_servers(std::vector<std::string>& out_servers) {

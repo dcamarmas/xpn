@@ -37,12 +37,24 @@ namespace XPN {
 std::string xpn_controller::usage() {
     std::stringstream out;
     out << "xpn_controller [OPTION]... [ACTION]..." << std::endl;
-    out << "  Actions: ";
+    out << "  Actions: " << std::endl;
+    size_t max_str = 0;
     for (auto& [key, _] : actions_str) {
-        out << key << " ";
+        if (max_str < key.size()) {
+            max_str = key.size();
+        }
     }
-
-    out << std::endl;
+    for (auto& [key, act] : actions_str) {
+        auto it = actions_str_help.find(act);
+        if (it == actions_str_help.end()) {
+            throw std::invalid_argument("This should not happend. There are no " + key + " in action_str_help");
+        }
+        out << "  " << key;
+        out << std::string(max_str - key.size(), ' ');
+        out << "    ";
+        out << (*it).second;
+        out << std::endl;
+    }
     return out.str();
 }
 
@@ -50,23 +62,19 @@ int xpn_controller::run() {
     int ret;
     debug_info("[XPN_CONTROLLER] >> Start");
 
-    ret = first_mk_config();
-    if (ret < 0) {
-        std::cerr << "Error in mk_config" << std::endl;
-        return ret;
-    }
-
-    ret = start_servers(m_args.has_option(option_await));
-    if (ret < 0) {
-        std::cerr << "Error in start_servers" << std::endl;
-        return ret;
-    }
-
     int server_socket = -1;
     ret = socket::server_create(xpn_env::get_instance().xpn_controller_sck_port, server_socket);
     if (ret < 0) {
         print_error("starting the socket");
         return -1;
+    }
+
+    int server_cores = ::atoi(std::string(m_args.get_option(option_server_cores)).c_str());
+    ret = start_servers(m_args.has_option(option_await), server_cores);
+    if (ret < 0) {
+        std::cerr << "Error in start_servers" << std::endl;
+        socket::close(server_socket);
+        return ret;
     }
 
     int connection_socket = -1;
@@ -114,7 +122,7 @@ int xpn_controller::run() {
     return 0;
 }
 
-int xpn_controller::first_mk_config() {
+int xpn_controller::local_mk_config() {
     debug_info("[XPN_CONTROLLER] >> Start");
     // Necesary options
     auto hostfile = m_args.get_option(option_hostfile);
@@ -131,9 +139,9 @@ int xpn_controller::first_mk_config() {
     return ret;
 }
 
-int xpn_controller::mk_config(const std::string_view& hostfile, const char* conffile,
-                                    const std::string_view& bsize, const std::string_view& replication_level,
-                                    const std::string_view& server_type, const std::string_view& storage_path) {
+int xpn_controller::mk_config(const std::string_view& hostfile, const char* conffile, const std::string_view& bsize,
+                              const std::string_view& replication_level, const std::string_view& server_type,
+                              const std::string_view& storage_path) {
     int ret;
     debug_info("[XPN_CONTROLLER] >> Start");
     if (hostfile.empty()) {
@@ -198,14 +206,20 @@ int xpn_controller::mk_config(const std::string_view& hostfile, const char* conf
     return 0;
 }
 
-int xpn_controller::start_servers(bool await) {
-    int ret;
+int xpn_controller::start_servers(bool await, int server_cores) {
+    int ret = 0;
     std::vector<std::string> servers;
 
     debug_info("[XPN_CONTROLLER] >> Start");
 
-    if (get_conf_servers(servers) < 0) return -1;
-    if (servers.size() == 0) return -1;
+    if (get_conf_servers(servers) < 0){
+        std::cerr << "Cannot get conf servers" << std::endl;
+        return -1;
+    } 
+    if (servers.size() == 0){
+        std::cerr << "The servers in the conf are 0" << std::endl;
+        return -1;
+    } 
 
     std::string command;
     std::vector<std::string> args;
@@ -216,6 +230,18 @@ int xpn_controller::start_servers(bool await) {
         args.emplace_back("-N");
         args.emplace_back(std::to_string(servers.size()));
         args.emplace_back("-l");
+        // args.emplace_back("-v");
+        args.emplace_back("--cpus-per-task");
+        if (server_cores == 0) {
+            args.emplace_back(std::to_string(std::thread::hardware_concurrency()));
+
+            args.emplace_back("--overcommit");
+            args.emplace_back("--overlap");
+            args.emplace_back("--oversubscribe");
+            args.emplace_back("--cpu-bind=no");
+        } else {
+            args.emplace_back(std::to_string(server_cores));
+        }
         args.emplace_back("--export=ALL");
         args.emplace_back("--mpi=none");
         std::stringstream servers_list;
@@ -241,22 +267,26 @@ int xpn_controller::start_servers(bool await) {
         // TODO: with mpiexec
         throw std::runtime_error("TODO: launch with mpiexec the servers");
     }
-    #ifdef DEBUG
+#ifdef DEBUG
     std::stringstream command_str;
     command_str << command << " ";
-    for (auto& arg : args){
+    for (auto& arg : args) {
         command_str << arg << " ";
     }
     debug_info("Command to launch: '" << command_str.str() << "'");
-    #endif
+#endif
 
     m_servers_process.execute(command, args, false);
-    if (!m_servers_process.is_running()){
+    if (!m_servers_process.is_running()) {
+        std::cerr << "The process to launch the servers is not running" << std::endl;
         return -1;
     }
 
     if (await) {
         ret = ping_servers();
+        if (ret < 0){
+            std::cerr << "Error in ping the servers" << std::endl;
+        }
     }
     debug_info("[XPN_CONTROLLER] >> End");
     return ret;
@@ -270,7 +300,7 @@ int xpn_controller::stop_servers(bool await) {
     int index = 0;
     for (auto& name : m_servers) {
         v_res[index++] = worker->launch([this, &name, await]() {
-            printf(" * Stopping server (%s)\n", name.c_str());
+            print("Stopping server (" << name << ")");
             int socket;
             int ret;
             int buffer = socket::xpn_server::FINISH_CODE;
@@ -326,37 +356,29 @@ int xpn_controller::ping_servers() {
     int index = 0;
     for (auto& name : m_servers) {
         v_res[index++] = worker->launch([this, &name]() {
-            printf(" * Ping server (%s)\n", name.c_str());
+            print("Ping server (" << name << ")");
             int socket;
             int ret = -1;
             int buffer = socket::xpn_server::PING_CODE;
-            auto start = std::chrono::high_resolution_clock::now();
-            auto wait_time_ms = 5000;
-            while (ret < 0) {
-                debug_info("[XPN_CONTROLLER] Try to connect to " << name << " server");
-                ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
-                if (ret < 0) {
-                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                       std::chrono::high_resolution_clock::now() - start)
-                                       .count();
-                    debug_info("[XPN_CONTROLLER] ERROR: failed to connect to " << name << " server. Elapsed time "
-                                                                                     << elapsed << " ms");
-                    if (elapsed > wait_time_ms) {
-                        print("[XPN_CONTROLLER] ERROR: socket connection " << name);
-                        return ret;
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                }
+
+            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, 5000, socket);
+            if (ret < 0) {
+                print("[XPN_CONTROLLER] ERROR: socket connection " << name);
+                return ret;
             }
 
             ret = socket::send(socket, &buffer, sizeof(buffer));
             if (ret < 0) {
                 print("[XPN_CONTROLLER] ERROR: socket send ping " << name);
+                socket::close(socket);
+                return ret;
             }
 
             ret = socket::recv(socket, &buffer, sizeof(buffer));
             if (ret < 0) {
                 print("[XPN_CONTROLLER] ERROR: socket recv ping " << name);
+                socket::close(socket);
+                return ret;
             }
             socket::close(socket);
             return ret;

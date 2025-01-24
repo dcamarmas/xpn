@@ -40,7 +40,7 @@ int xpn_controller::send_action(action act) {
     const std::string &url = conf.partitions[0].controler_url;
     int ret;
     int socket;
-    ret = socket::client_connect(url, socket::xpn_controller::DEFAULT_XPN_CONTROLLER_SCK_PORT, socket);
+    ret = socket::client_connect(url, socket::xpn_controller::DEFAULT_XPN_CONTROLLER_SCK_PORT, 5000, socket);
     if (ret < 0) {
         print_error("connecting to the xpn_controller");
         return -1;
@@ -69,6 +69,9 @@ int xpn_controller::send_action(action act) {
             break;
         case action::STOP_SERVERS:
             ret = send_stop_servers(socket);
+            break;
+        case action::PING_SERVERS:
+            ret = send_ping_servers(socket);
             break;
         default:
             break;
@@ -168,6 +171,12 @@ int xpn_controller::send_start_servers(int socket) {
         print_error("send await");
         return -1;
     }
+    int server_cores = ::atoi(std::string(m_args.get_option(option_server_cores)).c_str());
+    ret = socket::send(socket, &server_cores, sizeof(server_cores));
+    if (ret != sizeof(server_cores)) {
+        print_error("send server_cores");
+        return -1;
+    }
     debug_info("[XPN_CONTROLlER] >> End");
     return 0;
 }
@@ -183,5 +192,12 @@ int xpn_controller::send_stop_servers(int socket) {
     }
     debug_info("[XPN_CONTROLlER] >> End");
     return 0;
+}
+
+int xpn_controller::send_ping_servers([[maybe_unused]] int socket) {
+    int ret = 0;
+    debug_info("[XPN_CONTROLlER] >> Start");
+    debug_info("[XPN_CONTROLlER] >> End");
+    return ret;
 }
 }  // namespace XPN

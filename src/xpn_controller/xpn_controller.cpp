@@ -28,19 +28,24 @@ int xpn_controller::start() {
     debug_info("[XPN_CONTROLLER] >> Start");
     const std::string_view& act = m_args.get_arg(0);
 
-    if (act.empty()) {
-        current_action = action::RUN;
-    } else {
-        for (auto& [key, value] : actions_str) {
-            if (act == key) {
-                current_action = value;
-            }
+    for (auto& [key, value] : actions_str) {
+        if (act == key) {
+            current_action = value;
         }
     }
 
+    if (current_action == action::NONE) {
+        std::cerr << "Error: unknown action '" << act << "'" << std::endl;
+        return -1;
+    }
+
     switch (current_action) {
-        case action::RUN:
+        // Local execution
+        case action::START:
             return run();
+        case action::MK_CONFIG:
+            return local_mk_config();
+        // Remote execution
         default:
             return send_action(current_action);
     }
@@ -56,5 +61,10 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    return controler.start();
+    if (controler.start() < 0) {
+        controler.m_args.help();
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
 }

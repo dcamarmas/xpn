@@ -54,6 +54,9 @@ int xpn_controller::recv_action(int socket, action &act) {
         case action::STOP_SERVERS:
             code = recv_stop_servers(socket);
             break;
+        case action::PING_SERVERS:
+            code = recv_ping_servers(socket);
+            break;
         default:
             break;
     }
@@ -180,7 +183,13 @@ int xpn_controller::recv_start_servers(int socket) {
         print_error("recv await");
         return -1;
     }
-    ret = start_servers(await);
+    int server_cores = 0;
+    ret = socket::recv(socket, &server_cores, sizeof(server_cores));
+    if (ret != sizeof(server_cores)) {
+        print_error("recv server_cores");
+        return -1;
+    }
+    ret = start_servers(await, server_cores);
     debug_info("[XPN_CONTROLLER] >> End");
     return ret;
 }
@@ -231,5 +240,13 @@ int xpn_controller::recv_command(int socket) {
     }
     debug_info("[XPN_CONTROLLER] >> End");
     return 0;
+}
+
+int xpn_controller::recv_ping_servers([[maybe_unused]] int socket) {
+    int ret;
+    debug_info("[XPN_CONTROLlER] >> Start");
+    ret = ping_servers();
+    debug_info("[XPN_CONTROLlER] >> End");
+    return ret;
 }
 }  // namespace XPN
