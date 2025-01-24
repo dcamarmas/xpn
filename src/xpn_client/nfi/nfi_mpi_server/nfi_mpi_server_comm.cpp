@@ -133,16 +133,11 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     // Send connect intention
     if (m_rank == 0) {
         err = 0;
-        ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, connection_socket);
+        ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
         if (ret < 0) {
-            // Do one retry in 1 second
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, connection_socket);
-            if (ret < 0) {
-                debug_error("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] ERROR: socket connect");
-                err = -1;
-                goto mpi_comm_socket_finish;
-            }
+            debug_error("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] ERROR: socket connect");
+            err = -1;
+            goto mpi_comm_socket_finish;
         }
         ret = socket::send(connection_socket, &buffer, sizeof(buffer));
         if (ret < 0) {

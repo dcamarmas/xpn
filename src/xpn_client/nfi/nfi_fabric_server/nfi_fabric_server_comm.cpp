@@ -39,7 +39,7 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] >> Begin");
 
   // Lookup port name
-  ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, connection_socket);
+  ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
   if (ret < 0)
   {
     debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket connect\n");

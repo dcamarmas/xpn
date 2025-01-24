@@ -64,6 +64,11 @@ namespace XPN
         if ((env_profiler != NULL) && (std::strlen(env_profiler) > 0)){
             xpn_profiler=1;
         }
+        // XPN_PROFILER
+        char *env_connect_timeout_ms = std::getenv("XPN_CONNECT_TIMEOUT_MS");
+        if ((env_connect_timeout_ms != NULL) && (std::strlen(env_connect_timeout_ms) > 0)){
+            xpn_connect_timeout_ms=atoi(env_connect_timeout_ms);
+        }
         // XPN_THREAD
         char *env_thread = std::getenv("XPN_THREAD");
         if ((env_thread != NULL) && (std::strlen(env_thread) > 0)){

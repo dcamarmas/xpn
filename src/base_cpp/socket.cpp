@@ -32,6 +32,7 @@
 #include <netinet/tcp.h>
 #include <string.h>
 #include <unistd.h>
+#include <thread>
 
 namespace XPN
 {
@@ -278,6 +279,28 @@ namespace XPN
 
         out_socket = client_fd;
         return 0;
+    }
+
+    int socket::client_connect ( const std::string &srv_name, int port, int timeout_ms, int &out_socket, int time_to_sleep_ms )
+    {
+        int ret = -1;
+        auto start = std::chrono::high_resolution_clock::now();
+        while (ret < 0) {
+            debug_info("Try to connect to " << srv_name << " server");
+            ret = socket::client_connect(srv_name, port, out_socket);
+            if (ret < 0) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                    std::chrono::high_resolution_clock::now() - start)
+                                    .count();
+                debug_error("Failed to connect to " << srv_name << " server. Elapsed time " << elapsed << " ms");
+                if (elapsed > timeout_ms) {
+                    debug_error("Socket connection " << srv_name);
+                    return ret;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(time_to_sleep_ms));
+            }
+        }
+        return ret;
     }
 
     int socket::close ( int socket )

@@ -39,6 +39,7 @@ namespace XPN
         int xpn_controller_sck_port = 34567;
         const char * xpn_conf = nullptr;
         int xpn_debug = 0;
+        int xpn_connect_timeout_ms = 5000;
         int xpn_profiler = 0;
         int xpn_thread = 0;
         int xpn_locality = 1;
