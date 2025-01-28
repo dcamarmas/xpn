@@ -168,5 +168,13 @@ namespace XPN
         // cwd api
         char* getcwd(char *path, size_t size);
         int   chdir(char *path);
+
+        // malleability
+        enum class malleability_type {
+            EXPAND,
+            SHRINK
+        };
+        int start_malleability(const char* host_list, int rank, malleability_type type);
+        int end_malleability(const char* host_list, int rank, malleability_type type);
     };
 } // namespace XPN

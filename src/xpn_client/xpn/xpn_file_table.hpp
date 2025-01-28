@@ -60,6 +60,8 @@ namespace XPN
         int dup(int fd, int new_fd = -1);
         std::string to_string();
 
+        void clean();
+
     private:
         std::unordered_map<int, std::shared_ptr<xpn_file>> m_files;
         std::queue<int> m_free_keys;

@@ -153,6 +153,10 @@
   // xpn_setvbuf.c
   int     xpn_setvbuf (FILE *stream, char *buf, int mode, size_t size);
 
+  int     xpn_start_expand (const char *host_list, int rank);
+  int     xpn_end_expand (const char *host_list, int rank);
+  int     xpn_start_shrink (const char *host_list, int rank);
+  int     xpn_end_shrink (const char *host_list, int rank);
 
   /* ................................................................... */
 

@@ -261,7 +261,8 @@
   int MPI_Init_thread ( int *argc, char ***argv, int required, int *provided );
   int MPI_Finalize (void);
 
-
+  // Intecept for malleability
+  char * dcgettext (const char *domainname, const char *msgid, int category);
   /* ................................................................... */
 
 #endif

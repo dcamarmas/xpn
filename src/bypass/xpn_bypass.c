@@ -23,6 +23,7 @@
 /* ... Include / Inclusion ........................................... */
 
 #include "xpn_bypass.h"
+#include <signal.h>
 
 
 /* ... Const / Const ................................................. */
@@ -3024,4 +3025,38 @@ int MPI_Finalize (void)
   debug_info_f("[BYPASS] << After MPI_Finalize\n");
 
   return PMPI_Finalize();
+}
+
+// Used with domainname as the command, msgid as the host_list and category as the rank
+char * dcgettext (const char *domainname, const char *msgid, int category)
+{
+  debug_info_f("[BYPASS] >> Begin dgettext...\n");
+  debug_info_f("[BYPASS] 1) Path %s\n", path);
+
+  if (strcmp(domainname, "start expand") == 0)
+  {
+    xpn_start_expand(msgid, category);
+    return NULL;
+  }
+  else if (strcmp(domainname, "end expand") == 0)
+  {
+    xpn_end_expand(msgid, category);
+    return NULL;
+  }
+  else if (strcmp(domainname, "start shrink") == 0)
+  {
+    xpn_start_shrink(msgid, category);
+    return NULL;
+  }
+  else if (strcmp(domainname, "end shrink") == 0)
+  {
+    xpn_end_shrink(msgid, category);
+    return NULL;
+  }
+  else
+  {
+    fprintf(stderr, "Error: todo bypass dgettext\n");
+    raise(SIGTERM);
+    return NULL;
+  }
 }

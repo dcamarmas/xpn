@@ -588,4 +588,64 @@ int xpn_dup2 ( int fd, int fd2 )
   return ret;
 }
 
+int xpn_start_expand ( const char *host_list, int rank )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_start_expand] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().start_malleability(host_list, rank, XPN::xpn_api::malleability_type::EXPAND);
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_start_expand] >> End");
+
+  return ret;
+}
+
+int xpn_end_expand ( const char *host_list, int rank )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_end_expand] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().end_malleability(host_list, rank, XPN::xpn_api::malleability_type::EXPAND);
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_end_expand] >> End");
+
+  return ret;
+}
+
+int xpn_start_shrink ( const char *host_list, int rank )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_start_shrink] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().start_malleability(host_list, rank, XPN::xpn_api::malleability_type::SHRINK);
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_start_shrink] >> End");
+
+  return ret;
+}
+
+int xpn_end_shrink ( const char *host_list, int rank )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_end_shrink] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().end_malleability(host_list, rank, XPN::xpn_api::malleability_type::SHRINK);
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_end_shrink] >> End");
+
+  return ret;
+}
+
 } // extern "C"

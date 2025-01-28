@@ -90,4 +90,23 @@ namespace XPN
         }
         return out.str();
     }
+    
+    void xpn_file_table::clean()
+    {
+        std::vector<int> fds_to_close;
+        fds_to_close.reserve(m_files.size());
+        for (auto &[key, file] : m_files)
+        {
+            fds_to_close.emplace_back(key);
+        }
+        for (auto &fd : fds_to_close)
+        {
+            xpn_api::get_instance().close(fd);
+        }
+        
+        m_files.clear();
+        decltype(m_free_keys) empty;
+        m_free_keys.swap(empty);
+        secuencial_key = 1;
+    }
 }
