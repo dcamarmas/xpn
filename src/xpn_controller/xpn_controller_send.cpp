@@ -34,7 +34,7 @@
 namespace XPN {
 
 int xpn_controller::send_action(action act) {
-    debug_info("[XPN_CONTROLlER] >> Start");
+    debug_info("[XPN_CONTROLLER] >> Start");
     xpn_conf conf;
     // TODO: do for more than the first partition
     const std::string &url = conf.partitions[0].controler_url;
@@ -73,7 +73,17 @@ int xpn_controller::send_action(action act) {
         case action::PING_SERVERS:
             ret = send_ping_servers(socket);
             break;
+        case action::EXPAND_NEW:
+        case action::EXPAND_CHANGE:
+            ret = send_expand(socket);
+            break;
+        case action::SHRINK_NEW:
+        case action::SHRINK_CHANGE:
+            ret = send_shrink(socket);
+            break;
         default:
+            ret = -1;
+            std::cerr << "Unknown action" << std::endl;
             break;
     }
 
@@ -88,19 +98,19 @@ int xpn_controller::send_action(action act) {
         return -1;
     }
     socket::close(socket);
-    debug_info("[XPN_CONTROLlER] >> End");
+    debug_info("[XPN_CONTROLLER] >> End");
     return code;
 }
 
 int xpn_controller::send_stop(int socket) {
-    debug_info("[XPN_CONTROLlER] >> Start");
+    debug_info("[XPN_CONTROLLER] >> Start");
     int ret = send_stop_servers(socket);
-    debug_info("[XPN_CONTROLlER] >> End");
+    debug_info("[XPN_CONTROLLER] >> End");
     return ret;
 }
 
 int xpn_controller::send_mk_config(int socket) {
-    debug_info("[XPN_CONTROLlER] >> Start");
+    debug_info("[XPN_CONTROLLER] >> Start");
     // Necesary options
     auto hostfile = m_args.get_option(option_hostfile);
     if (hostfile.empty()) {
@@ -158,13 +168,13 @@ int xpn_controller::send_mk_config(int socket) {
         print_error("recv result");
         return ret;
     }
-    debug_info("[XPN_CONTROLlER] >> End");
+    debug_info("[XPN_CONTROLLER] >> End");
     return res;
 }
 
 int xpn_controller::send_start_servers(int socket) {
     int ret;
-    debug_info("[XPN_CONTROLlER] >> Start");
+    debug_info("[XPN_CONTROLLER] >> Start");
     bool await = m_args.has_option(option_await);
     ret = socket::send(socket, &await, sizeof(await));
     if (ret != sizeof(await)) {
@@ -177,27 +187,65 @@ int xpn_controller::send_start_servers(int socket) {
         print_error("send server_cores");
         return -1;
     }
-    debug_info("[XPN_CONTROLlER] >> End");
+    debug_info("[XPN_CONTROLLER] >> End");
     return 0;
 }
 
 int xpn_controller::send_stop_servers(int socket) {
     int ret;
-    debug_info("[XPN_CONTROLlER] >> Start");
+    debug_info("[XPN_CONTROLLER] >> Start");
     bool await = m_args.has_option(option_await);
     ret = socket::send(socket, &await, sizeof(await));
     if (ret != sizeof(await)) {
         print_error("send await");
         return -1;
     }
-    debug_info("[XPN_CONTROLlER] >> End");
+    debug_info("[XPN_CONTROLLER] >> End");
     return 0;
 }
 
 int xpn_controller::send_ping_servers([[maybe_unused]] int socket) {
     int ret = 0;
-    debug_info("[XPN_CONTROLlER] >> Start");
-    debug_info("[XPN_CONTROLlER] >> End");
+    debug_info("[XPN_CONTROLLER] >> Start");
+    debug_info("[XPN_CONTROLLER] >> End");
+    return ret;
+}
+
+int xpn_controller::send_expand(int socket) {
+    debug_info("[XPN_CONTROLLER] >> Start");
+    // Necesary options
+    auto host_list = m_args.get_option(option_host_list);
+    if (host_list.empty()) {
+        std::cerr << "To expand_new and expand_change is necesary the option host_list" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    int64_t ret;
+    // Send the required strings
+    ret = socket::send_str(socket, host_list);
+    if (ret < 0) {
+        print_error("send_str host_list");
+        return ret;
+    }
+    debug_info("[XPN_CONTROLLER] >> End");
+    return ret;
+}
+
+int xpn_controller::send_shrink(int socket) {
+    debug_info("[XPN_CONTROLLER] >> Start");
+    // Necesary options
+    auto host_list = m_args.get_option(option_host_list);
+    if (host_list.empty()) {
+        std::cerr << "To shrink_new and shrink_change is necesary the option host_list" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    int64_t ret;
+    // Send the required strings
+    ret = socket::send_str(socket, host_list);
+    if (ret < 0) {
+        print_error("send_str host_list");
+        return ret;
+    }
+    debug_info("[XPN_CONTROLLER] >> End");
     return ret;
 }
 }  // namespace XPN

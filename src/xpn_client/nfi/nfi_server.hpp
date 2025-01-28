@@ -23,6 +23,7 @@
 
 #include <string>
 #include <memory>
+#include <tuple>
 #include <sys/vfs.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
@@ -42,11 +43,13 @@ namespace XPN
     {
     public:
         nfi_parser(const std::string &url);
+        static std::tuple<std::string, std::string, std::string> parse(const std::string& url);
+        static std::string create(const std::string& protocol, const std::string& server, const std::string& path);
 
         const std::string m_url;
-        std::string m_protocol; 
-        std::string m_server;   
-        std::string m_path;     
+        std::string m_protocol;
+        std::string m_server;
+        std::string m_path;
     };
 
     class nfi_server 

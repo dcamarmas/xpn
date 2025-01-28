@@ -18,15 +18,17 @@
  *  along with Expand.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#define DEBUG
+
 #include <limits.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 
 #include "base_cpp/subprocess.hpp"
 #include "base_cpp/workers.hpp"
+#include "nfi/nfi_server.hpp"
 #include "xpn/xpn_conf.hpp"
 #include "xpn_controller.hpp"
 
@@ -57,7 +59,21 @@ int xpn_controller::recv_action(int socket, action &act) {
         case action::PING_SERVERS:
             code = recv_ping_servers(socket);
             break;
+        case action::EXPAND_NEW:
+            code = recv_expand_new(socket);
+            break;
+        case action::EXPAND_CHANGE:
+            code = recv_expand_change(socket);
+            break;
+        case action::SHRINK_NEW:
+            code = recv_shrink_new(socket);
+            break;
+        case action::SHRINK_CHANGE:
+            code = recv_shrink_change(socket);
+            break;
         default:
+            code = -1;
+            std::cerr << "Unknown action" << std::endl;
             break;
     }
 
@@ -152,7 +168,7 @@ int xpn_controller::recv_mk_config(int socket) {
         }
         while (std::getline(file, line)) {
             if (!line.empty()) {
-                line = server_type + "_server://" + line + "/" + storage_path;
+                line = nfi_parser::create(server_type + "_server", line, storage_path);
                 part.server_urls.emplace_back(line);
             }
             line.clear();
@@ -214,7 +230,7 @@ int xpn_controller::recv_command(int socket) {
     debug_info("[XPN_CONTROLLER] >> Start");
     ret = socket::recv_str(socket, command);
     if (ret < 0) {
-        print_error("recv_str failed")
+        print_error("recv_str failed");
         return -1;
     }
     bool await;
@@ -228,7 +244,7 @@ int xpn_controller::recv_command(int socket) {
     proc.set_wait_on_destroy(await);
     debug_info("launched command: '" << command << "'");
     int res = 0;
-    if (await){
+    if (await) {
         debug_info("Wait command: '" << command << "'");
         res = proc.wait_status();
     }
@@ -244,9 +260,177 @@ int xpn_controller::recv_command(int socket) {
 
 int xpn_controller::recv_ping_servers([[maybe_unused]] int socket) {
     int ret;
-    debug_info("[XPN_CONTROLlER] >> Start");
+    debug_info("[XPN_CONTROLLER] >> Start");
     ret = ping_servers();
-    debug_info("[XPN_CONTROLlER] >> End");
+    debug_info("[XPN_CONTROLLER] >> End");
     return ret;
+}
+
+std::vector<std::string_view> split(const std::string_view str, const char delim = ' ') {
+    std::vector<std::string_view> result;
+    int num_delim = std::count(str.begin(), str.end(), delim);
+    result.reserve(num_delim + 1);
+
+    int left = 0;
+    int right = -1;
+
+    for (int i = 0; i < static_cast<int>(str.size()); i++) {
+        if (str[i] == delim) {
+            left = right;
+            right = i;
+            int index = left + 1;
+            int length = right - index;
+
+            result.emplace_back(std::string_view(str.begin() + index, length));
+        }
+    }
+    result.emplace_back(std::string_view(str.begin() + right + 1, str.size() - right - 1));
+    return result;
+}
+
+int xpn_controller::recv_expand_new(int socket) {
+    // Recv the data
+    std::string host_list;
+    int64_t ret;
+    debug_info("[XPN_CONTROLLER] >> Start");
+    ret = socket::recv_str(socket, host_list);
+    if (ret < 0) {
+        print_error("recv_str hostfile");
+        return ret;
+    }
+
+    std::vector<std::string_view> new_servers = split(host_list, ',');
+    std::vector<std::string> old_servers;
+    get_conf_servers(old_servers);
+
+    std::vector<std::string_view> servers;
+    servers.assign(old_servers.begin(), old_servers.end());
+    // Remove the old servers to have the new servers append in to the end
+    auto it = std::remove_if(new_servers.begin(), new_servers.end(), [&old_servers](const std::string_view &srv) {
+        return std::find(old_servers.begin(), old_servers.end(), srv) != old_servers.end();
+    });
+    size_t num_erased = new_servers.end() - it;
+    new_servers.erase(it, new_servers.end());
+
+    if (num_erased != old_servers.size()) {
+        std::cerr << "Error: expand_new there are '" << (old_servers.size() - num_erased)
+                  << "' servers mising in new_servers" << std::endl;
+        return -1;
+    }
+
+    for (auto &srv : new_servers) {
+        servers.emplace_back(srv);
+    }
+
+    int res = expand(servers);
+
+    debug_info("[XPN_CONTROLLER] >> End");
+    return res;
+}
+
+int xpn_controller::recv_expand_change(int socket) {
+    // Recv the data
+    std::string host_list;
+    int64_t ret;
+    debug_info("[XPN_CONTROLLER] >> Start");
+    ret = socket::recv_str(socket, host_list);
+    if (ret < 0) {
+        print_error("recv_str hostfile");
+        return ret;
+    }
+
+    std::vector<std::string_view> change_servers = split(host_list, ',');
+    std::vector<std::string> old_servers;
+    get_conf_servers(old_servers);
+
+    std::vector<std::string_view> servers;
+    servers.assign(old_servers.begin(), old_servers.end());
+
+    for (auto &srv : change_servers) {
+        if (std::find(servers.begin(), servers.end(), srv) != servers.end()) {
+            std::cerr << "Error: expand_change the serv '" << srv << "' is already in the conf" << std::endl;
+            return -1;
+        }
+        servers.emplace_back(srv);
+    }
+
+    int res = expand(servers);
+
+    debug_info("[XPN_CONTROLLER] >> End");
+    return res;
+}
+
+int xpn_controller::recv_shrink_new(int socket) {
+    // Recv the data
+    std::string host_list;
+    int64_t ret;
+    debug_info("[XPN_CONTROLLER] >> Start");
+    ret = socket::recv_str(socket, host_list);
+    if (ret < 0) {
+        print_error("recv_str hostfile");
+        return ret;
+    }
+
+    std::vector<std::string_view> new_servers = split(host_list, ',');
+    std::vector<std::string> old_servers;
+    get_conf_servers(old_servers);
+
+    // Check corrent servers
+    bool error = false;
+    for (auto &srv : new_servers) {
+        if (std::find(old_servers.begin(), old_servers.end(), srv) == old_servers.end()) {
+            std::cerr << "Error: shrink_new the server '" << srv
+                      << "' does not exists in the current configuration servers" << std::endl;
+            error = true;
+        }
+    }
+    if (error) {
+        return -1;
+    }
+
+    int res = shrink(new_servers);
+
+    debug_info("[XPN_CONTROLLER] >> End");
+    return res;
+}
+
+int xpn_controller::recv_shrink_change(int socket) {
+    // Recv the data
+    std::string host_list;
+    int64_t ret;
+    debug_info("[XPN_CONTROLLER] >> Start");
+    ret = socket::recv_str(socket, host_list);
+    if (ret < 0) {
+        print_error("recv_str hostfile");
+        return ret;
+    }
+
+    std::vector<std::string_view> to_remove_servers = split(host_list, ',');
+    std::vector<std::string> old_servers;
+    get_conf_servers(old_servers);
+
+    std::vector<std::string_view> servers;
+    servers.assign(old_servers.begin(), old_servers.end());
+    // Remove the old servers to have the new servers append in to the end
+    auto it = std::remove_if(servers.begin(), servers.end(), [&to_remove_servers](const std::string_view &srv) {
+        return std::find(to_remove_servers.begin(), to_remove_servers.end(), srv) != to_remove_servers.end();
+    });
+    size_t num_erased = servers.end() - it;
+    servers.erase(it, servers.end());
+
+    if (num_erased != to_remove_servers.size()) {
+        for (auto &srv : to_remove_servers) {
+            if (std::find(old_servers.begin(), old_servers.end(), srv) == old_servers.end()) {
+                std::cerr << "Error: shrink_change the server '" << srv
+                          << "' does not exists in the current configuration servers" << std::endl;
+            }
+        }
+        return -1;
+    }
+
+    int res = shrink(servers);
+
+    debug_info("[XPN_CONTROLLER] >> End");
+    return res;
 }
 }  // namespace XPN

@@ -30,6 +30,7 @@
 #include "base_cpp/socket.hpp"
 #include "base_cpp/subprocess.hpp"
 #include "xpn/xpn_conf.hpp"
+#include "nfi/nfi_server.hpp"
 
 namespace XPN {
 class xpn_controller {
@@ -42,8 +43,10 @@ class xpn_controller {
         PING_SERVERS,
         START_SERVERS,
         STOP_SERVERS,
-        EXPAND,
-        SHRINK,
+        EXPAND_NEW,
+        SHRINK_NEW,
+        EXPAND_CHANGE,
+        SHRINK_CHANGE,
     };
     std::vector<std::pair<std::string, action>> actions_str = {
         {"mk_config",       action::MK_CONFIG},
@@ -52,8 +55,10 @@ class xpn_controller {
         {"ping_servers",    action::PING_SERVERS},
         {"start_servers",   action::START_SERVERS},
         {"stop_servers",    action::STOP_SERVERS},
-        {"expand",          action::EXPAND},
-        {"shrink",          action::SHRINK},
+        {"expand_new",          action::EXPAND_NEW},
+        {"shrink_new",          action::SHRINK_NEW},
+        {"expand_change",          action::EXPAND_CHANGE},
+        {"shrink_change",          action::SHRINK_CHANGE},
     };
     std::unordered_map<action, std::string> actions_str_help = {
         {action::MK_CONFIG,     "Make the necesary config file. Necesary before the start"},
@@ -62,8 +67,10 @@ class xpn_controller {
         {action::PING_SERVERS,  "Send the ping of the servers to the controler to check correct status of servers"},
         {action::START_SERVERS, "Send the start of the servers to the controler"},
         {action::STOP_SERVERS,  "Send the stop of the servers to the controler"},
-        {action::EXPAND,        "Send the expand of the servers to the controler"},
-        {action::SHRINK,        "Send the shrink of the servers to the controler"},
+        {action::EXPAND_NEW,    "Send the expand of the servers to the controler with the new configuration of servers"},
+        {action::SHRINK_NEW,    "Send the shrink of the servers to the controler with the new configuration of servers"},
+        {action::EXPAND_CHANGE, "Send the expand of the servers to the controler with the servers to add"},
+        {action::SHRINK_CHANGE, "Send the shrink of the servers to the controler with the servers to remove"},
     };
 
    public:
@@ -73,9 +80,11 @@ class xpn_controller {
    public:
     std::unordered_set<std::string> m_servers;
     subprocess::process m_servers_process;
+    int m_server_cores = 0;
 
     // Options
     const args::option option_hostfile          {"-f", "--hostfile"         , "Hostfile with one line per host"                 , XPN::args::option::opt_type::value};
+    const args::option option_host_list         {"-l", "--host_list"        , "List with the hosts separated by ','"            , XPN::args::option::opt_type::value};
     const args::option option_bsize             {"-b", "--block_size"       , "Block size to use in the XPN partition"          , XPN::args::option::opt_type::value};
     const args::option option_replication_level {"-r", "--replication_level", "Replication level to use in the XPN partition"   , XPN::args::option::opt_type::value};
     const args::option option_server_type       {"-t", "--server_type"      , "Server type: mpi, fabric, sck"                   , XPN::args::option::opt_type::value};
@@ -85,6 +94,7 @@ class xpn_controller {
     const args::option option_shared_dir        {"-s", "--shared_dir"       , "Shared dir in the job to use as temporal storage", XPN::args::option::opt_type::value};
     const std::vector<XPN::args::option> m_options = {
         option_hostfile,
+        option_host_list,
         option_bsize,
         option_replication_level,
         option_server_type,
@@ -103,9 +113,14 @@ class xpn_controller {
     int mk_config(const std::string_view& hostfile, const char* conffile, const std::string_view& bsize,
                   const std::string_view& replication_level, const std::string_view& server_type,
                   const std::string_view& storage_path);
+    int update_config(const std::vector<std::string_view>& new_hostlist);
     int start_servers(bool await, int server_cores);
     int stop_servers(bool await);
     int ping_servers();
+    // The list of hosts need to be in order of (old_servers... , new_servers...)
+    int expand(const std::vector<std::string_view>& new_hostlist);
+    // The list of hosts need to be mising the removed hosts
+    int shrink(const std::vector<std::string_view>& new_hostlist);
 
    public:
     // send ops
@@ -115,6 +130,8 @@ class xpn_controller {
     int send_start_servers(int socket);
     int send_stop_servers(int socket);
     int send_ping_servers(int socket);
+    int send_expand(int socket);
+    int send_shrink(int socket);
 
    public:
     // recv ops
@@ -125,6 +142,10 @@ class xpn_controller {
     int recv_start_servers(int socket);
     int recv_stop_servers(int socket);
     int recv_ping_servers(int socket);
+    int recv_expand_new(int socket);
+    int recv_expand_change(int socket);
+    int recv_shrink_new(int socket);
+    int recv_shrink_change(int socket);
 
    public:
     static int get_conf_servers(std::vector<std::string>& out_servers) {
@@ -132,6 +153,21 @@ class xpn_controller {
         xpn_conf conf;
         // TODO: do for more than the first partition
         out_servers.assign(conf.partitions[0].server_urls.begin(), conf.partitions[0].server_urls.end());
+        
+        for (auto &srv_url : out_servers)
+        {
+            std::string server;
+            std::tie(std::ignore, server, std::ignore) = nfi_parser::parse(srv_url);
+            srv_url = server;
+        }
+
+        #ifdef DEBUG
+        for (auto &serv : out_servers)
+        {
+            debug_info("[XPN_CONTROLLER] "<<serv);
+        }
+        #endif
+
         debug_info("[XPN_CONTROLLER] >> End");
         return 0;
     }

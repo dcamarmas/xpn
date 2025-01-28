@@ -36,8 +36,8 @@ namespace XPN {
 
 std::string xpn_controller::usage() {
     std::stringstream out;
-    out << "xpn_controller [OPTION]... [ACTION]..." << std::endl;
-    out << "  Actions: " << std::endl;
+    out << "xpn_controller [OPTION]... [ACTION]" << std::endl;
+    out << "Actions: " << std::endl;
     size_t max_str = 0;
     for (auto& [key, _] : actions_str) {
         if (max_str < key.size()) {
@@ -184,7 +184,7 @@ int xpn_controller::mk_config(const std::string_view& hostfile, const char* conf
             storage_path.empty() ? XPN_CONF::DEFAULT_STORAGE_PATH : std::string(storage_path);
         while (std::getline(file, line)) {
             if (!line.empty()) {
-                line = server_type_str + "_server://" + line + "/" + storage_path_str;
+                line = nfi_parser::create(server_type_str + "_server", line, storage_path_str);
                 part.server_urls.emplace_back(line);
             }
             line.clear();
@@ -206,20 +206,58 @@ int xpn_controller::mk_config(const std::string_view& hostfile, const char* conf
     return 0;
 }
 
+int xpn_controller::update_config(const std::vector<std::string_view>& new_hostlist) {
+    auto conffile = xpn_env::get_instance().xpn_conf;
+    if (conffile == nullptr) {
+        std::cerr << "To update_config is necesary to set the XPN_CONF to a shared file path" << std::endl;
+        return -1;
+    }
+
+    xpn_conf conf;
+    // TODO: doit for more than the first partition;
+    xpn_conf::partition part = conf.partitions[0];
+
+    std::string protocol, path;
+    std::tie(protocol, std::ignore, path) = nfi_parser::parse(conf.partitions[0].server_urls[0]);
+
+    part.server_urls.clear();
+    part.server_urls.reserve(new_hostlist.size());
+    for (auto& srv : new_hostlist) {
+        part.server_urls.emplace_back(nfi_parser::create(protocol, std::string(srv), path));
+    }
+
+    {
+        std::string filename(conffile);
+        std::ofstream file(filename, std::ios::trunc);
+        if (!file.is_open()) {
+            std::cerr << "Error: conffile '" << filename << "' cannot be open " << std::endl;
+            return -1;
+        }
+
+        file << part.to_string();
+    }
+    return 0;
+}
+
 int xpn_controller::start_servers(bool await, int server_cores) {
     int ret = 0;
     std::vector<std::string> servers;
 
     debug_info("[XPN_CONTROLLER] >> Start");
-
-    if (get_conf_servers(servers) < 0){
+    xpn_conf conf;
+    if (get_conf_servers(servers) < 0) {
         std::cerr << "Cannot get conf servers" << std::endl;
         return -1;
-    } 
-    if (servers.size() == 0){
+    }
+    if (servers.size() == 0) {
         std::cerr << "The servers in the conf are 0" << std::endl;
         return -1;
-    } 
+    }
+
+    // Save for future starts
+    if (server_cores != 0) {
+        m_server_cores = server_cores;
+    }
 
     std::string command;
     std::vector<std::string> args;
@@ -230,7 +268,9 @@ int xpn_controller::start_servers(bool await, int server_cores) {
         args.emplace_back("-N");
         args.emplace_back(std::to_string(servers.size()));
         args.emplace_back("-l");
-        // args.emplace_back("-v");
+#ifdef DEBUG
+        args.emplace_back("-v");
+#endif
         args.emplace_back("--cpus-per-task");
         if (server_cores == 0) {
             args.emplace_back(std::to_string(std::thread::hardware_concurrency()));
@@ -246,21 +286,20 @@ int xpn_controller::start_servers(bool await, int server_cores) {
         args.emplace_back("--mpi=none");
         std::stringstream servers_list;
         for (size_t i = 0; i < servers.size(); i++) {
-            nfi_parser parser(servers[i]);
-            auto& server = parser.m_server;
-            servers_list << server;
+            servers_list << servers[0];
             if (i != (servers.size() - 1)) {
                 servers_list << ",";
             }
-            m_servers.emplace(server);
+            m_servers.emplace(servers[i]);
         }
         args.emplace_back("-w");
         args.emplace_back(servers_list.str());
         args.emplace_back("xpn_server");
         args.emplace_back("-s");
-        nfi_parser parser(servers[0]);
-        size_t pos = parser.m_protocol.find('_');
-        args.emplace_back(parser.m_protocol.substr(0, pos));
+        std::string protocol;
+        std::tie(protocol, std::ignore, std::ignore) = nfi_parser::parse(conf.partitions[0].server_urls[0]);
+        size_t pos = protocol.find('_');
+        args.emplace_back(protocol.substr(0, pos));
         args.emplace_back("-t");
         args.emplace_back("pool");
     } else {
@@ -284,7 +323,7 @@ int xpn_controller::start_servers(bool await, int server_cores) {
 
     if (await) {
         ret = ping_servers();
-        if (ret < 0){
+        if (ret < 0) {
             std::cerr << "Error in ping the servers" << std::endl;
         }
     }
@@ -297,10 +336,16 @@ int xpn_controller::stop_servers(bool await) {
     debug_info("[XPN_CONTROLLER] >> Start");
     std::unique_ptr<workers> worker = workers::Create(workers_mode::thread_on_demand);
     std::vector<std::future<int>> v_res(m_servers.size());
+#ifdef DEBUG
+    for (auto& srv : m_servers) {
+        debug_info("Server to stop: " << srv);
+    }
+#endif
+
     int index = 0;
     for (auto& name : m_servers) {
         v_res[index++] = worker->launch([this, &name, await]() {
-            print("Stopping server (" << name << ")");
+            debug_info("Stopping server (" << name << ")");
             int socket;
             int ret;
             int buffer = socket::xpn_server::FINISH_CODE;
@@ -343,6 +388,10 @@ int xpn_controller::stop_servers(bool await) {
 
     m_servers.clear();
 
+    if (await) {
+        m_servers_process.wait_status();
+    }
+
     debug_info("[XPN_CONTROLLER] >> End");
 
     return res;
@@ -356,7 +405,7 @@ int xpn_controller::ping_servers() {
     int index = 0;
     for (auto& name : m_servers) {
         v_res[index++] = worker->launch([this, &name]() {
-            print("Ping server (" << name << ")");
+            debug_info("Ping server (" << name << ")");
             int socket;
             int ret = -1;
             int buffer = socket::xpn_server::PING_CODE;
@@ -395,5 +444,191 @@ int xpn_controller::ping_servers() {
 
     debug_info("[XPN_CONTROLLER] >> End");
     return res;
+}
+
+int xpn_controller::expand(const std::vector<std::string_view>& new_hostlist) {
+    debug_info("[XPN_CONTROLLER] >> Start");
+    xpn_conf conf;
+    std::vector<std::string> old_hosts = conf.partitions[0].server_urls;
+
+    int ret = stop_servers(true);
+    if (ret < 0) {
+        std::cerr << "Error: cannot stop the servers" << std::endl;
+        return ret;
+    }
+
+    auto xpn_expand_fut = std::async(std::launch::async, [&]() {
+        std::string command;
+        std::vector<std::string> args;
+        if (subprocess::have_command("srun")) {
+            command = "srun";
+            args.emplace_back("-n");
+            args.emplace_back(std::to_string(new_hostlist.size()));
+            args.emplace_back("-N");
+            args.emplace_back(std::to_string(new_hostlist.size()));
+            args.emplace_back("-l");
+#ifdef DEBUG
+            args.emplace_back("-v");
+#endif
+            args.emplace_back("--export=ALL");
+            std::stringstream servers_list;
+            for (size_t i = 0; i < new_hostlist.size(); i++) {
+                servers_list << new_hostlist[i];
+                if (i != (new_hostlist.size() - 1)) {
+                    servers_list << ",";
+                }
+            }
+            args.emplace_back("-w");
+            args.emplace_back(servers_list.str());
+            args.emplace_back("xpn_expand");
+            // Path of the servers
+            // TODO: current restriction to have all the path the same
+            std::string path;
+            std::tie(std::ignore, std::ignore, path) = nfi_parser::parse(old_hosts[0]);
+            args.emplace_back(path);
+            // Last size
+            args.emplace_back(std::to_string(old_hosts.size()));
+        } else {
+            // TODO: with mpiexec
+            throw std::runtime_error("TODO: launch with mpiexec the servers");
+        }
+
+#ifdef DEBUG
+        std::stringstream command_str;
+        command_str << command << " ";
+        for (auto& arg : args) {
+            command_str << arg << " ";
+        }
+        debug_info("Command to launch: '" << command_str.str() << "'");
+#endif
+
+        subprocess::process expand_proc(command, args, false);
+        int res = expand_proc.wait_status();
+        if (res < 0) {
+            print_error("execute xpn_start");
+            return res;
+        }
+        return res;
+    });
+
+    ret = update_config(new_hostlist);
+    if (ret < 0) {
+        std::cerr << "Error: cannot update the config" << std::endl;
+        return ret;
+    }
+
+    ret = start_servers(true, m_server_cores);
+    if (ret < 0) {
+        std::cerr << "Error: cannot start the servers" << std::endl;
+        return ret;
+    }
+
+    // Wait the start and the expand
+    ret = xpn_expand_fut.get();
+    if (ret < 0) {
+        print_error("execute xpn_expand");
+        return ret;
+    }
+
+    debug_info("[XPN_CONTROLLER] >> End");
+    return 0;
+}
+
+int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
+    debug_info("[XPN_CONTROLLER] >> Start");
+    xpn_conf conf;
+    std::vector<std::string> old_hosts = conf.partitions[0].server_urls;
+
+    std::vector<std::string> old_hostlist;
+    get_conf_servers(old_hostlist);
+
+    int ret = stop_servers(true);
+    if (ret < 0) {
+        std::cerr << "Error: cannot stop the servers" << std::endl;
+        return ret;
+    }
+
+    auto xpn_expand_fut = std::async(std::launch::async, [&]() {
+        std::string command;
+        std::vector<std::string> args;
+        if (subprocess::have_command("srun")) {
+            command = "srun";
+            args.emplace_back("-n");
+            args.emplace_back(std::to_string(old_hostlist.size()));
+            args.emplace_back("-N");
+            args.emplace_back(std::to_string(old_hostlist.size()));
+            args.emplace_back("-l");
+#ifdef DEBUG
+            args.emplace_back("-v");
+#endif
+            args.emplace_back("--export=ALL");
+            std::stringstream servers_list;
+            for (size_t i = 0; i < old_hostlist.size(); i++) {
+                servers_list << old_hostlist[i];
+                if (i != (old_hostlist.size() - 1)) {
+                    servers_list << ",";
+                }
+            }
+            args.emplace_back("-w");
+            args.emplace_back(servers_list.str());
+            args.emplace_back("xpn_shrink");
+            // Path of the servers
+            // TODO: current restriction to have all the path the same
+            std::string path;
+            std::tie(std::ignore, std::ignore, path) = nfi_parser::parse(old_hosts[0]);
+            args.emplace_back(path);
+            // The new list of servers
+            std::stringstream new_servers_list;
+            for (size_t i = 0; i < new_hostlist.size(); i++) {
+                new_servers_list << new_hostlist[i];
+                if (i != (new_hostlist.size() - 1)) {
+                    new_servers_list << ",";
+                }
+            }
+            args.emplace_back(new_servers_list.str());
+        } else {
+            // TODO: with mpiexec
+            throw std::runtime_error("TODO: launch with mpiexec the servers");
+        }
+
+#ifdef DEBUG
+        std::stringstream command_str;
+        command_str << command << " ";
+        for (auto& arg : args) {
+            command_str << arg << " ";
+        }
+        debug_info("Command to launch: '" << command_str.str() << "'");
+#endif
+
+        subprocess::process expand_proc(command, args, false);
+        int res = expand_proc.wait_status();
+        if (res < 0) {
+            print_error("execute xpn_start");
+            return res;
+        }
+        return res;
+    });
+
+    ret = update_config(new_hostlist);
+    if (ret < 0) {
+        std::cerr << "Error: cannot update the config" << std::endl;
+        return ret;
+    }
+
+    ret = start_servers(true, m_server_cores);
+    if (ret < 0) {
+        std::cerr << "Error: cannot start the servers" << std::endl;
+        return ret;
+    }
+
+    // Wait the start and the expand
+    ret = xpn_expand_fut.get();
+    if (ret < 0) {
+        print_error("execute xpn_expand");
+        return ret;
+    }
+
+    debug_info("[XPN_CONTROLLER] >> End");
+    return 0;
 }
 }  // namespace XPN
