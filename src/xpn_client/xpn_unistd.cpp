@@ -26,6 +26,7 @@
   #define O_CREAT 0100
 #endif
 #include <cstdarg>
+#include <sys/statfs.h>
 
 extern "C" {
 
@@ -429,6 +430,67 @@ int xpn_fstatvfs ( int fd, struct statvfs *buf )
 
   XPN_API_LOCK();
   ret = XPN::xpn_api::get_instance().fstatvfs(fd, buf);
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_fstat] >> End");
+
+  return ret;
+}
+
+
+int xpn_statfs ( const char *path, struct statfs *buf )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_fstat] >> Begin");
+
+  XPN_API_LOCK();
+  // TODO: do a real statfs
+  struct statvfs aux_buf;
+  ret = XPN::xpn_api::get_instance().statvfs(path, &aux_buf);
+
+  // TODO: f_type
+  // buf->f_type = aux_buf.f_type;
+  buf->f_bsize = aux_buf.f_bsize;
+  buf->f_blocks = aux_buf.f_blocks;
+  buf->f_bfree = aux_buf.f_bfree;
+  buf->f_bavail = aux_buf.f_bavail;
+  buf->f_files = aux_buf.f_files;
+  buf->f_ffree = aux_buf.f_ffree;
+  memcpy(&buf->f_fsid, &aux_buf.f_fsid, sizeof(aux_buf.f_fsid));
+  buf->f_namelen = aux_buf.f_namemax;
+  buf->f_frsize = aux_buf.f_frsize;
+  buf->f_flags = aux_buf.f_flag;
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_fstat] >> End");
+
+  return ret;
+}
+
+int xpn_fstatfs ( int fd, struct statfs *buf )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_fstat] >> Begin");
+
+  XPN_API_LOCK();
+  // TODO: do a real statfs
+  struct statvfs aux_buf;
+  ret = XPN::xpn_api::get_instance().fstatvfs(fd, &aux_buf);
+
+  // TODO: f_type
+  // buf->f_type = aux_buf.f_type;
+  buf->f_bsize = aux_buf.f_bsize;
+  buf->f_blocks = aux_buf.f_blocks;
+  buf->f_bfree = aux_buf.f_bfree;
+  buf->f_bavail = aux_buf.f_bavail;
+  buf->f_files = aux_buf.f_files;
+  buf->f_ffree = aux_buf.f_ffree;
+  memcpy(&buf->f_fsid, &aux_buf.f_fsid, sizeof(aux_buf.f_fsid));
+  buf->f_namelen = aux_buf.f_namemax;
+  buf->f_frsize = aux_buf.f_frsize;
+  buf->f_flags = aux_buf.f_flag;
   XPN_API_UNLOCK();
 
   debug_info("[XPN_UNISTD] [xpn_fstat] >> End");

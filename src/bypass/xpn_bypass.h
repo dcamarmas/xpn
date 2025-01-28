@@ -252,6 +252,9 @@
   int    flock ( int fd, int operation );
 
   int   statvfs (const char *path, struct statvfs *buf);
+  int   fstatvfs (int fd, struct statvfs *buf);
+  int   statfs (const char *path, struct statfs *buf);
+  int   fstatfs (int fd, struct statfs *buf);
 
   // MPI API
   int MPI_Init ( int *argc, char ***argv );

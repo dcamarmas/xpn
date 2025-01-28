@@ -32,6 +32,7 @@
   #include <sys/types.h>
   #include <sys/stat.h>
   #include <sys/statvfs.h>
+  #include <sys/statfs.h>
   #include <stdio.h>
   #include <dirent.h>
   //#include <sys/uio.h>
@@ -82,6 +83,8 @@
 
   int         xpn_statvfs    (const char *path, struct statvfs *buf);
   int         xpn_fstatvfs   (int fd, struct statvfs *buf);
+  int         xpn_statfs    (const char *path, struct statfs *buf);
+  int         xpn_fstatfs   (int fd, struct statfs *buf);
 
   // xpn_opendir.c
   DIR *           xpn_opendir   (const char *path);

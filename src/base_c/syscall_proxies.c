@@ -102,6 +102,8 @@ int     (*real_flock)(int, int) = NULL;
 void*   (*real_mmap)(void *, size_t, int, int, int, off_t) = NULL;
 int     (*real_statvfs)(const char *, struct statvfs *) = NULL;
 int     (*real_fstatvfs)(int, struct statvfs *) = NULL;
+int     (*real_statfs)(const char *, struct statfs *) = NULL;
+int     (*real_fstatfs)(int, struct statfs *) = NULL;
 
 
 /* ... Functions / Funciones ......................................... */
@@ -1014,6 +1016,36 @@ int dlsym_fstatvfs (int fd, struct statvfs *buf)
   }
   
   int ret = real_fstatvfs(fd, buf);
+
+  debug_info_f("[SYSCALL_PROXIES] [dlsym_fstatvfs] >> End\n");
+
+  return ret;
+}
+
+int dlsym_statfs (const char *path, struct statfs *buf)
+{
+  debug_info_f("[SYSCALL_PROXIES] [dlsym_statfs] >> Begin\n");
+
+  if (real_statfs == NULL){
+      real_statfs = (int (*)(const char *, struct statfs *)) dlsym(RTLD_NEXT, "statfs");
+  }
+  
+  int ret = real_statfs(path, buf);
+
+  debug_info_f("[SYSCALL_PROXIES] [dlsym_statfs] >> End\n");
+
+  return ret;
+}
+
+int dlsym_fstatfs (int fd, struct statfs *buf)
+{
+  debug_info_f("[SYSCALL_PROXIES] [dlsym_fstatfs] >> Begin\n");
+
+  if (real_fstatfs == NULL){
+      real_fstatfs = (int (*)(int, struct statfs *)) dlsym(RTLD_NEXT, "fstatfs");
+  }
+  
+  int ret = real_fstatfs(fd, buf);
 
   debug_info_f("[SYSCALL_PROXIES] [dlsym_fstatvfs] >> End\n");
 
