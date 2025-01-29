@@ -35,7 +35,7 @@
   #include "xpn/xpn_file.hpp"
   #include "xpn/xpn_partition.hpp"
   #include "xpn/xpn_metadata.hpp"
-  #include "base_c/filesystem.h"
+  #include "base_cpp/filesystem.hpp"
 
 /* ... Const / Const ................................................. */
 
@@ -138,7 +138,7 @@
 
       char header_buf [HEADER_SIZE];
       memset(header_buf, 0, HEADER_SIZE);
-      write_size = filesystem_write(fd_dest, header_buf, HEADER_SIZE);
+      write_size = filesystem::write(fd_dest, header_buf, HEADER_SIZE);
       if (write_size != HEADER_SIZE){
         perror("write: ");
         free(buf) ;
@@ -165,11 +165,11 @@
               goto finish_copy;
             }
 
-            read_size = filesystem_read(fd_src, buf, buf_len);
+            read_size = filesystem::read(fd_src, buf, buf_len);
             if (read_size <= 0){
               goto finish_copy;
             }
-            write_size = filesystem_write(fd_dest, buf, read_size);
+            write_size = filesystem::write(fd_dest, buf, read_size);
             if (write_size != read_size){
               perror("write: ");
               goto finish_copy;
@@ -209,7 +209,7 @@ finish_copy:
       
       if (write_mdata == 1){
         ret_2 = lseek64(fd_dest, 0, SEEK_SET);
-        write_size = filesystem_write(fd_dest, &file.m_mdata.m_data, sizeof(file.m_mdata.m_data));
+        write_size = filesystem::write(fd_dest, &file.m_mdata.m_data, sizeof(file.m_mdata.m_data));
         if (write_size != sizeof(file.m_mdata.m_data)){
           perror("write: ");
           free(buf) ;
@@ -218,10 +218,10 @@ finish_copy:
         local_size += write_size;
       }
 
-      filesystem_close(fd_src);
-      filesystem_close(fd_dest);
+      close(fd_src);
+      close(fd_dest);
       if (local_size == 0 && has_master_dir == 0){
-        filesystem_unlink(dest_path);
+        unlink(dest_path);
       }
     }
     

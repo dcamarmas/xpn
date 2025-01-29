@@ -20,9 +20,9 @@
  */
 
 #include "socket.hpp"
-#include "xpn_env.hpp"
-#include "debug.hpp"
-#include "base_c/filesystem.h"
+#include "base_cpp/xpn_env.hpp"
+#include "base_cpp/debug.hpp"
+#include "base_cpp/filesystem.hpp"
 
 #include <string>
 #include <iostream>
@@ -40,9 +40,9 @@ namespace XPN
     {
         int64_t ret;
 
-        ret = filesystem_write(socket, buffer, size);
+        ret = filesystem::write(socket, buffer, size);
         if (ret < 0){
-            debug_error_f("[SOCKET] [socket::recv] ERROR: socket read buffer size %ld Failed\n", size);
+            debug_error("[SOCKET] [socket::recv] ERROR: socket read buffer size "<<size<<"Failed");
         }
         
         return size;
@@ -52,9 +52,9 @@ namespace XPN
     {
         int64_t ret;
 
-        ret = filesystem_read(socket, buffer, size);
+        ret = filesystem::read(socket, buffer, size);
         if (ret < 0){
-            debug_error_f("[SOCKET] [socket::recv] ERROR: socket read buffer size %ld Failed\n", size);
+            debug_error("[SOCKET] [socket::recv] ERROR: socket read buffer size "<<size<<"Failed");
         }
 
         return size;
@@ -163,7 +163,7 @@ namespace XPN
         int server_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (server_socket < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: socket fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: socket fails");
             return -1;
         }
 
@@ -172,22 +172,22 @@ namespace XPN
         ret = setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: setsockopt fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: setsockopt fails");
             return -1;
         }
 
-        debug_info_f("[SOCKET] [socket::server_create] Socket reuseaddr\n");
+        debug_info("[SOCKET] [socket::server_create] Socket reuseaddr");
 
         val = 1;
         ret = setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(int));
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: setsockopt fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: setsockopt fails");
             return -1;
         }
 
         // bind
-        debug_info_f("[SOCKET] [socket::server_create] Socket bind\n");
+        debug_info("[SOCKET] [socket::server_create] Socket bind");
 
         struct sockaddr_in server_addr;
         memset(&server_addr, 0, sizeof(server_addr));
@@ -199,17 +199,17 @@ namespace XPN
         ret = bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: bind fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: bind fails");
             return -1;
         }
 
         // listen
-        debug_info_f("[SOCKET] [socket::server_create] Socket listen\n");
+        debug_info("[SOCKET] [socket::server_create] Socket listen");
 
         ret = listen(server_socket, SOMAXCONN);
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: listen fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: listen fails");
             return -1;
         }
         out_socket = server_socket;
@@ -222,7 +222,7 @@ namespace XPN
         socklen_t sock_size = sizeof(sockaddr_in);
         int new_socket = accept(socket, (struct sockaddr*)&client_addr, &sock_size);
         if (new_socket < 0) {
-            debug_error_f("[SOCKET] [socket::accept_send] ERROR: socket accept\n");
+            debug_error("[SOCKET] [socket::accept_send] ERROR: socket accept");
             return -1;
         }
         out_conection_socket = new_socket;
@@ -264,7 +264,7 @@ namespace XPN
         client_fd = ::socket(AF_INET, SOCK_STREAM, 0);
         if (client_fd < 0) 
         {
-            debug_error_f("[SOCKET] [socket::read] ERROR: socket creation error\n");
+            debug_error("[SOCKET] [socket::read] ERROR: socket creation error");
             return -1;
         }
         resolve_hostname(srv_name, &serv_addr);
@@ -272,7 +272,7 @@ namespace XPN
         int status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
         if (status < 0) 
         {
-            debug_error_f("[SOCKET] [socket::read] ERROR: socket connection failed to %s in port %d %s\n", srv_name.c_str(), xpn_env::get_instance().xpn_sck_port, strerror(errno));
+            debug_error("[SOCKET] [socket::read] ERROR: socket connection failed to "<<srv_name<<" in port "<< xpn_env::get_instance().xpn_sck_port << " " << strerror(errno));
             close(client_fd);
             return -1;
         }
@@ -309,7 +309,7 @@ namespace XPN
 
         ret = ::close(socket);
         if (ret < 0) {
-            debug_error_f("[SOCKET] [socket::socket_close] ERROR: socket close Failed\n");
+            debug_error("[SOCKET] [socket::socket_close] ERROR: socket close Failed");
             return -1;
         }
 

@@ -19,7 +19,6 @@
  *
  */
 
-#include "base_c/profiler.h"
 #include "base_cpp/debug.hpp"
 #include "xpn/xpn_api.hpp"
 #include "base_cpp/xpn_env.hpp"
@@ -35,7 +34,6 @@ namespace XPN
     {
         int res = 0;
 
-        XPN_PROFILER_BEGIN(env.xpn_profiler);
         XPN_DEBUG_BEGIN;
 
         std::setbuf(stdout,NULL);

@@ -35,7 +35,7 @@
   #include "xpn/xpn_file.hpp"
   #include "xpn/xpn_partition.hpp"
   #include "xpn/xpn_metadata.hpp"
-  #include "base_c/filesystem.h"
+  #include "base_cpp/filesystem.hpp"
 
 /* ... Const / Const ................................................. */
 
@@ -88,7 +88,7 @@
         perror("open :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
       }
-      ret = filesystem_read(fd_src, &old_file.m_mdata.m_data, sizeof(old_file.m_mdata.m_data));
+      ret = filesystem::read(fd_src, &old_file.m_mdata.m_data, sizeof(old_file.m_mdata.m_data));
       if (ret < 0){
         perror("read mdata :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
@@ -154,7 +154,7 @@
       MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
     }
     if (has_new_mdata == 1){
-      ret = filesystem_write(fd_src, &old_file.m_mdata.m_data, sizeof(old_file.m_mdata.m_data));
+      ret = filesystem::write(fd_src, &old_file.m_mdata.m_data, sizeof(old_file.m_mdata.m_data));
       if (ret < 0){
         perror("write mdata :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);

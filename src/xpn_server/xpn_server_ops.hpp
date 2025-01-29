@@ -21,7 +21,10 @@
 
 #pragma once
 
-#include "base_c/filesystem.h"
+#include <sys/stat.h>
+#include <sys/statvfs.h>
+#include <dirent.h>
+#include "base_cpp/filesystem.hpp"
 #include "xpn/xpn_metadata.hpp"
 
 /* Operations */

@@ -35,7 +35,7 @@
   #include "xpn/xpn_file.hpp"
   #include "xpn/xpn_partition.hpp"
   #include "xpn/xpn_metadata.hpp"
-  #include "base_c/filesystem.h"
+  #include "base_cpp/filesystem.hpp"
 
 
 /* ... Const / Const ................................................. */
@@ -156,7 +156,7 @@
       }
 
       if (rank == master_node){
-        ret = filesystem_read(fd_src, &file.m_mdata.m_data, sizeof(file.m_mdata.m_data));
+        ret = filesystem::read(fd_src, &file.m_mdata.m_data, sizeof(file.m_mdata.m_data));
         // To debug
         // XpnPrintMetadata(&mdata);
       }
@@ -216,7 +216,7 @@
           perror("lseek: ");
           break;
         }
-        read_size = filesystem_read(fd_src, buf, buf_len);
+        read_size = filesystem::read(fd_src, buf, buf_len);
         if (read_size <= 0){
           break;
         }
@@ -226,7 +226,7 @@
           perror("lseek: ");
           break;
         }
-        write_size = filesystem_write(fd_dest, buf, read_size);
+        write_size = filesystem::write(fd_dest, buf, read_size);
         if (write_size != read_size){
           perror("write: ");
           break;

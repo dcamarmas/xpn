@@ -23,7 +23,7 @@
 
 #include "nfi/nfi_server.hpp"
 #include "base_cpp/debug.hpp"
-#include "base_c/filesystem.h"
+#include "base_cpp/filesystem.hpp"
 
 namespace XPN
 {
@@ -34,10 +34,7 @@ namespace XPN
     class nfi_local : public nfi_server
     {
     public:
-        nfi_local(const nfi_parser &parser) : nfi_server(parser) 
-        {
-            filesystem_low_set(RTLD_NEXT);
-        }
+        nfi_local(const nfi_parser &parser) : nfi_server(parser) {}
     public:
         // Operations 
         int nfi_open        (const std::string &path, int flags, mode_t mode, xpn_fh &fho) override;

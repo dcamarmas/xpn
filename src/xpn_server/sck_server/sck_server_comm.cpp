@@ -24,7 +24,6 @@
 #include "base_cpp/timer.hpp"
 #include "base_cpp/ns.hpp"
 #include "base_cpp/socket.hpp"
-#include "base_c/filesystem.h"
 #include <csignal>
 
 namespace XPN
@@ -191,7 +190,7 @@ int64_t sck_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_i
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] Read operation");
 
-  ret = filesystem_read(m_socket, msg, sizeof(msg));
+  ret = socket::recv(m_socket, msg, sizeof(msg));
   if (MPI_SUCCESS != ret) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] ERROR: read fails");
   }
@@ -225,7 +224,7 @@ int64_t sck_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] Read data tag "<< tag_client_id);
 
-  ret = filesystem_read(m_socket, data, size);
+  ret = socket::recv(m_socket, data, size);
   if (MPI_SUCCESS != ret) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] ERROR: read fails");
   }
@@ -255,7 +254,7 @@ int64_t sck_server_comm::write_data ( const void *data, int64_t size, [[maybe_un
   // Send message
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] Write data tag "<< tag_client_id);
 
-  ret = filesystem_write(m_socket, data, size);
+  ret = socket::send(m_socket, data, size);
   if (MPI_SUCCESS != ret) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] ERROR: MPI_Send fails");
   }

@@ -45,7 +45,6 @@ unset(ENABLE_FABRIC_SERVER CACHE)
 
 link_libraries("pthread" "dl")
 
-add_subdirectory(src/base_c)
 add_subdirectory(src/base_cpp)
 add_subdirectory(src/bypass)
 add_subdirectory(src/xpn_client)

@@ -38,8 +38,8 @@
   #include <stdlib.h>
 
   #include "xpn.h"
-  #include "base_c/syscall_proxies.h"  
-  #include "base_c/debug_msg.h"
+  #include "base_cpp/proxy.hpp"  
+  #include "base_cpp/debug.hpp"
 
   #include <dirent.h>
   #include <string.h>
@@ -141,6 +141,11 @@
 
   /* ... Data structures / Estructuras de datos ........................ */
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
   struct __dirstream
   {
     int fd;                       // File descriptor.
@@ -171,7 +176,7 @@
   int open64     ( const char *path, int flags, ... );
   int __open_2   ( const char *path, int flags, ... );
   int creat      ( const char *path, mode_t mode );
-  int mkstemp    ( char *template );
+  int mkstemp    ( char *templ );
   int close      ( int fd );
 
   int ftruncate  ( int fildes, off_t length );
@@ -265,4 +270,7 @@
   char * dcgettext (const char *domainname, const char *msgid, int category);
   /* ................................................................... */
 
+#ifdef __cplusplus
+}
+#endif
 #endif
