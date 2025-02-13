@@ -684,7 +684,7 @@ int nfi_xpn_server_open ( struct nfi_server *serv,  char *url, int flags, mode_t
 
 int nfi_xpn_server_create (struct nfi_server *serv,  char *url, mode_t mode, __attribute__((__unused__)) struct nfi_attr *attr, struct nfi_fhandle  *fh)
 {
-  //NOTE: actualy creat is not in use, it use like POSIX open(path, O_WRONLY|O_CREAT|O_TRUNC, mode);
+  //NOTE: actually creat is not in use, it use like POSIX open(path, O_WRONLY|O_CREAT|O_TRUNC, mode);
   return nfi_xpn_server_open(serv, url, O_WRONLY|O_CREAT|O_TRUNC, mode, fh);
 }
 
@@ -834,6 +834,15 @@ ssize_t nfi_xpn_server_write ( struct nfi_server *serv, struct nfi_fhandle *fh, 
   msg.u_st_xpn_server_msg.op_write.size   = size;
   msg.u_st_xpn_server_msg.op_write.fd   = fh_aux->fd;
   msg.u_st_xpn_server_msg.op_write.xpn_session = serv->xpn_session_file;
+
+  if (strstr(serv->url, "mq_server")) 
+  {
+     msg.u_st_xpn_server_msg.op_write.file_type = 1;
+  }
+  else {
+     msg.u_st_xpn_server_msg.op_write.file_type = 0;
+  }
+
 
   ret = nfi_write_operation(server_aux, &msg);
   if(ret < 0)
