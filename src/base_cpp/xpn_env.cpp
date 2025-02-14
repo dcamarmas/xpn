@@ -22,13 +22,36 @@
 #include "xpn_env.hpp"
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 namespace XPN
 {
     xpn_env::xpn_env()
-    {   
+    {
         // XPN_SCK_PORT
-        xpn_sck_port = std::getenv("XPN_SCK_PORT");
+        char *env_xpn_sck_port = std::getenv("XPN_SCK_PORT");
+        if (env_xpn_sck_port != NULL)
+        {
+            int aux_port = atoi(env_xpn_sck_port);
+            if (aux_port != 0){
+                xpn_sck_port = aux_port;
+            }
+            else{
+                std::cerr<<"Error: env XPN_SCK_PORT '"<<env_xpn_sck_port<<"' is not a number, using default '"<<xpn_sck_port<<"'"<<std::endl;
+            }
+        }
+        // XPN_SCK_PORT
+        char *env_xpn_controller_sck_port = std::getenv("XPN_CONTROLLER_SCK_PORT");
+        if (env_xpn_controller_sck_port != NULL)
+        {
+            int aux_port = atoi(env_xpn_controller_sck_port);
+            if (aux_port != 0){
+                xpn_controller_sck_port = aux_port;
+            }
+            else{
+                std::cerr<<"Error: env XPN_CONTROLLER_SCK_PORT '"<<env_xpn_controller_sck_port<<"' is not a number, using default '"<<xpn_controller_sck_port<<"'"<<std::endl;
+            }
+        }
         // XPN_CONF
         xpn_conf = std::getenv("XPN_CONF");
         // XPN_DEBUG
@@ -40,6 +63,11 @@ namespace XPN
         char *env_profiler = std::getenv("XPN_PROFILER");
         if ((env_profiler != NULL) && (std::strlen(env_profiler) > 0)){
             xpn_profiler=1;
+        }
+        // XPN_PROFILER
+        char *env_connect_timeout_ms = std::getenv("XPN_CONNECT_TIMEOUT_MS");
+        if ((env_connect_timeout_ms != NULL) && (std::strlen(env_connect_timeout_ms) > 0)){
+            xpn_connect_timeout_ms=atoi(env_connect_timeout_ms);
         }
         // XPN_THREAD
         char *env_thread = std::getenv("XPN_THREAD");
@@ -73,5 +101,11 @@ namespace XPN
         }
         // XPN_STATS_DIR
         xpn_stats_dir = std::getenv("XPN_STATS_DIR");
+
+        // XPN_FABRIC_THREADS
+        char *env_fabric_threads = std::getenv("XPN_FABRIC_THREADS");
+        if ((env_fabric_threads != NULL) && (std::strlen(env_fabric_threads) > 0)){
+            xpn_fabric_threads=atoi(env_fabric_threads);
+        }
     }
 }

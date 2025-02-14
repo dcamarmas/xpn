@@ -6,6 +6,10 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+set(CMAKE_SKIP_RPATH TRUE)
+
+
+# add_compile_options("-DDEBUG")
 add_compile_options("-D_GNU_SOURCE" "-DMPICH_SKIP_MPICXX" "-D_REENTRANT")
 add_compile_options("-fPIC" "-O2" "-g" "-g3" "-ggdb" "-Wall" "-Wextra")
 
@@ -27,13 +31,25 @@ else()
 endif(ENABLE_MPI_SERVER)
 unset(ENABLE_MPI_SERVER CACHE)
 
+option(ENABLE_FABRIC_SERVER "Enable the fabric_server module" OFF)
+if(ENABLE_FABRIC_SERVER)
+    message(STATUS "ENABLE_FABRIC_SERVER : ${ENABLE_FABRIC_SERVER}")
+    add_compile_options("-DENABLE_FABRIC_SERVER")
+    set(LIBFABRIC_PATH ${ENABLE_FABRIC_SERVER})
+    add_subdirectory(libs/lfi)
+    link_libraries(lfi)
+else()
+    message(STATUS "ENABLE_FABRIC_SERVER : false")
+endif(ENABLE_FABRIC_SERVER)
+unset(ENABLE_FABRIC_SERVER CACHE)
+
 link_libraries("pthread" "dl")
 
-add_subdirectory(src/base_c)
 add_subdirectory(src/base_cpp)
 add_subdirectory(src/bypass)
 add_subdirectory(src/xpn_client)
 add_subdirectory(src/xpn_server)
+add_subdirectory(src/xpn_controller)
 add_subdirectory(src/utils)
 
 

@@ -38,6 +38,7 @@
 
   #define XPN_SERVER_TYPE_MPI 0
   #define XPN_SERVER_TYPE_SCK 1
+  #define XPN_SERVER_TYPE_FABRIC 2
 
 namespace XPN
 {

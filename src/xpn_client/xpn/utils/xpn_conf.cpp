@@ -69,7 +69,7 @@ namespace XPN
                         return 1;
                 }
             default:
-                return 1;
+                return atoi(name.c_str());
         }
       }
 
@@ -79,7 +79,8 @@ namespace XPN
         const char * cfile_path = xpn_env::get_instance().xpn_conf;
         if (cfile_path == nullptr)
         {
-            cfile_path = XPN_CONF::DEFAULT_PATH;
+            std::cerr << "Error: there is no env variable XPN_CONF" << std::endl;
+            std::raise(SIGTERM);
         }
         std::ifstream file(cfile_path);
         
@@ -114,6 +115,9 @@ namespace XPN
                 if (key == XPN_CONF::TAG_PARTITION_NAME){
                     partitions[actual_index].partition_name = value;
                 }else
+                if (key == XPN_CONF::TAG_CONTROLER_URL){
+                    partitions[actual_index].controler_url = value;
+                }else
                 if (key == XPN_CONF::TAG_BLOCKSIZE){
                     partitions[actual_index].bsize = getSizeFactor(value);
                 }else
@@ -130,6 +134,10 @@ namespace XPN
         }
 
         XPN_DEBUG(to_string());
+        if (partitions.size()==0){
+            std::cerr << "Error: while parsing the XPN_CONF file: " << cfile_path << " not found any partition" << std::endl;
+            std::raise(SIGTERM);
+        }
         int res = 0;
         XPN_DEBUG_END;
     }

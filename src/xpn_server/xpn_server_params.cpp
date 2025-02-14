@@ -41,6 +41,8 @@ void xpn_server_params::show() {
         printf(" |\t-s  <int>:\tmpi_server\n");
     } else if (server_type == XPN_SERVER_TYPE_SCK) {
         printf(" |\t-s  <int>:\tsck_server\n");
+    } else if (server_type == XPN_SERVER_TYPE_FABRIC) {
+        printf(" |\t-s  <int>:\tfabric_server\n");
     } else {
         printf(" |\t-s  <int>:\tError: unknown\n");
     }
@@ -148,6 +150,8 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
                                 server_type = XPN_SERVER_TYPE_MPI;
                             } else if (strcmp("sck", argv[i + 1]) == 0) {
                                 server_type = XPN_SERVER_TYPE_SCK;
+                            } else if (strcmp("fabric", argv[i + 1]) == 0) {
+                                server_type = XPN_SERVER_TYPE_FABRIC;
                             } else {
                                 printf("ERROR: unknown option %s\n", argv[i + 1]);
                                 show_usage();

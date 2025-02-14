@@ -33,6 +33,7 @@
   #include <dlfcn.h>
   #include <sys/stat.h>
   #include <sys/statvfs.h>
+  #include <sys/statfs.h>
   #include <dirent.h>
   #include <stdlib.h>
   #include <stdio.h>
@@ -138,6 +139,8 @@
 
   int dlsym_statvfs (const char *path, struct statvfs *buf);
   int dlsym_fstatvfs (int fd, struct statvfs *buf);
+  int dlsym_statfs (const char *path, struct statfs *buf);
+  int dlsym_fstatfs (int fd, struct statfs *buf);
 
   // Memory API
   void *dlsym_mmap (void *addr, size_t length, int prot, int flags, int fd, off_t offset);

@@ -1,3 +1,6 @@
 [submodule "docker"]
 	path = docker
 	url = https://github.com/xpn-arcos/xpn-docker.git
+[submodule "libs/lfi"]
+	path = libs/lfi
+	url = https://github.com/dariomnz/lfi.git

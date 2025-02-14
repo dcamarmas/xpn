@@ -314,6 +314,16 @@ int XpnInitServer(struct conf_file_data *conf_data, struct xpn_partition * part,
     }
     #endif
 
+    #ifdef ENABLE_FABRIC_SERVER
+    else if (strcmp(prt, "fabric_server") == 0) {
+        ret = nfi_xpn_server_init(url_buf, serv, XPN_SERVER_TYPE_FABRIC);
+        if (ret < 0) {
+            errno = ESRCH;
+            return -1;
+        }
+    }
+    #endif
+
     #ifdef ENABLE_NFS
     else if ((strcmp(prt, "nfs") == 0) || (strcmp(prt, "nfs2") == 0)) {
         //printf("[XPN]nfi_nfs_init: %s\n",url);

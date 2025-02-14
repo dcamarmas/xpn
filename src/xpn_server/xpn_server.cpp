@@ -25,7 +25,9 @@
 #include <thread>
 #include "base_cpp/socket.hpp"
 #include "base_cpp/timer.hpp"
+#include "base_cpp/xpn_env.hpp"
 #include "xpn_server_comm.hpp"
+#include "fabric_server/fabric_server_comm.hpp"
 
 #include "xpn_server.hpp"
 
@@ -50,12 +52,13 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
             return;
         }
 
-        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] OP '"<<xpn_server_op2string(type_op)<<"'; OP_ID "<< type_op);
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] OP '"<<xpn_server_ops_name(type_op)<<"'; OP_ID "<< static_cast<int>(type_op)<<" client_rank "<<rank_client_id<<" tag_client "<<tag_client_id);
 
         if (type_op == xpn_server_ops::DISCONNECT) {
             debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] DISCONNECT received");
 
             disconnect = 1;
+            m_clients--;
             continue;
         }
 
@@ -63,6 +66,7 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
             debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] FINALIZE received");
 
             disconnect = 1;
+            m_clients--;
             continue;
         }
         timer timer;
@@ -82,24 +86,94 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] End");
 }
 
-void xpn_server::accept ( )
+void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
+{
+    int ret;
+
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] >> Begin");
+    xpn_server_ops type_op = xpn_server_ops::size;
+    int rank_client_id = 0, tag_client_id = 0;
+
+    while (!m_disconnect)
+    {
+        while(m_clients == 0 && !m_disconnect){
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        if (m_disconnect){
+            break;
+        }
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Waiting for operation");
+
+        ret = comm->read_operation(type_op, rank_client_id, tag_client_id);
+        if (ret < 0) {
+            debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] ERROR: read operation fail");
+            return;
+        }
+
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] OP '"<<xpn_server_ops_name(type_op)<<"'; OP_ID "<< static_cast<int>(type_op)<<" client_rank "<<rank_client_id<<" tag_client "<<tag_client_id);
+
+        if (type_op == xpn_server_ops::DISCONNECT || type_op == xpn_server_ops::FINALIZE) {
+            debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] DISCONNECT received");
+
+            fabric_server_control_comm::disconnect(rank_client_id);
+            m_clients--;
+
+            debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Currently "<<m_clients.load()<<" clients");
+            continue;
+        }
+
+        timer timer;
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Worker launch");
+        m_worker2->launch_no_future([this, timer, comm, type_op, rank_client_id, tag_client_id]{
+            std::unique_ptr<xpn_stats::scope_stat<xpn_stats::op_stats>> op_stat;
+            if (xpn_env::get_instance().xpn_stats) { op_stat = std::make_unique<xpn_stats::scope_stat<xpn_stats::op_stats>>(m_stats.m_ops_stats[static_cast<int>(type_op)], timer); } 
+            do_operation(comm, type_op, rank_client_id, tag_client_id, timer);
+        });
+
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Worker launched");
+    }
+
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Client "<<rank_client_id<<" close");
+
+    m_control_comm->disconnect(comm);
+
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] End");
+}
+
+void xpn_server::accept ( int connection_socket )
 {
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Start accepting");
     
-    xpn_server_comm* comm = m_control_comm->accept();
+    xpn_server_comm* comm = m_control_comm->accept(connection_socket);
 
+    m_clients++;
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Accept received");
 
-    m_worker1->launch_no_future([this, comm]{
-        this->dispatcher(comm); 
-    });
+    if (m_params.server_type == XPN_SERVER_TYPE_FABRIC){
+        delete comm;
+        xpn_server_comm* general_comm = new fabric_server_comm(-1);
+        static bool only_one = true;
+        if (only_one){
+            only_one = false;
+            m_worker1->launch_no_future([this, general_comm]{
+                this->fabric_dispatcher(general_comm);
+                return 0;
+            });
+        }
+    }else{
+        m_worker1->launch_no_future([this, comm]{
+            this->dispatcher(comm);
+            return 0;
+        });
+    }
 }
 
 void xpn_server::finish ( void )
 {
     // Wait and finalize for all current workers
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Workers destroy");
-
+    
+    m_disconnect = true;
     // base_workers_destroy(&m_worker1);
     m_worker1.reset();
     m_worker2.reset();
@@ -143,7 +217,7 @@ int xpn_server::run()
     // * Workers initialization
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Workers initialization");
 
-    m_worker1 = workers::Create(m_params.thread_mode_connections);
+    m_worker1 = workers::Create(m_params.thread_mode_connections, false);
     if (m_worker1 == nullptr) {
         debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Workers initialization fails");
         return -1;
@@ -156,7 +230,7 @@ int xpn_server::run()
     }
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Control socket initialization");
-    ret = socket::server_create(socket::get_xpn_port(), server_socket);
+    ret = socket::server_create(xpn_env::get_instance().xpn_sck_port, server_socket);
     if (ret < 0) {
         debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Socket initialization fails");
         return -1;
@@ -165,6 +239,7 @@ int xpn_server::run()
     std::cout << " | * Time to initialize XPN server: " << timer.elapsed() << std::endl;
 
     int the_end = 0;
+    uint32_t ack = 0;
     while (!the_end)
     {
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Listening to conections");
@@ -177,29 +252,32 @@ int xpn_server::run()
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] socket recv: "<<recv_code);
         switch (recv_code)
         {
-            case socket::ACCEPT_CODE:
-                socket::send(connection_socket, m_control_comm->m_port_name.data(), MAX_PORT_NAME);
-                accept();
+            case socket::xpn_server::ACCEPT_CODE:
+                accept(connection_socket);
                 break;
 
-            case socket::STATS_wINDOW_CODE:
+            case socket::xpn_server::STATS_wINDOW_CODE:
                 if (m_window_stats){
                     socket::send(connection_socket, &m_window_stats->get_current_stats(), sizeof(m_stats));
                 }else{
                     socket::send(connection_socket, &m_stats, sizeof(m_stats));
                 }
                 break;
-            case socket::STATS_CODE:
+            case socket::xpn_server::STATS_CODE:
                 socket::send(connection_socket, &m_stats, sizeof(m_stats));
                 break;
 
-            case socket::FINISH_CODE:
-            case socket::FINISH_CODE_AWAIT:
+            case socket::xpn_server::FINISH_CODE:
+            case socket::xpn_server::FINISH_CODE_AWAIT:
                 finish();
                 the_end = 1;
-                if (recv_code == socket::FINISH_CODE_AWAIT){
+                if (recv_code == socket::xpn_server::FINISH_CODE_AWAIT){
                     socket::send(connection_socket, &recv_code, sizeof(recv_code));
                 }
+                break;
+
+            case socket::xpn_server::PING_CODE:
+                socket::send(connection_socket, &ack, sizeof(ack));
                 break;
 
             default:
@@ -326,11 +404,11 @@ int xpn_server::stop()
             printf(" * Stopping server (%s)\n", name.c_str());
             int socket;
             int ret;
-            int buffer = socket::FINISH_CODE;
+            int buffer = socket::xpn_server::FINISH_CODE;
             if (m_params.await_stop == 1){
-                buffer = socket::FINISH_CODE_AWAIT;
+                buffer = socket::xpn_server::FINISH_CODE_AWAIT;
             }
-            ret = socket::client_connect(name, socket::get_xpn_port(), socket);
+            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
             if (ret < 0) {
                 print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: socket connection " << name);
                 return ret;
@@ -403,9 +481,9 @@ int xpn_server::print_stats()
     {
         int socket;
         int ret;
-        int buffer = socket::STATS_CODE;
+        int buffer = socket::xpn_server::STATS_CODE;
         xpn_stats stat_buff;
-        ret = socket::client_connect(name.data(), socket::get_xpn_port(), socket);
+        ret = socket::client_connect(name.data(), xpn_env::get_instance().xpn_sck_port, socket);
         if (ret < 0) {
             print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);
             continue;

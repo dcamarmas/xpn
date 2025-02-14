@@ -41,21 +41,29 @@ namespace XPN
         xpn_file_table(xpn_file_table&&) = delete;
         // Delete move assignment operator
         xpn_file_table& operator=(xpn_file_table&&) = delete;
-    public:
+    public:        
         bool has(int fd) {return m_files.find(fd) != m_files.end();}
-        // It must be checked if fd is in the file_table with has(fd)
-        xpn_file& get(int fd) {return *m_files.at(fd); }
 
-        int insert(const xpn_file& file);
-        int insert(xpn_file* file);
+        std::shared_ptr<xpn_file> get(int fd) {
+            auto it = m_files.find(fd);
+            if (it == m_files.end()){
+                return nullptr;
+            }
+            return it->second;
+        }
+
+        // int insert(const xpn_file& file);
+        int insert(std::shared_ptr<xpn_file> file);
 
         bool remove(int fd);
         // It must be checked if fd is in the file_table with has(fd)
         int dup(int fd, int new_fd = -1);
         std::string to_string();
 
+        void clean();
+
     private:
-        std::unordered_map<int, xpn_file*> m_files;
+        std::unordered_map<int, std::shared_ptr<xpn_file>> m_files;
         std::queue<int> m_free_keys;
         int secuencial_key = 1;
     };

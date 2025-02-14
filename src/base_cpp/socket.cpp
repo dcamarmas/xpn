@@ -20,8 +20,9 @@
  */
 
 #include "socket.hpp"
-#include "xpn_env.hpp"
-#include "base_c/filesystem.h"
+#include "base_cpp/xpn_env.hpp"
+#include "base_cpp/debug.hpp"
+#include "base_cpp/filesystem.hpp"
 
 #include <string>
 #include <iostream>
@@ -31,48 +32,129 @@
 #include <netinet/tcp.h>
 #include <string.h>
 #include <unistd.h>
+#include <thread>
 
 namespace XPN
 {
-    int socket::get_xpn_port()
-    {
-        const char *sck_port = xpn_env::get_instance().xpn_sck_port;
-        int port = DEFAULT_XPN_SCK_PORT;
-        if (sck_port != NULL)
-        {
-            int aux_port = atoi(sck_port);
-            if (aux_port != 0){
-                port = aux_port;
-            }
-            else{
-                std::cerr<<"Error: env XPN_SCK_PORT '"<<sck_port<<"' is not a number, using default '"<<DEFAULT_XPN_SCK_PORT<<"'"<<std::endl;
-            }
-        }
-        return port;
-    }
-
-    int64_t socket::send ( int socket, const void * buffer, int64_t size )
+    int64_t socket::send ( int socket, const void * buffer, size_t size )
     {
         int64_t ret;
 
-        ret = filesystem_write(socket, buffer, size);
+        ret = filesystem::write(socket, buffer, size);
         if (ret < 0){
-            debug_error_f("[SOCKET] [socket::recv] ERROR: socket read buffer size %ld Failed\n", size);
+            debug_error("[SOCKET] [socket::recv] ERROR: socket read buffer size "<<size<<"Failed");
         }
         
         return size;
     }
 
-    int64_t socket::recv ( int socket, void * buffer, int64_t size )
+    int64_t socket::recv ( int socket, void * buffer, size_t size )
     {
         int64_t ret;
 
-        ret = filesystem_read(socket, buffer, size);
+        ret = filesystem::read(socket, buffer, size);
         if (ret < 0){
-            debug_error_f("[SOCKET] [socket::recv] ERROR: socket read buffer size %ld Failed\n", size);
+            debug_error("[SOCKET] [socket::recv] ERROR: socket read buffer size "<<size<<"Failed");
         }
 
         return size;
+    }
+    
+    int64_t socket::send_line ( int socket, const char *buffer )
+    {
+        return socket::send(socket, buffer, strlen(buffer)+1);
+    }
+
+    int64_t socket::recv_line ( int socket, char *buffer, size_t n )
+    {
+        int64_t numRead;  /* bytes read in the last read() */
+        size_t totRead;   /* total bytes read so far */
+        char *buf;
+        char ch;
+
+        if (n <= 0 || buffer == NULL) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        buf = buffer;
+        totRead = 0;
+
+        while (1)
+        {
+            numRead = socket::recv(socket, &ch, 1);  /* read one byte */
+
+            if (numRead == -1) {
+                if (errno == EINTR)      /* interrupted -> restart read() */
+                    continue;
+                else return -1;          /* another type of error */
+            } else if (numRead == 0) {   /* EOF */
+                if (totRead == 0)        /* no bytes read -> return 0 */
+                    return 0;
+                else break;
+            } else {                     /* numRead must be 1 here */
+                if (ch == '\n') break;
+                if (ch == '\0') break;
+                if (totRead < n - 1) {   /* discard > (n-1) bytes */
+                    totRead++;
+                    *buf++ = ch;
+                }
+            }
+        }
+
+        *buf = '\0';
+        return totRead;
+    }
+
+    int64_t socket::send_str ( int socket, const std::string& str )
+    {
+        return socket::send_str(socket, std::string_view(str));
+    }
+
+    int64_t socket::send_str ( int socket, const std::string_view& str )
+    {
+        int64_t ret;
+        size_t size_str = str.size();
+        debug_info("Send_str size "<<size_str);
+        ret = socket::send(socket, &size_str, sizeof(size_str));
+        if (ret != sizeof(size_str)){
+            print_error("send size of string");
+            return ret;
+        }
+        if (size_str == 0){
+            return 0;
+        }
+        debug_info("Send_str "<<str);
+        ret = socket::send(socket, &str[0], size_str);
+        if (ret != static_cast<int64_t>(size_str)){
+            print_error("send string");
+            return ret;
+        }
+        return ret;
+    }
+
+    int64_t socket::recv_str ( int socket, std::string& str )
+    {
+        int64_t ret;
+        size_t size_str = 0;
+        ret = socket::recv(socket, &size_str, sizeof(size_str));
+        if (ret != sizeof(size_str)){
+            print_error("send size of string");
+            return ret;
+        }
+        debug_info("Recv_str size "<<size_str);
+        if (size_str == 0){
+            return 0;
+        }
+        str.clear();
+        str.resize(size_str, '\0');
+        ret = socket::recv(socket, &str[0], size_str);
+        if (ret != static_cast<int64_t>(size_str)){
+            print_error("send string");
+            return ret;
+        }
+        debug_info("Recv_str "<<str);
+        return ret;
     }
 
     int socket::server_create ( int port, int &out_socket )
@@ -81,7 +163,7 @@ namespace XPN
         int server_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (server_socket < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: socket fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: socket fails");
             return -1;
         }
 
@@ -90,22 +172,22 @@ namespace XPN
         ret = setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: setsockopt fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: setsockopt fails");
             return -1;
         }
 
-        debug_info_f("[SOCKET] [socket::server_create] Socket reuseaddr\n");
+        debug_info("[SOCKET] [socket::server_create] Socket reuseaddr");
 
         val = 1;
         ret = setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(int));
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: setsockopt fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: setsockopt fails");
             return -1;
         }
 
         // bind
-        debug_info_f("[SOCKET] [socket::server_create] Socket bind\n");
+        debug_info("[SOCKET] [socket::server_create] Socket bind");
 
         struct sockaddr_in server_addr;
         memset(&server_addr, 0, sizeof(server_addr));
@@ -117,17 +199,17 @@ namespace XPN
         ret = bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: bind fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: bind fails");
             return -1;
         }
 
         // listen
-        debug_info_f("[SOCKET] [socket::server_create] Socket listen\n");
+        debug_info("[SOCKET] [socket::server_create] Socket listen");
 
         ret = listen(server_socket, SOMAXCONN);
         if (ret < 0)
         {
-            debug_error_f("[SOCKET] [socket::server_create] ERROR: listen fails\n");
+            debug_error("[SOCKET] [socket::server_create] ERROR: listen fails");
             return -1;
         }
         out_socket = server_socket;
@@ -140,7 +222,7 @@ namespace XPN
         socklen_t sock_size = sizeof(sockaddr_in);
         int new_socket = accept(socket, (struct sockaddr*)&client_addr, &sock_size);
         if (new_socket < 0) {
-            debug_error_f("[SOCKET] [socket::accept_send] ERROR: socket accept\n");
+            debug_error("[SOCKET] [socket::accept_send] ERROR: socket accept");
             return -1;
         }
         out_conection_socket = new_socket;
@@ -182,7 +264,7 @@ namespace XPN
         client_fd = ::socket(AF_INET, SOCK_STREAM, 0);
         if (client_fd < 0) 
         {
-            debug_error_f("[SOCKET] [socket::read] ERROR: socket creation error\n");
+            debug_error("[SOCKET] [socket::read] ERROR: socket creation error");
             return -1;
         }
         resolve_hostname(srv_name, &serv_addr);
@@ -190,7 +272,7 @@ namespace XPN
         int status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
         if (status < 0) 
         {
-            debug_error_f("[SOCKET] [socket::read] ERROR: socket connection failed to %s in port %d %s\n", srv_name.c_str(), get_xpn_port(), strerror(errno));
+            debug_error("[SOCKET] [socket::read] ERROR: socket connection failed to "<<srv_name<<" in port "<< xpn_env::get_instance().xpn_sck_port << " " << strerror(errno));
             close(client_fd);
             return -1;
         }
@@ -199,13 +281,35 @@ namespace XPN
         return 0;
     }
 
+    int socket::client_connect ( const std::string &srv_name, int port, int timeout_ms, int &out_socket, int time_to_sleep_ms )
+    {
+        int ret = -1;
+        auto start = std::chrono::high_resolution_clock::now();
+        while (ret < 0) {
+            debug_info("Try to connect to " << srv_name << " server");
+            ret = socket::client_connect(srv_name, port, out_socket);
+            if (ret < 0) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                    std::chrono::high_resolution_clock::now() - start)
+                                    .count();
+                debug_error("Failed to connect to " << srv_name << " server. Elapsed time " << elapsed << " ms");
+                if (elapsed > timeout_ms) {
+                    debug_error("Socket connection " << srv_name);
+                    return ret;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(time_to_sleep_ms));
+            }
+        }
+        return ret;
+    }
+
     int socket::close ( int socket )
     {
         int ret;
 
         ret = ::close(socket);
         if (ret < 0) {
-            debug_error_f("[SOCKET] [socket::socket_close] ERROR: socket close Failed\n");
+            debug_error("[SOCKET] [socket::socket_close] ERROR: socket close Failed");
             return -1;
         }
 

@@ -43,6 +43,6 @@ namespace XPN
         virtual void launch_no_future(std::function<void()> task) = 0;
         virtual void wait_all() = 0;
     public:
-        static std::unique_ptr<workers> Create(workers_mode mode);
+        static std::unique_ptr<workers> Create(workers_mode mode, bool with_limits = true);
     };
 } // namespace XPN

@@ -30,14 +30,14 @@ namespace XPN
         XPN_DEBUG_BEGIN_CUSTOM(fd<<", "<<buffer<<", "<<size);
         ssize_t res = 0;
 
-        if (!m_file_table.has(fd)){
+        auto file = m_file_table.get(fd);
+        if (!file){
             errno = EBADF;
             res = -1;
             XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
             return res;
         }
 
-        auto& file = m_file_table.get(fd);
 
         if (buffer == NULL){
             errno = EFAULT;
@@ -51,21 +51,21 @@ namespace XPN
             return res;
         }
 
-        if (file.m_flags == O_WRONLY){
+        if (file->m_flags == O_WRONLY){
             errno = EBADF;
             res = -1;
             XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
             return res;
         }
 
-        if (file.m_type == file_type::dir){
+        if (file->m_type == file_type::dir){
             errno = EISDIR;
             res = -1;
             XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
             return res;
         }
 
-        xpn_rw_buffer rw_buff(file, file.m_offset, const_cast<void*>(buffer), size);
+        xpn_rw_buffer rw_buff(*file.get(), file->m_offset, const_cast<void*>(buffer), size);
         rw_buff.calculate_reads();
 
         std::vector<std::future<int>> v_res(rw_buff.num_ops());
@@ -73,7 +73,7 @@ namespace XPN
         for (size_t i = 0; i < rw_buff.m_ops.size(); i++)
         {
             if (!rw_buff.m_ops[i].empty()){
-                res = file.initialize_vfh(i);
+                res = file->initialize_vfh(i);
                 if (res < 0){
                     break;
                 }   
@@ -82,7 +82,7 @@ namespace XPN
             {
                 v_res[index++] = m_worker->launch([i, &file, &op](){
                     XPN_DEBUG("Serv "<<i<<" off: "<<op.offset_serv+xpn_metadata::HEADER_SIZE<<" size: "<<op.get_size());
-                    return file.m_part.m_data_serv[i]->nfi_read(file.m_data_vfh[i], op.get_buffer(), op.offset_serv+xpn_metadata::HEADER_SIZE, op.get_size());
+                    return file->m_part.m_data_serv[i]->nfi_read(file->m_data_vfh[i], op.get_buffer(), op.offset_serv+xpn_metadata::HEADER_SIZE, op.get_size());
                 });
             }
         }
@@ -94,7 +94,7 @@ namespace XPN
             if (!fut.valid()) continue;
             aux_res = fut.get();
             if (aux_res < 0){
-                XPN_DEBUG_END_CUSTOM(file.m_path<<", "<<buffer<<", "<<size);
+                XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size);
                 return aux_res;
             }
             sum += aux_res;
@@ -103,7 +103,7 @@ namespace XPN
         res = sum;
 
         if(res > 0){
-            file.m_offset += res;
+            file->m_offset += res;
         }
 
         rw_buff.fix_ops_reads();
@@ -117,14 +117,14 @@ namespace XPN
         XPN_DEBUG_BEGIN_CUSTOM(fd<<", "<<buffer<<", "<<size);
         ssize_t res = 0;
 
-        if (!m_file_table.has(fd)){
+        auto file = m_file_table.get(fd);
+        if (!file){
             errno = EBADF;
             res = -1;
             XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
             return res;
         }
 
-        auto& file = m_file_table.get(fd);
 
         if (buffer == NULL){
             errno = EFAULT;
@@ -138,21 +138,21 @@ namespace XPN
             return res;
         }
 
-        if (file.m_flags == O_RDONLY){
+        if (file->m_flags == O_RDONLY){
             errno = EBADF;
             res = -1;
             XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
             return res;
         }
 
-        if (file.m_type == file_type::dir){
+        if (file->m_type == file_type::dir){
             errno = EISDIR;
             res = -1;
             XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
             return res;
         }
 
-        xpn_rw_buffer rw_buff(file, file.m_offset, const_cast<void*>(buffer), size);
+        xpn_rw_buffer rw_buff(*file.get(), file->m_offset, const_cast<void*>(buffer), size);
         rw_buff.calculate_writes();
 
         std::vector<std::future<int>> v_res(rw_buff.num_ops());
@@ -160,7 +160,7 @@ namespace XPN
         for (size_t i = 0; i < rw_buff.m_ops.size(); i++)
         {
             if (!rw_buff.m_ops[i].empty()){
-                res = file.initialize_vfh(i);
+                res = file->initialize_vfh(i);
                 if (res < 0){
                     break;
                 }
@@ -169,7 +169,7 @@ namespace XPN
             {
                 v_res[index++] = m_worker->launch([i, &file, &op](){
                     XPN_DEBUG("Serv "<<i<<" off: "<<op.offset_serv+xpn_metadata::HEADER_SIZE<<" size: "<<op.get_size());
-                    return file.m_part.m_data_serv[i]->nfi_write(file.m_data_vfh[i], op.get_buffer(), op.offset_serv+xpn_metadata::HEADER_SIZE, op.get_size());
+                    return file->m_part.m_data_serv[i]->nfi_write(file->m_data_vfh[i], op.get_buffer(), op.offset_serv+xpn_metadata::HEADER_SIZE, op.get_size());
                 });
             }
         }
@@ -181,21 +181,21 @@ namespace XPN
             if (!fut.valid()) continue;
             aux_res = fut.get();
             if (aux_res < 0){
-                XPN_DEBUG_END_CUSTOM(file.m_path<<", ops: "<<rw_buff.num_ops()<<", "<<rw_buff.size());
+                XPN_DEBUG_END_CUSTOM(file->m_path<<", ops: "<<rw_buff.num_ops()<<", "<<rw_buff.size());
                 return aux_res;
             }
             sum += aux_res;
         }
 
         if (sum != rw_buff.size()){
-            res = sum / (file.m_part.m_replication_level+1);
+            res = sum / (file->m_part.m_replication_level+1);
         }else{
             res = static_cast<ssize_t>(rw_buff.m_size);
-            file.m_offset += res;
+            file->m_offset += res;
             // Update file_size in metadata
-            if (file.m_offset > static_cast<off_t>(file.m_mdata.m_data.file_size)){
-                file.m_mdata.m_data.file_size = file.m_offset;
-                write_metadata(file.m_mdata, true);
+            if (file->m_offset > static_cast<off_t>(file->m_mdata.m_data.file_size)){
+                file->m_mdata.m_data.file_size = file->m_offset;
+                write_metadata(file->m_mdata, true);
             }
         }
 
@@ -209,13 +209,13 @@ namespace XPN
         off_t res = 0;
         struct ::stat st;
 
-        if (!m_file_table.has(fd)){
+        auto file = m_file_table.get(fd);
+        if (!file){
             errno = EBADF;
             res = -1;
             XPN_DEBUG_END_CUSTOM(fd<<", "<<offset<<", "<<flag);
             return res;
         }
-        auto& file = m_file_table.get(fd);
         
         switch (flag)
         {
@@ -228,12 +228,12 @@ namespace XPN
                     return res;
                 }
                 else {
-                    file.m_offset = offset;
+                    file->m_offset = offset;
                 }
                 break;
 
             case SEEK_CUR:
-                if (file.m_offset+offset<0)
+                if (file->m_offset+offset<0)
                 {
                     errno = EINVAL;
                     res = -1;
@@ -241,7 +241,7 @@ namespace XPN
                     return res;
                 }
                 else {
-                    file.m_offset += offset;
+                    file->m_offset += offset;
                 }
                 break;
 
@@ -261,7 +261,7 @@ namespace XPN
                     return res;
                 }
                 else {
-                    file.m_offset = st.st_size + offset;
+                    file->m_offset = st.st_size + offset;
                 }
             break;
 
@@ -272,7 +272,7 @@ namespace XPN
                 return res;
         }
 
-        res = file.m_offset;
+        res = file->m_offset;
         XPN_DEBUG_END_CUSTOM(fd<<", "<<offset<<", "<<flag);
         return res;
     }

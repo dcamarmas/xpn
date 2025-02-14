@@ -23,6 +23,7 @@
 
 #include <string>
 #include <memory>
+#include <tuple>
 #include <sys/vfs.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
@@ -42,11 +43,13 @@ namespace XPN
     {
     public:
         nfi_parser(const std::string &url);
+        static std::tuple<std::string, std::string, std::string> parse(const std::string& url);
+        static std::string create(const std::string& protocol, const std::string& server, const std::string& path);
 
         const std::string m_url;
-        std::string m_protocol; 
-        std::string m_server;   
-        std::string m_path;     
+        std::string m_protocol;
+        std::string m_server;
+        std::string m_path;
     };
 
     class nfi_server 
@@ -109,7 +112,7 @@ namespace XPN
                 return -1;
             }
 
-            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<op<<" -> ");
+            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" -> ");
             ret = m_comm->write_data((void *)&(msg), sizeof(msg));
 
             debug_info("[NFI_XPN] [nfi_write_operation] >> End");
@@ -128,7 +131,7 @@ namespace XPN
             }
 
             // send request...
-            debug_info("[NFI_XPN] [nfi_server_do_request] Send operation: "<<op);
+            debug_info("[NFI_XPN] [nfi_server_do_request] Send operation: "<<static_cast<int>(op));
 
             ret = nfi_write_operation(op, msg);
             if (ret < 0) {
@@ -136,7 +139,7 @@ namespace XPN
             }
 
             // read response...
-            debug_info("[NFI_XPN] [nfi_server_do_request] Response operation: "<<op);
+            debug_info("[NFI_XPN] [nfi_server_do_request] Response operation: "<<static_cast<int>(op));
 
             ret = m_comm->read_data((void *)&(req), sizeof(req));
             if (ret < 0) {

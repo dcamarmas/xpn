@@ -36,12 +36,14 @@
   #include "base/workers.h"
   #include "nfi_local.h"
   #include "nfi.h"
-  // #include "xpn_server/xpn_server_ops.hpp"
-  // #include "xpn_server/xpn_server_params.hpp"
-  #include "nfi.h"
+  #include "xpn_server/xpn_server_conf.h"
+  #include "xpn_server/xpn_server_ops.h"
   #include "nfi_worker.h"
   #ifdef ENABLE_MPI_SERVER
   #include "mpi.h"
+  #endif
+  #ifdef ENABLE_FABRIC_SERVER
+  #include "base/fabric.h"
   #endif
 
 
@@ -68,6 +70,9 @@
     #endif
     #ifdef ENABLE_SCK_SERVER
     int server_socket; // For sck_server
+    #endif
+    #ifdef ENABLE_FABRIC_SERVER
+    struct fabric_comm fabric_comm; // For fabric_server
     #endif
     // server port
     char port_name [XPN_SERVER_MAX_PORT_NAME];

@@ -58,30 +58,30 @@ namespace XPN
             return -1;
         }
 
-        xpn_file file(file_path, m_partitions.at(part_name));
+        std::shared_ptr<xpn_file> file = std::make_shared<xpn_file>(file_path, m_partitions.at(part_name));
 
         if ((O_DIRECTORY != (flags & O_DIRECTORY)))
         {
-            res = read_metadata(file.m_mdata);
+            res = read_metadata(file->m_mdata);
             if (res < 0 && O_CREAT != (flags & O_CREAT)){
                 XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
                 return -1;
             }
 
-            if(!file.m_mdata.m_data.is_valid()){
-                file.m_mdata.m_data.fill(file.m_mdata);
+            if(!file->m_mdata.m_data.is_valid()){
+                file->m_mdata.m_data.fill(file->m_mdata);
             }
         }
 
         if ((O_CREAT == (flags & O_CREAT))){
 
-            std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
-            for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+            std::vector<std::future<int>> v_res(file->m_part.m_data_serv.size());
+            for (size_t i = 0; i < file->m_part.m_data_serv.size(); i++)
             {
-                auto& serv = file.m_part.m_data_serv[i];
-                if (file.exist_in_serv(i)){
+                auto& serv = file->m_part.m_data_serv[i];
+                if (file->exist_in_serv(i)){
                     v_res[i] = m_worker->launch([i, &serv, &file, flags, mode](){
-                        return serv->nfi_open(file.m_path, flags, mode, file.m_data_vfh[i]);
+                        return serv->nfi_open(file->m_path, flags, mode, file->m_data_vfh[i]);
                     });
                 }
             }
@@ -101,18 +101,18 @@ namespace XPN
 
             if ((O_DIRECTORY != (flags & O_DIRECTORY)))
             {
-                write_metadata(file.m_mdata, false);
+                write_metadata(file->m_mdata, false);
             }
         }else{
-            int master_file = file.m_mdata.master_file();
+            int master_file = file->m_mdata.master_file();
             std::future<int> fut;
             if ((O_DIRECTORY == (flags & O_DIRECTORY))){
                 fut = m_worker->launch([&file, master_file, flags, mode](){
-                    return file.m_part.m_data_serv[master_file]->nfi_opendir(file.m_path, file.m_data_vfh[master_file]);
+                    return file->m_part.m_data_serv[master_file]->nfi_opendir(file->m_path, file->m_data_vfh[master_file]);
                 });
             }else{
                 fut = m_worker->launch([&file, master_file, flags, mode](){
-                    return file.m_part.m_data_serv[master_file]->nfi_open(file.m_path, flags, mode, file.m_data_vfh[master_file]);
+                    return file->m_part.m_data_serv[master_file]->nfi_open(file->m_path, flags, mode, file->m_data_vfh[master_file]);
                 });
             }
             res = fut.get();
@@ -120,12 +120,12 @@ namespace XPN
 
         
         if ((O_DIRECTORY == (flags & O_DIRECTORY))){
-            file.m_type = file_type::dir;
+            file->m_type = file_type::dir;
         }else{
-            file.m_type = file_type::file;
+            file->m_type = file_type::file;
         }
-        file.m_flags = flags;
-        file.m_mode = mode;
+        file->m_flags = flags;
+        file->m_mode = mode;
         res = m_file_table.insert(file);
 
         XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
@@ -146,21 +146,21 @@ namespace XPN
         XPN_DEBUG_BEGIN_CUSTOM(fd);
         int res = 0;
         
-        if (!m_file_table.has(fd))
+        auto file = m_file_table.get(fd);
+        if (!file)
         {
             errno = EBADF;
             XPN_DEBUG_END_CUSTOM(fd);
             return -1;
         }
-        auto& file = m_file_table.get(fd);
 
-        std::vector<std::future<int>> v_res(file.m_data_vfh.size());
-        for (size_t i = 0; i < file.m_data_vfh.size(); i++)
+        std::vector<std::future<int>> v_res(file->m_data_vfh.size());
+        for (size_t i = 0; i < file->m_data_vfh.size(); i++)
         {
-            if (file.m_data_vfh[i].fd != -1)
+            if (file->m_data_vfh[i].fd != -1)
             {
                 v_res[i] = m_worker->launch([i, &file](){
-                    return file.m_part.m_data_serv[i]->nfi_close(file.m_data_vfh[i]);
+                    return file->m_part.m_data_serv[i]->nfi_close(file->m_data_vfh[i]);
                 });
             }
         }
@@ -305,13 +305,10 @@ namespace XPN
     {
         XPN_DEBUG_BEGIN_CUSTOM(fd);
         int res = 0;
-        if (!m_file_table.has(fd))
-        {
-            errno = EBADF;
-            XPN_DEBUG_END_CUSTOM(fd);
-            return -1;
-        }
         res = m_file_table.dup(fd);
+        if (res < 0){
+            errno = EBADF;
+        }
         XPN_DEBUG_END_CUSTOM(fd);
         return res;
     }
@@ -320,13 +317,10 @@ namespace XPN
     {
         XPN_DEBUG_BEGIN_CUSTOM(fd<<", "<<fd2);
         int res = 0;
-        if (!m_file_table.has(fd))
-        {
-            errno = EBADF;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<fd2);
-            return -1;
-        }
         res = m_file_table.dup(fd, fd2);
+        if (res < 0){
+            errno = EBADF;
+        }
         XPN_DEBUG_END_CUSTOM(fd<<", "<<fd2);
         return res;
     }

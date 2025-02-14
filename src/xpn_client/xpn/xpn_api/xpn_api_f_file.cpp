@@ -122,8 +122,9 @@ namespace XPN
     {
         XPN_DEBUG_BEGIN;
         long res = 0;
-        if (m_file_table.has(stream->_fileno)){
-            res = m_file_table.get(stream->_fileno).m_offset;
+        auto file = m_file_table.get(stream->_fileno);
+        if (file){
+            res = file->m_offset;
         }
         XPN_DEBUG_END;
         return res;

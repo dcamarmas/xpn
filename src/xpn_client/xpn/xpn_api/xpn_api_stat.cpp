@@ -29,16 +29,16 @@ namespace XPN
         XPN_DEBUG_BEGIN_CUSTOM(fd);
         int res = 0;
 
-        if (!m_file_table.has(fd))
+        auto file = m_file_table.get(fd);
+        if (!file)
         {
             errno = EBADF;
             XPN_DEBUG_END_CUSTOM(fd);
             return -1;
         }
-        auto& file = m_file_table.get(fd);
 
         // Redirect to stat to not duplicate code
-        std::string file_path = file.m_part.m_name + "/" + file.m_path;
+        std::string file_path = file->m_part.m_name + "/" + file->m_path;
         res = stat(file_path.c_str(), sb);
 
         XPN_DEBUG_END_CUSTOM(fd);
@@ -204,16 +204,16 @@ namespace XPN
         XPN_DEBUG_BEGIN;
         int res = 0;
 
-        if (!m_file_table.has(fd))
+        auto file = m_file_table.get(fd);
+        if (!file)
         {
             errno = EBADF;
             XPN_DEBUG_END_CUSTOM(fd);
             return -1;
         }
-        auto& file = m_file_table.get(fd);
 
         // Redirect to statvfs to not duplicate code
-        std::string file_path = file.m_part.m_name + "/" + file.m_path;
+        std::string file_path = file->m_part.m_name + "/" + file->m_path;
         res = statvfs(file_path.c_str(), buf);
 
         XPN_DEBUG_END;

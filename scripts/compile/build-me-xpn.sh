@@ -24,9 +24,10 @@
 function usage {
     echo ""
     echo " Usage:"
-    echo " $0  -m <mpicc path>  -i <Install path>"
+    echo " $0  -m <mpicc path> -l <libfabric path> -i <Install path>"
     echo " Where:"
     echo " * <mpicc   path> = full path where the mpicc is installed."
+    echo " * <libfabric   path> = full path where the libfabric is installed."
     echo " * <Install path> = full path where XPN is going to be installed."
     echo ""
 }
@@ -43,11 +44,13 @@ echo " Begin."
 
 ## base path
 BASE_PATH="$(dirname "$(readlink -f "$0")")"
-
+LIBFABRIC_PATH=""
 ## get arguments
-while getopts "m:i:" opt; do
+while getopts "m:l:i:" opt; do
     case "${opt}" in
           m) MPICC_PATH=${OPTARG}
+             ;;
+          l) LIBFABRIC_PATH=${OPTARG}
              ;;
           i) INSTALL_PATH=${OPTARG}
              ;;
@@ -75,6 +78,11 @@ fi
 
 
 # 2) XPN and dependencies...
-"$BASE_PATH"/software/xpn.sh    -m "$MPICC_PATH" -i "$INSTALL_PATH" -s "$BASE_PATH"/../../../xpn
+if [ "$LIBFABRIC_PATH" == "" ]; then
+   "$BASE_PATH"/software/xpn.sh    -m "$MPICC_PATH" -i "$INSTALL_PATH" -s "$BASE_PATH"/../../../xpn
+else
+   "$BASE_PATH"/software/xpn.sh    -m "$MPICC_PATH" -l "$LIBFABRIC_PATH" -i "$INSTALL_PATH" -s "$BASE_PATH"/../../../xpn
+fi
+
 
 echo " End."

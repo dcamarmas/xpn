@@ -35,9 +35,11 @@ namespace XPN
         xpn_env(xpn_env&&) = delete;
         // Delete move assignment operator
         xpn_env& operator=(xpn_env&&) = delete;
-        const char * xpn_sck_port = nullptr;
+        int xpn_sck_port = 3456;
+        int xpn_controller_sck_port = 34567;
         const char * xpn_conf = nullptr;
         int xpn_debug = 0;
+        int xpn_connect_timeout_ms = 5000;
         int xpn_profiler = 0;
         int xpn_thread = 0;
         int xpn_locality = 1;
@@ -46,6 +48,7 @@ namespace XPN
         int xpn_session_connect = 1;
         int xpn_stats = 0;
         const char * xpn_stats_dir = nullptr;
+        int xpn_fabric_threads = 10;
     public:
         static xpn_env& get_instance()
         {

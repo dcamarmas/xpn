@@ -24,6 +24,7 @@
 #include "base_cpp/debug.hpp"
 #include "base_cpp/xpn_env.hpp"
 #include "xpn_server/xpn_server_ops.hpp"
+#include <fcntl.h>
 
 namespace XPN
 {

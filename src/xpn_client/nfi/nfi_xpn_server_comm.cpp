@@ -26,6 +26,7 @@
 #include "nfi_xpn_server_comm.hpp"
 #include "nfi_mpi_server/nfi_mpi_server_comm.hpp"
 #include "nfi_sck_server/nfi_sck_server_comm.hpp"
+#include "nfi_fabric_server/nfi_fabric_server_comm.hpp"
 
 namespace XPN
 {
@@ -38,6 +39,10 @@ namespace XPN
         if (server_protocol == server_protocols::sck_server)
         {
             return std::make_unique<nfi_sck_server_control_comm>();
+        }else
+        if (server_protocol == server_protocols::fabric_server)
+        {
+            return std::make_unique<nfi_fabric_server_control_comm>();
         }else
         if (server_protocol == server_protocols::file)
         {

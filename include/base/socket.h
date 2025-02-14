@@ -48,8 +48,8 @@
   int socket_send ( int socket, void * buffer, int size );
   int socket_recv ( int socket, void * buffer, int size );
   int socket_server_create ( int *out_socket );
-  int socket_server_accept ( int socket, int *out_conection_socket );
-  int socket_client_connect ( const char * srv_name, int *out_socket );
+  int socket_server_accept ( int socket, int *out_conection_socket, char *addr);
+  int socket_client_connect ( char * srv_name, int *out_socket );
   int socket_close ( int socket );
 
   /* ... Macros / Macros .................................................. */

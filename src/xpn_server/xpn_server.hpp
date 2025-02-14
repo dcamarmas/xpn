@@ -39,8 +39,9 @@ namespace XPN
         int stop();
         int print_stats();
 
-        void accept();
+        void accept(int socket);
         void dispatcher(xpn_server_comm *comm);
+        void fabric_dispatcher(xpn_server_comm *comm);
         void do_operation(xpn_server_comm *comm, xpn_server_ops op, int rank_client_id, int tag_client_id, timer timer);
         void finish();
 
@@ -52,6 +53,9 @@ namespace XPN
 
         xpn_stats m_stats;
         std::unique_ptr<xpn_window_stats> m_window_stats;
+
+        std::atomic_bool m_disconnect = {false};
+        std::atomic_int64_t m_clients = {0};
 
     public:
         // File operations

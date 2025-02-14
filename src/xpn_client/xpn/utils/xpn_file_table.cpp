@@ -38,7 +38,7 @@ namespace XPN
         }
     }
 
-    int xpn_file_table::insert(const xpn_file& file)
+    int xpn_file_table::insert(std::shared_ptr<xpn_file> file)
     {
         int fd;
         if (m_free_keys.empty()){
@@ -47,45 +47,15 @@ namespace XPN
             fd = m_free_keys.front();
             m_free_keys.pop();
         }
-        auto file_ptr = new (std::nothrow) xpn_file(file);
-        if (file_ptr == nullptr){
-            return -1;
-        }
-        auto pair = std::make_pair(fd, file_ptr);
-        pair.second->m_links++;
-        m_files.insert(pair);
-        return fd;
-    }
-
-    int xpn_file_table::insert(xpn_file* file)
-    {
-        int fd;
-        if (m_free_keys.empty()){
-            fd = secuencial_key++;
-        }else{
-            fd = m_free_keys.front();
-            m_free_keys.pop();
-        }
-        auto pair = std::make_pair(fd, file);
-        pair.second->m_links++;
-        m_files.insert(pair);
+        m_files.emplace(std::make_pair(fd, file));
         return fd;
     }
 
     bool xpn_file_table::remove(int fd)
     {   
-        bool has_fd = has(fd);
-        if (!has_fd){
-            return false;
-        }
-        auto file = m_files.at(fd);
         int res = m_files.erase(fd);
         if (res == 1){
             m_free_keys.push(fd);
-        }
-        file->m_links--;
-        if (file->m_links <= 0){
-            delete file;
         }
         return res == 1 ? true : false;
     }
@@ -94,16 +64,16 @@ namespace XPN
     int xpn_file_table::dup(int fd, int new_fd)
     {   
         int ret = -1;
-        auto file = m_files.at(fd);
-        file->m_links++;
+        auto file = get(fd);
+        if (!file){
+            return -1;
+        }
         if (new_fd != -1){
             // Like posix dup2 close silently if its open
             if (has(new_fd)){
                 xpn_api::get_instance().close(new_fd);
             }
-            auto pair = std::make_pair(new_fd, file);
-            pair.second->m_links++;
-            m_files.insert(pair);
+            m_files.emplace(std::make_pair(new_fd, file));
             ret = new_fd;
         }else{
             ret = insert(file);
@@ -119,5 +89,24 @@ namespace XPN
             out << "fd: " << key << " : " << (*file).m_path << std::endl;
         }
         return out.str();
+    }
+    
+    void xpn_file_table::clean()
+    {
+        std::vector<int> fds_to_close;
+        fds_to_close.reserve(m_files.size());
+        for (auto &[key, file] : m_files)
+        {
+            fds_to_close.emplace_back(key);
+        }
+        for (auto &fd : fds_to_close)
+        {
+            xpn_api::get_instance().close(fd);
+        }
+        
+        m_files.clear();
+        decltype(m_free_keys) empty;
+        m_free_keys.swap(empty);
+        secuencial_key = 1;
     }
 }

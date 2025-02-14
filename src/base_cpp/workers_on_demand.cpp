@@ -24,9 +24,13 @@
 
 namespace XPN
 {
-    workers_on_demand::workers_on_demand() 
+    workers_on_demand::workers_on_demand(bool with_limits) 
     {
-        m_num_threads = std::thread::hardware_concurrency() * 2;
+        if (with_limits){
+            m_num_threads = std::thread::hardware_concurrency() * 2;
+        }else{
+            m_num_threads = INT32_MAX;
+        }
     }
     workers_on_demand::~workers_on_demand() 
     {

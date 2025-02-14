@@ -48,7 +48,7 @@ namespace XPN
     mpi_server_control_comm(xpn_server_params &params);
     ~mpi_server_control_comm() override;
     
-    xpn_server_comm* accept() override;
+    xpn_server_comm* accept(int socket) override;
     void disconnect(xpn_server_comm *comm) override;
 
   private:

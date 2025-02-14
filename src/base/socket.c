@@ -149,7 +149,7 @@ int socket_server_create ( int *out_socket )
   return 0;
 }
 
-int socket_server_accept ( int socket, int *out_conection_socket )
+int socket_server_accept ( int socket, int *out_conection_socket, char *addr)
 {
   struct sockaddr_in client_addr;
   socklen_t sock_size = sizeof(struct sockaddr_in);
@@ -158,6 +158,12 @@ int socket_server_accept ( int socket, int *out_conection_socket )
     printf("[SOCKET] [socket_accept_send] ERROR: socket accept\n");
     return -1;
   }
+
+  if (addr != NULL){
+    char *aux_addr = inet_ntoa(client_addr.sin_addr);
+    strcpy(addr, aux_addr);
+  }
+
   *out_conection_socket = new_socket;
   return 0;
 }

@@ -35,7 +35,7 @@
   #include "xpn/xpn_file.hpp"
   #include "xpn/xpn_partition.hpp"
   #include "xpn/xpn_metadata.hpp"
-  #include "base_c/filesystem.h"
+  #include "base_cpp/filesystem.hpp"
   #include "base_cpp/ns.hpp"
 
 
@@ -102,7 +102,7 @@
         perror("open :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
       }
-      ret = filesystem_read(fd_src, &old_file.m_mdata.m_data, sizeof(old_file.m_mdata.m_data));
+      ret = filesystem::read(fd_src, &old_file.m_mdata.m_data, sizeof(old_file.m_mdata.m_data));
       if (ret < 0){
         perror("read mdata :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
@@ -135,12 +135,12 @@
     MPI_Bcast(&st, sizeof(st), MPI_CHAR, master_node_old, MPI_COMM_WORLD);
     debug_info("after bcast\n");
     
-    if (rank == 0){
-      #ifdef DEBUG
-      XpnPrintMetadata(&mdata);
-      XpnPrintBlockDistribution(20, &mdata); 
-      #endif
-    }
+    // if (rank == 0){
+    //   #ifdef DEBUG
+    //   XpnPrintMetadata(&mdata);
+    //   XpnPrintBlockDistribution(20, &mdata); 
+    //   #endif
+    // }
 
     // Modify the metadata
     int rank_bcast = -1, aux_rank_bcast = -1;
@@ -221,7 +221,7 @@
         for (int j = prev_nserv-1; j >= 0; j--)
         {
           new_file.map_offset_mdata(aux_actual_last_block*new_file.m_mdata.m_data.block_size, replication, local_offset, aux_serv);
-          if (rank == 0){ debug_info("aux_actual_last_block "<aux_actual_last_block<<" aux_serv "<<aux_serv<<" local_offset_blocks "<<local_offset/new_file.m_mdata.m_data.block_size); }
+          if (rank == 0){ debug_info("aux_actual_last_block "<<aux_actual_last_block<<" aux_serv "<<aux_serv<<" local_offset_blocks "<<local_offset/new_file.m_mdata.m_data.block_size); }
           replication--;
           if (replication < 0){
             aux_actual_last_block --;
@@ -249,12 +249,12 @@
           trans_rank=-1;
         }
 
-        if (rank == 0){
-          #ifdef DEBUG
-          XpnPrintMetadata(&new_mdata);
-          XpnPrintBlockDistribution(20, &new_mdata); 
-          #endif
-        }
+        // if (rank == 0){
+        //   #ifdef DEBUG
+        //   XpnPrintMetadata(&new_mdata);
+        //   XpnPrintBlockDistribution(20, &new_mdata); 
+        //   #endif
+        // }
         current_serv++;
         // Check when finish
         times_do_it++;
@@ -276,8 +276,8 @@
 
     if (rank == 0){
       #ifdef DEBUG
-      XpnPrintMetadata(&new_mdata);
-      XpnPrintBlockDistribution(20, &new_mdata); 
+      // XpnPrintMetadata(&new_mdata);
+      // XpnPrintBlockDistribution(20, &new_mdata); 
       printf("Trans_rank_array ");
       for (int i = 0; i < size; i++)
       {
@@ -332,7 +332,7 @@
           MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
 
-        ret = filesystem_write(fd, buf, buf_size);
+        ret = filesystem::write(fd, buf, buf_size);
         if (ret < 0){
           perror("write buf :");
           MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
@@ -393,7 +393,7 @@
           perror("lseek :");
           MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
-        read_size = filesystem_read(fd, buf, new_file.m_mdata.m_data.block_size);
+        read_size = filesystem::read(fd, buf, new_file.m_mdata.m_data.block_size);
         // debug_info("Rank %d local_offset %ld read_size %d\n", rank, local_offset, read_size);
         if (read_size <= 0){
           has_remaining_blocks = 0;
@@ -476,7 +476,7 @@
         perror("open :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
       }
-      ret = filesystem_write(fd_src, &new_file.m_mdata.m_data, sizeof(new_file.m_mdata.m_data));
+      ret = filesystem::write(fd_src, &new_file.m_mdata.m_data, sizeof(new_file.m_mdata.m_data));
       if (ret < 0){
         perror("write mdata :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
