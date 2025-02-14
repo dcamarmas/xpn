@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -32,7 +32,7 @@ void xpn_server_params_show ( xpn_server_param_st *params )
 {
   debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show] >> Begin\n", params->rank);
 
-  printf(" | * MPI server current configuration:\n");
+  printf(" | * XPN server current configuration:\n");
 
   // * server_type
   if (params->server_type == XPN_SERVER_TYPE_MPI) {

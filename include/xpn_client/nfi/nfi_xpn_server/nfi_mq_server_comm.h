@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Elias Del Pozo Puñal, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -20,38 +20,33 @@
  */
 
 
-#ifndef _BASE_H_
-#define _BASE_H_
+#ifndef _NFI_MQ_SERVER_COMM_H_
+#define _NFI_MQ_SERVER_COMM_H_
+
+  #ifdef  __cplusplus
+    extern "C" {
+  #endif
 
   /* ... Include / Inclusion ........................................... */
 
-  #include "debug_tags.h"  
-  #include "trace_tags.h"
-  #include "debug_msg.h" 
-  #include "trace_msg.h"   
-
-  #include "filesystem.h"
-  #include "time_misc.h"    
-  #include "math_misc.h"  
-
-  #include "darray.h " 
-  #include "dtable.h"     
-
-  #include "string_misc.h"  
-  #include "path_misc.h"  
-  #include "urlstr.h"
-
-
-  /* ... Const / Const ................................................. */
-
-
-  /* ... Data structures / Estructuras de datos ........................ */
+  #include "all_system.h"
+  #include "nfi_xpn_server.h"
+  #include "xpn_server_params.h"
+  #include "mosquitto.h"
 
 
   /* ... Functions / Funciones ......................................... */
 
+  void nfi_mq_server_init         ( struct nfi_xpn_server *server_aux );
+  void nfi_mq_server_destroy      ( struct nfi_xpn_server *server_aux );
+  ssize_t nfi_mq_server_publish   ( struct nfi_xpn_server *server_aux, struct nfi_xpn_server_fhandle *fh_aux, void * buffer, off_t offset, size_t size );
 
+      
   /* ................................................................... */
+
+  #ifdef  __cplusplus
+    }
+  #endif
 
 #endif
 

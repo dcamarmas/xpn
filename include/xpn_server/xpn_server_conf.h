@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -49,7 +49,7 @@
   #ifdef MPI_MAX_PORT_NAME
   #define XPN_SERVER_MAX_PORT_NAME MPI_MAX_PORT_NAME
   #else
-  #define XPN_SERVER_MAX_PORT_NAME 1024
+  #define XPN_SERVER_MAX_PORT_NAME 256
   #endif
   
   /* ... Data structures / Estructuras de datos ........................ */

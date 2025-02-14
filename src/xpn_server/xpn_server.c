@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -217,7 +217,7 @@ int xpn_server_up ( void )
         switch (recv_code)
         {
             case SOCKET_ACCEPT_CODE:
-                socket_send(connection_socket, params.port_name, MPI_MAX_PORT_NAME);
+                socket_send(connection_socket, params.port_name, 10);
                 xpn_server_accept();
                 break;
 
@@ -255,9 +255,13 @@ int xpn_server_up ( void )
 // Start servers spawn
 int xpn_is_server_spawned ( void )
 {
-    int ret;
+    int ret = 0;
 
     debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_is_server_spawned] >> Begin\n", 0);
+
+    #ifndef ENABLE_MPI_SERVER
+    printf("WARNING: if you have not compiled XPN with the MPI server then you cannot use spawn server.\n");
+    #endif
 
     #ifdef ENABLE_MPI_SERVER
     // Initialize server
@@ -314,13 +318,10 @@ int xpn_is_server_spawned ( void )
     base_workers_destroy(&worker1);
     base_workers_destroy(&worker2);
     PMPI_Finalize();
-
-    #else
-    printf("WARNING: if you have not compiled XPN with the MPI server then you cannot use spawn server.\n");
     #endif
 
     debug_info("[TH_ID=%d] [XPN_SERVER] [xpn_is_server_spawned] >> End\n", 0);
-    return 0;
+    return ret ;
 }
 
 // Stop servers

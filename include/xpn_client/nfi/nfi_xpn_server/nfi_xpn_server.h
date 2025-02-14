@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -34,12 +34,11 @@
   #include "base/path_misc.h"
   #include "base/urlstr.h"
   #include "base/workers.h"
-  #include "nfi_local.h"
   #include "nfi.h"
+  #include "nfi_local.h"
+  #include "nfi_worker.h"
   #include "xpn_server/xpn_server_conf.h"
   #include "xpn_server/xpn_server_ops.h"
-  #include "nfi.h"
-  #include "nfi_worker.h"
   #ifdef ENABLE_MPI_SERVER
   #include "mpi.h"
   #endif
@@ -60,6 +59,14 @@
     int xpn_thread;
     int xpn_locality;
     int locality;
+
+    // MQTT usage
+    int xpn_mosquitto_mode;
+    int xpn_mosquitto_qos;
+
+    #ifdef HAVE_MOSQUITTO_H
+    struct mosquitto * mqtt;
+    #endif
 
     // server comm
     int server_type;  // it can be XPN_SERVER_TYPE_MPI, XPN_SERVER_TYPE_SCK
