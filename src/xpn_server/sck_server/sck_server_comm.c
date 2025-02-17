@@ -185,7 +185,6 @@ int sck_server_comm_accept ( int socket, int **new_socket )
   return 0;
 }
 
-
 int sck_server_comm_disconnect ( int *socket )
 {
   socket_close(*socket);
@@ -195,3 +194,4 @@ int sck_server_comm_disconnect ( int *socket )
 
 
 /* ................................................................... */
+

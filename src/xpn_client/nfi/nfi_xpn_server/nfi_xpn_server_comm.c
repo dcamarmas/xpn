@@ -22,19 +22,14 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include "nfi_xpn_server_comm.h"
+   #include "nfi_xpn_server_comm.h"
 
-#ifdef ENABLE_MPI_SERVER
-#include "nfi_mpi_server_comm.h"
-#endif
-#ifdef ENABLE_SCK_SERVER
-#include "nfi_sck_server_comm.h"
-#endif
-
-/* ... Const / Const ................................................. */
-
-
-/* ... Global variables / Variables globales ........................ */
+   #ifdef ENABLE_MPI_SERVER
+   #include "nfi_mpi_server_comm.h"
+   #endif
+   #ifdef ENABLE_SCK_SERVER
+   #include "nfi_sck_server_comm.h"
+   #endif
 
 
 /* ... Functions / Funciones ......................................... */
