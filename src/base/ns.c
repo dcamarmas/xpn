@@ -21,13 +21,7 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include "base/ns.h"
-
-
-/* ... Const / Const ................................................. */
-
-
-/* ... Global variables / Variables globales ........................ */
+   #include "base/ns.h"
 
 
 /* ... Functions / Funciones ......................................... */
@@ -222,3 +216,4 @@ int ns_lookup (char *protocol, char *param_srv_name, char *srv_ip, char *port_na
 
 
 /* ................................................................... */
+
