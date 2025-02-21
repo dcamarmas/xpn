@@ -135,7 +135,7 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
 
   lfi_request *requests[2] = {shm_request.get(), peer_request.get()};
 
-  int completed = lfi_wait_many(requests, 2, 1);
+  int completed = lfi_wait_any(requests, 2);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request shm  (RANK "<<lfi_request_source(shm_request.get())<<", TAG "<<shm_msg[0]<<")");
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request peer (RANK "<<lfi_request_source(peer_request.get())<<", TAG "<<peer_msg[0]<<")");
@@ -147,8 +147,7 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
     shm_msg[0] = -1;
     shm_msg[1] = -1;
 
-    // One option is to free the request and create another one or reuse the requets for a new recv
-    // shm_request.release();
+    // Reuse the request for a new recv
     if (lfi_trecv_async(shm_request.get(), shm_msg, sizeof(shm_msg), 0) < 0){
         print("Error in lfi_trecv_async")
         return -1;
@@ -161,8 +160,7 @@ int64_t fabric_server_comm::read_operation ( xpn_server_ops &op, int &rank_clien
     peer_msg[0] = -1;
     peer_msg[1] = -1;
 
-    // One option is to free the request and create another one or reuse the requets for a new recv
-    // peer_request.release();
+    // Reuse the request for a new recv
     if (lfi_trecv_async(peer_request.get(), peer_msg, sizeof(peer_msg), 0) < 0){
         print("Error in lfi_trecv_async")
         return -1;
