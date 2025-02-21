@@ -20,15 +20,15 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include "xpn_server_params.h"
-
-#include "base/ns.h"
+   #include "xpn_server_params.h"
+   #include "base/ns.h"
 
 
 /* ... Functions / Funciones ......................................... */
 
-void xpn_server_params_show(xpn_server_param_st * params) {
-    printf("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show] >> Begin\n", params -> rank);
+void xpn_server_params_show(xpn_server_param_st * params)
+{
+    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show] >> Begin\n", params -> rank);
 
     printf(" | * XPN server current configuration:\n");
 
@@ -57,23 +57,26 @@ void xpn_server_params_show(xpn_server_param_st * params) {
 
     // use of mqtt
     if (params -> mosquitto_mode == 1) {
-        printf("\t-m <mqtt_qos>:\t%d\n", params -> mosquitto_qos);
+        printf(" |\t-m <mqtt_qos>:\t%d\n", params -> mosquitto_qos);
     }
 
     // * shutdown_file
     printf(" |\t-f  <path>:\t'%s'\n", params -> shutdown_file);
+
     // * host
     printf(" |\t-h  <host>:\t'%s'\n", params -> srv_name);
+
     // * await
     if (params -> await_stop == 1) {
         printf(" |\t-w  await true\n");
     }
 
-    printf("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show] << End\n", params -> rank);
+    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show] << End\n", params -> rank);
 }
 
-void xpn_server_params_show_usage(void) {
-    printf("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin\n", -1);
+void xpn_server_params_show_usage(void)
+{
+    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin\n", -1);
 
     printf("Usage:\n");
     printf("\t-s  <server_type>:   mpi (for mpi server); sck (for sck server)\n");
@@ -83,10 +86,11 @@ void xpn_server_params_show_usage(void) {
     printf("\t-w                   await for servers to stop\n");
     printf("\t-m  <int>:           0 (QoS 0); 1 (QoS 1); 2 (QoS 2)\n");
 
-    printf("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End\n", -1);
+    debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End\n", -1);
 }
 
-int xpn_server_params_get(xpn_server_param_st * params, int argc, char * argv[]) {
+int xpn_server_params_get(xpn_server_param_st * params, int argc, char * argv[])
+{
     debug_info("[Server=%d] [XPN_SERVER_PARAMS] [xpn_server_params_get] >> Begin\n", params -> rank);
 
     // set default values
@@ -231,4 +235,6 @@ int xpn_server_params_get(xpn_server_param_st * params, int argc, char * argv[])
     return 1;
 }
 
+
 /* ................................................................... */
+
