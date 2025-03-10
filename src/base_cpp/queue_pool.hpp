@@ -19,38 +19,46 @@
  *
  */
 
-#pragma once
+ #pragma once
+ 
+ 
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 
-#include <string>
-#include <memory>
+template <typename T>
+class queue_pool {
+public:
+    queue_pool(size_t initialSize = 10) {
+        for (size_t i = 0; i < initialSize; ++i) {
+            m_queue.push(new T());
+        }
+    }
 
-#include "nfi/nfi_xpn_server_comm.hpp"
+    ~queue_pool() {
+        std::unique_lock lock(m_mutex);
+        while (!m_queue.empty()) {
+            delete m_queue.front();
+            m_queue.pop();
+        }
+    }
 
-namespace XPN
-{
-  
-  class nfi_fabric_server_comm : public nfi_xpn_server_comm
-  {
-  public:
-    nfi_fabric_server_comm(int& comm) : m_comm(comm) {}
+    T* acquire() {
+        std::unique_lock lock(m_mutex);
+        if (m_queue.empty()) {
+            return new T();
+        }
+        T* obj = m_queue.front();
+        m_queue.pop();
+        return obj;
+    }
 
-    int64_t write_operation(xpn_server_msg& msg) override;
-    int64_t read_data(void *data, int64_t size) override;
-    int64_t write_data(const void *data, int64_t size) override;
-  public:
-    int m_comm;
-  };
-  
-  class nfi_fabric_server_control_comm : public nfi_xpn_server_control_comm
-  {
-  public:
-    nfi_fabric_server_control_comm() = default;
-    ~nfi_fabric_server_control_comm() = default;
-    
-    nfi_xpn_server_comm* connect(const std::string &srv_name) override;
-    void disconnect(nfi_xpn_server_comm* comm) override;
+    void release(T* obj) {
+        std::unique_lock lock(m_mutex);
+        m_queue.push(obj);
+    }
 
-  private:
-  };
-
-} // namespace XPN
+private:
+    std::queue<T*> m_queue;
+    std::mutex m_mutex;
+};

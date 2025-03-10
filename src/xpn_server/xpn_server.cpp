@@ -39,19 +39,26 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
     int ret;
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] >> Begin");
+    xpn_server_msg* msg;
     xpn_server_ops type_op = xpn_server_ops::size;
     int rank_client_id = 0, tag_client_id = 0;
     int disconnect = 0;
     while (!disconnect)
     {
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] Waiting for operation");
+        msg = msg_pool.acquire();
+        if (msg == nullptr) {
+            debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] ERROR: new msg allocation");
+            return;
+        }
 
-        ret = comm->read_operation(type_op, rank_client_id, tag_client_id);
+        ret = comm->read_operation(*msg, rank_client_id, tag_client_id);
         if (ret < 0) {
             debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] ERROR: read operation fail");
             return;
         }
-
+        
+        type_op = static_cast<xpn_server_ops>(msg->op);
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] OP '"<<xpn_server_ops_name(type_op)<<"'; OP_ID "<< static_cast<int>(type_op)<<" client_rank "<<rank_client_id<<" tag_client "<<tag_client_id);
 
         if (type_op == xpn_server_ops::DISCONNECT) {
@@ -70,10 +77,11 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
             continue;
         }
         timer timer;
-        m_worker2->launch_no_future([this, timer, comm, type_op, rank_client_id, tag_client_id]{
+        m_worker2->launch_no_future([this, timer, comm, msg, rank_client_id, tag_client_id] {
             std::unique_ptr<xpn_stats::scope_stat<xpn_stats::op_stats>> op_stat;
-            if (xpn_env::get_instance().xpn_stats) { op_stat = std::make_unique<xpn_stats::scope_stat<xpn_stats::op_stats>>(m_stats.m_ops_stats[static_cast<int>(type_op)], timer); } 
-            do_operation(comm, type_op, rank_client_id, tag_client_id, timer);
+            if (xpn_env::get_instance().xpn_stats) { op_stat = std::make_unique<xpn_stats::scope_stat<xpn_stats::op_stats>>(m_stats.m_ops_stats[msg->op], timer); } 
+            do_operation(comm, *msg, rank_client_id, tag_client_id, timer);
+            msg_pool.release(msg);
         });
 
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] Worker launched");
@@ -91,6 +99,7 @@ void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
     int ret;
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] >> Begin");
+    xpn_server_msg* msg;
     xpn_server_ops type_op = xpn_server_ops::size;
     int rank_client_id = 0, tag_client_id = 0;
 
@@ -103,8 +112,13 @@ void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
             break;
         }
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Waiting for operation");
+        msg = msg_pool.acquire();
+        if (msg == nullptr) {
+            debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] ERROR: new msg allocation");
+            return;
+        }
 
-        ret = comm->read_operation(type_op, rank_client_id, tag_client_id);
+        ret = comm->read_operation(*msg, rank_client_id, tag_client_id);
         if (ret < 0) {
             debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] ERROR: read operation fail");
             return;
@@ -112,6 +126,7 @@ void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
 
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] OP '"<<xpn_server_ops_name(type_op)<<"'; OP_ID "<< static_cast<int>(type_op)<<" client_rank "<<rank_client_id<<" tag_client "<<tag_client_id);
 
+        type_op = static_cast<xpn_server_ops>(msg->op);
         if (type_op == xpn_server_ops::DISCONNECT || type_op == xpn_server_ops::FINALIZE) {
             debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] DISCONNECT received");
 
@@ -124,10 +139,11 @@ void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
 
         timer timer;
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Worker launch");
-        m_worker2->launch_no_future([this, timer, comm, type_op, rank_client_id, tag_client_id]{
+        m_worker2->launch_no_future([this, timer, comm, msg, rank_client_id, tag_client_id]{
             std::unique_ptr<xpn_stats::scope_stat<xpn_stats::op_stats>> op_stat;
-            if (xpn_env::get_instance().xpn_stats) { op_stat = std::make_unique<xpn_stats::scope_stat<xpn_stats::op_stats>>(m_stats.m_ops_stats[static_cast<int>(type_op)], timer); } 
-            do_operation(comm, type_op, rank_client_id, tag_client_id, timer);
+            if (xpn_env::get_instance().xpn_stats) { op_stat = std::make_unique<xpn_stats::scope_stat<xpn_stats::op_stats>>(m_stats.m_ops_stats[msg->op], timer); } 
+            do_operation(comm, *msg, rank_client_id, tag_client_id, timer);
+            msg_pool.release(msg);
         });
 
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Worker launched");

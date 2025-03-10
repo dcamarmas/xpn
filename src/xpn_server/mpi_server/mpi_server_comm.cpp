@@ -180,25 +180,23 @@ void mpi_server_control_comm::disconnect ( xpn_server_comm *comm )
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_disconnect] << End");
 }
 
-int64_t mpi_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_id, int &tag_client_id )
+int64_t mpi_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
 {
   int ret;
   MPI_Status status;
-  int msg[2];
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] >> Begin");
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] Read operation");
 
-  ret = MPI_Recv(msg, 2, MPI_INT, MPI_ANY_SOURCE, 0, m_comm, &status);
+  ret = MPI_Recv(&msg, sizeof(msg), MPI_BYTE, MPI_ANY_SOURCE, 0, m_comm, &status);
   if (MPI_SUCCESS != ret) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] ERROR: MPI_Recv fails");
   }
 
   rank_client_id = status.MPI_SOURCE;
-  tag_client_id  = msg[0];
-  op             = static_cast<xpn_server_ops>(msg[1]);
+  tag_client_id  = msg.tag;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] MPI_Recv (MPI SOURCE "<<status.MPI_SOURCE<<", MPI_TAG "<<status.MPI_TAG<<", MPI_ERROR "<<status.MPI_ERROR<<")");
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] << End");

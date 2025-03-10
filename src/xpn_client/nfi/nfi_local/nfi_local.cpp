@@ -469,8 +469,9 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata &mda
   if(only_file_size){
     struct st_xpn_server_status req;
     struct st_xpn_server_write_mdata_file_size msg;
-    std::size_t length = srv_path.copy(msg.path, PATH_MAX - 1);
-    msg.path[length] = '\0';
+    std::size_t length = srv_path.copy(msg.path.path, srv_path.size());
+    msg.path.path[length] = '\0';
+    msg.path.size = length + 1;
     msg.size = mdata.m_data.file_size;
     ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
 

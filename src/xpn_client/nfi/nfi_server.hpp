@@ -105,7 +105,12 @@ namespace XPN
 
             debug_info("[NFI_XPN] [nfi_write_operation] Send operation");
 
-            ret = m_comm->write_operation(op);
+            xpn_server_msg message;
+            message.op = static_cast<int>(op);
+            message.msg_size = msg.get_size();
+            std::memcpy(message.msg_buffer, &msg, msg.get_size());
+
+            ret = m_comm->write_operation(message);
             if (ret < 0)
             {
                 printf("[NFI_XPN] [nfi_write_operation] ERROR: nfi_write_operation fails");
@@ -113,7 +118,6 @@ namespace XPN
             }
 
             debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" -> ");
-            ret = m_comm->write_data((void *)&(msg), sizeof(msg));
 
             debug_info("[NFI_XPN] [nfi_write_operation] >> End");
 

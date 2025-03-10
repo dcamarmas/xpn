@@ -36,15 +36,15 @@ namespace XPN
     fabric_server_comm(int comm) : m_comm(comm) {}
     ~fabric_server_comm() override {}
 
-    int64_t read_operation(xpn_server_ops &op, int &rank_client_id, int &tag_client_id) override;
+    int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) override;
     int64_t read_data(void *data, int64_t size, int rank_client_id, int tag_client_id) override;
     int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
   public:
     int m_comm;
     std::unique_ptr<lfi_request, void (*)(lfi_request *)> shm_request = {nullptr, nullptr};
     std::unique_ptr<lfi_request, void (*)(lfi_request *)> peer_request = {nullptr, nullptr};
-    int shm_msg[2] = {};
-    int peer_msg[2] = {};
+    xpn_server_msg shm_msg = {};
+    xpn_server_msg peer_msg = {};
   };
   
   class fabric_server_control_comm : public xpn_server_control_comm

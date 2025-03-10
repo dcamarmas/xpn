@@ -180,24 +180,43 @@ void sck_server_control_comm::disconnect ( xpn_server_comm* comm )
 }
 
 
-int64_t sck_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_id, int &tag_client_id )
+int64_t sck_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
 {
   int ret;
-  int msg[2];
+  size_t received = 0;
+  char * msg_p = reinterpret_cast<char*>(&msg);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] >> Begin");
 
   // Get message
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] Read operation");
 
-  ret = socket::recv(m_socket, msg, sizeof(msg));
-  if (MPI_SUCCESS != ret) {
-    debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] ERROR: read fails");
+  // Receive the head
+  while(received < msg.get_header_size()) {
+    ret = PROXY(read)(m_socket, msg_p+received, msg.get_header_size()-received);
+    if (ret <= 0) {
+      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] ERROR: read fails");
+      return -1;
+    }
+    received += ret;
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] received "<<received<<" msg header size "<<msg.get_header_size());
   }
-
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] readed the msg header");
+  
+  // Receive the rest of the msg
+  while (received < msg.get_size()) {
+    ret = PROXY(read)(m_socket, msg_p+received, msg.get_size()-received);
+    if (ret <= 0) {
+      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] ERROR: read fails");
+      return -1;
+    }
+    received += ret;
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] received "<<received<<" msg size "<<msg.get_size());
+  }
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] readed the msg");
+  
   rank_client_id = 0;
-  tag_client_id  = msg[0];
-  op             = static_cast<xpn_server_ops>(msg[1]);
+  tag_client_id  = msg.tag;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] read (SOURCE "<<m_socket<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] << End");
@@ -225,7 +244,7 @@ int64_t sck_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] Read data tag "<< tag_client_id);
 
   ret = socket::recv(m_socket, data, size);
-  if (MPI_SUCCESS != ret) {
+  if (ret <= 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] ERROR: read fails");
   }
 
@@ -255,7 +274,7 @@ int64_t sck_server_comm::write_data ( const void *data, int64_t size, [[maybe_un
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] Write data tag "<< tag_client_id);
 
   ret = socket::send(m_socket, data, size);
-  if (MPI_SUCCESS != ret) {
+  if (ret <= 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] ERROR: MPI_Send fails");
   }
 

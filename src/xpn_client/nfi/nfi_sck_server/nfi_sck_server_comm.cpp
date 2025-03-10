@@ -152,8 +152,11 @@ void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
 
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] >> Begin");
 
-  debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] Send disconnect message");
-  ret = in_comm->write_operation(xpn_server_ops::DISCONNECT);
+  debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] Send disconnect message");  
+  xpn_server_msg msg = {};
+  msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
+  msg.msg_size = 0;
+  ret = in_comm->write_operation(msg);
   if (ret < 0) {
     printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] ERROR: nfi_sck_server_comm_write_operation fails");
   }
@@ -171,20 +174,18 @@ void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] << End");
 }
 
-int64_t nfi_sck_server_comm::write_operation(xpn_server_ops op) {
+int64_t nfi_sck_server_comm::write_operation(xpn_server_msg& msg) {
     int ret;
-    int msg[2];
 
     debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_operation] >> Begin");
 
     // Message generation
-    msg[0] = (int)(pthread_self() % 32450) + 1;
-    msg[1] = (int)op;
+    msg.tag = (int)(pthread_self() % 32450) + 1;
 
     // Send message
     debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_operation] Write operation send tag "<< msg[0]);
 
-    ret = socket::send(m_socket, msg, sizeof(msg));
+    ret = socket::send(m_socket, &msg, msg.get_size());
     if (ret < 0) {
         debug_error("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_operation] ERROR: socket::send < 0 : "<< ret);
         return -1;
