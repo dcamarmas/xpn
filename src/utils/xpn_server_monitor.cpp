@@ -86,6 +86,7 @@ void monitor_stats(std::filesystem::path csv_path) {
             }
             socket::close(socket);
 
+            debug_info("[TH_ID=" << std::this_thread::get_id() << "] [XPN_SERVER] [xpn_server_print_stats] Recv stats from " << name);
             std::unique_lock<std::mutex> lock(comb_stats_mutex);
             comb_stats = comb_stats + stat_buff;
         });

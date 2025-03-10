@@ -92,6 +92,7 @@ class xpn_controller {
     const args::option option_await             {"-w", "--await"            , "Await in the stop_servers"                       , XPN::args::option::opt_type::flag};
     const args::option option_server_cores      {"-c", "--server_cores"     , "Number of cores each server use (default: all cores with overlap)", XPN::args::option::opt_type::value};
     const args::option option_shared_dir        {"-s", "--shared_dir"       , "Shared dir in the job to use as temporal storage", XPN::args::option::opt_type::value};
+    const args::option option_debug             {"-d", "--debug"            , "Run the servers in debug mode with gdb"          , XPN::args::option::opt_type::flag};
     const std::vector<XPN::args::option> m_options = {
         option_hostfile,
         option_host_list,
@@ -102,6 +103,7 @@ class xpn_controller {
         option_await,
         option_server_cores,
         option_shared_dir,
+        option_debug,
     };
     args m_args;
 
@@ -114,7 +116,7 @@ class xpn_controller {
                   const std::string_view& replication_level, const std::string_view& server_type,
                   const std::string_view& storage_path);
     int update_config(const std::vector<std::string_view>& new_hostlist);
-    int start_servers(bool await, int server_cores);
+    int start_servers(bool await, int server_cores, bool debug);
     int stop_servers(bool await);
     int ping_servers();
     // The list of hosts need to be in order of (old_servers... , new_servers...)

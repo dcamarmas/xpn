@@ -191,7 +191,7 @@ int xpn_controller::recv_mk_config(int socket) {
 }
 
 int xpn_controller::recv_start_servers(int socket) {
-    bool await;
+    bool await, debug;
     int ret;
     debug_info("[XPN_CONTROLLER] >> Start");
     ret = socket::recv(socket, &await, sizeof(await));
@@ -205,7 +205,12 @@ int xpn_controller::recv_start_servers(int socket) {
         print_error("recv server_cores");
         return -1;
     }
-    ret = start_servers(await, server_cores);
+    ret = socket::recv(socket, &debug, sizeof(debug));
+    if (ret != sizeof(debug)) {
+        print_error("recv debug");
+        return -1;
+    }
+    ret = start_servers(await, server_cores, debug);
     debug_info("[XPN_CONTROLLER] >> End");
     return ret;
 }

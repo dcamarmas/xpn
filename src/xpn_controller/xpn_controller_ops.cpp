@@ -70,7 +70,7 @@ int xpn_controller::run() {
     }
 
     int server_cores = ::atoi(std::string(m_args.get_option(option_server_cores)).c_str());
-    ret = start_servers(m_args.has_option(option_await), server_cores);
+    ret = start_servers(m_args.has_option(option_await), server_cores, m_args.has_option(option_debug));
     if (ret < 0) {
         std::cerr << "Error in start_servers" << std::endl;
         socket::close(server_socket);
@@ -239,7 +239,7 @@ int xpn_controller::update_config(const std::vector<std::string_view>& new_hostl
     return 0;
 }
 
-int xpn_controller::start_servers(bool await, int server_cores) {
+int xpn_controller::start_servers(bool await, int server_cores, bool debug) {
     int ret = 0;
     std::vector<std::string> servers;
 
@@ -294,6 +294,15 @@ int xpn_controller::start_servers(bool await, int server_cores) {
         }
         args.emplace_back("-w");
         args.emplace_back(servers_list.str());
+        if (debug) {
+            args.emplace_back("gdb");
+            args.emplace_back("-batch");
+            args.emplace_back("-ex");
+            args.emplace_back("run");
+            args.emplace_back("-ex");
+            args.emplace_back("bt");
+            args.emplace_back("--args");
+        }
         args.emplace_back("xpn_server");
         args.emplace_back("-s");
         std::string protocol;
@@ -517,7 +526,7 @@ int xpn_controller::expand(const std::vector<std::string_view>& new_hostlist) {
         return ret;
     }
 
-    ret = start_servers(true, m_server_cores);
+    ret = start_servers(true, m_server_cores, false);
     if (ret < 0) {
         std::cerr << "Error: cannot start the servers" << std::endl;
         return ret;
@@ -615,7 +624,7 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
         return ret;
     }
 
-    ret = start_servers(true, m_server_cores);
+    ret = start_servers(true, m_server_cores, false);
     if (ret < 0) {
         std::cerr << "Error: cannot start the servers" << std::endl;
         return ret;

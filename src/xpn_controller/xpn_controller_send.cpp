@@ -187,6 +187,12 @@ int xpn_controller::send_start_servers(int socket) {
         print_error("send server_cores");
         return -1;
     }
+    bool debug = m_args.has_option(option_debug);
+    ret = socket::send(socket, &debug, sizeof(debug));
+    if (ret != sizeof(debug)) {
+        print_error("send debug");
+        return -1;
+    }
     debug_info("[XPN_CONTROLLER] >> End");
     return 0;
 }
