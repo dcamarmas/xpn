@@ -37,7 +37,7 @@ class filesystem {
 
         do {
             r = PROXY(write)(fd, buffer, l);
-            if (r < 0) return r; /* fail */
+            if (r <= 0) return r; /* fail */
 
             l = l - r;
             buffer = buffer + r;
@@ -55,7 +55,7 @@ class filesystem {
 
         do {
             r = PROXY(read)(fd, buffer, l);
-            if (r < 0) return r; /* fail */
+            if (r <= 0) return r; /* fail */
 
             l = l - r;
             buffer = buffer + r;
