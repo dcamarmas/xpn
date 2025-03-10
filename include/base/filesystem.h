@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
  *
  *  This file is part of Expand.
  *
@@ -60,6 +60,7 @@
     int  filesystem_open      ( char *pathname, int flags );
     int  filesystem_open2     ( char *pathname, int flags, mode_t mode );
     int  filesystem_close     ( int fd );
+    int  filesystem_fsync     ( int fd );
 
     ssize_t filesystem_read   ( int read_fd2,  void *buffer, size_t buffer_size );
     ssize_t filesystem_write  ( int write_fd2, void *buffer, size_t num_bytes_to_write );

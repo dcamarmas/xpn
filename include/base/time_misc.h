@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
  *
  *  This file is part of Expand.
  *
@@ -27,50 +27,53 @@
     extern "C" {
   #endif
 
-  
+
   /* ... Include / Inclusion ........................................... */
 
-  #include "all_system.h"
+     #include "all_system.h"
+     #include <sys/time.h>
 
 
   /* ... Const / Const ................................................. */
 
-  #define USECPSEC    1000000
-
-
-  /* ... Data structures / Estructuras de datos ........................ */
+     #define USECPSEC    1000000
 
 
   /* ... Functions / Funciones ......................................... */
 
-  void TIME_MISC_Timer
-  (
-    struct timeval * t
-  );
+     void TIME_MISC_Timer
+     (
+       struct timeval * t
+     );
 
-  void TIME_MISC_DiffTime
-  (
-    struct timeval * to,
-    struct timeval * tn,
-    struct timeval * dif
-  );
+     void TIME_MISC_DiffTime
+     (
+       struct timeval * to,
+       struct timeval * tn,
+       struct timeval * dif
+     );
 
-  void TIME_MISC_AddTime
-  (
-    struct timeval * to,
-    struct timeval * tn,
-    struct timeval * sum
-  );
+     void TIME_MISC_AddTime
+     (
+       struct timeval * to,
+       struct timeval * tn,
+       struct timeval * sum
+     );
 
-  float TIME_MISC_TimevaltoFloat
-  (
-    struct timeval* timet
-  );
+     float TIME_MISC_TimevaltoFloat
+     (
+       struct timeval* timet
+     );
 
-  float TIME_MISC_TimevaltoMicro
-  (
-    struct timeval* timet
-  );
+     float TIME_MISC_TimevaltoMicro
+     (
+       struct timeval* timet
+     );
+
+     long TIME_MISC_TimevaltoMicroLong
+     (
+       struct timeval* timet
+     );
 
 
   /* ................................................................... */
@@ -81,3 +84,4 @@
   #endif
 
 #endif /* _TIME_MISC_H */
+

@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
  *
  *  This file is part of Expand.
  *
@@ -30,18 +30,11 @@
 
   /* ... Include / Inclusion ........................................... */
   
-  #include <sys/types.h>
-  #include <sys/stat.h>
-  #include <stdio.h>
-  #include <dirent.h>
-  //#include <sys/uio.h>
+     #include <sys/types.h>
+     #include <sys/stat.h>
+     #include <stdio.h>
+     #include <dirent.h>
   
-
-  /* ... Const / Const ................................................. */
-
-  
-  /* ... Data structures / Estructuras de datos ........................ */
-
 
   /* ... Functions / Funciones ......................................... */
 
@@ -58,6 +51,10 @@
   int         xpn_destroy ( void );
   // to test fault tolerant
   int         xpn_mark_error_server(int index);
+
+  //url_c is like argc and url_v is like argv NULL terminated
+  int         xpn_get_block_locality  ( char *path, off_t offset, int *url_c, char **url_v[] );
+  int         xpn_free_block_locality ( int *url_c, char **url_v[] );
 
   // xpn_open.c
   int         xpn_creat     (const char *path, mode_t perm);
@@ -151,3 +148,4 @@
   #endif
 
 #endif
+

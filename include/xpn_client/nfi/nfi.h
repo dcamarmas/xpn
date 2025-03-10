@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra, Dario Muñoz Muñoz
+ *  Copyright 2000-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -31,16 +31,17 @@
   #include "all_system.h"
   #include "debug_msg.h"
   #include "workers.h"
+  #include "xpn_metadata.h"
 
 
   /* ... Const / Const ................................................. */
 
   // PROTOCOLS
   /*
-  #define LOCAL    1
-  #define NFS    2
-  #define NFS3     3
-  #define TCP_SERVER   9
+  #define LOCAL        1
+  #define NFS          2
+  #define NFS3         3
+  #define MQ_SERVER    9
   #define MPI_SERVER  10
   */
 
@@ -73,6 +74,10 @@
 
     // Execution configuration
     int xpn_thread;
+    int xpn_session_file;
+    int xpn_session_dir;
+
+    int keep_connected;     // keep connection between operations
   };
 
   struct nfi_attr_server
@@ -113,17 +118,21 @@
 
   struct nfi_fhandle 
   {
-    int type;                   // file or directory    
-    char *url;                  // url of DIR or FILE     
+    int    type;                // file or directory    
+    char  *url;                 // url of DIR or FILE     
     struct nfi_server *server;  // server       
-    void *priv_fh;              // pointer to private filehandle
+    void  *priv_fh;             // pointer to private filehandle
+    int    has_mqtt;            // has MQTT
   };
+
+  // Forward declaration
+  struct xpn_metadata;
 
   struct nfi_ops 
   {
     int     (*nfi_reconnect) (struct nfi_server *serv);
     int     (*nfi_disconnect)(struct nfi_server *serv);
-    //int   (*nfi_destroy)(struct nfi_server *serv);
+    int     (*nfi_destroy)(struct nfi_server *serv);
     int     (*nfi_getattr)  (struct nfi_server *serv, struct nfi_fhandle *fh, struct nfi_attr *attr);
     int     (*nfi_setattr)  (struct nfi_server *serv, struct nfi_fhandle *fh, struct nfi_attr *attr);
     int     (*nfi_open)     (struct nfi_server *serv, char *url, int flags, mode_t mode, struct nfi_fhandle *fho); 
@@ -139,6 +148,8 @@
     int     (*nfi_readdir)  (struct nfi_server *serv, struct nfi_fhandle *fhd, struct dirent *entry);
     int     (*nfi_closedir) (struct nfi_server *serv, struct nfi_fhandle *fh);
     int     (*nfi_statfs)   (struct nfi_server *serv, struct nfi_info *inf);
+    int     (*nfi_read_mdata)  (struct nfi_server *serv, char *url, struct xpn_metadata *mdata);
+    int     (*nfi_write_mdata) (struct nfi_server *serv, char *url, struct xpn_metadata *mdata, int only_file_size);
   };
 
 

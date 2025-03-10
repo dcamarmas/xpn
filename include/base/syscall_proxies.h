@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
  *
  *  This file is part of Expand.
  *
@@ -30,18 +30,15 @@
 
   /* ... Include / Inclusion ........................................... */
 
-  #include <dlfcn.h>
-  #include <sys/stat.h>
-  #include <dirent.h>
-  #include <stdlib.h>
+     #include <dlfcn.h>
+     #include <dirent.h>
+     #include <stdlib.h>
+     #include <sys/vfs.h>
 
-  #include "utils.h"
+     #include <features.h>
+     #include <sys/stat.h>
 
-
-  /* ... Const / Const ................................................. */
-
-
-  /* ... Data structures / Estructuras de datos ........................ */
+     #include "utils.h"
 
 
   /* ... Functions / Funciones ......................................... */
@@ -76,6 +73,8 @@
   int dlsym_xstat64   (int ver, const char *path, struct stat64 *buf);
   int dlsym_fstatat   (int dfd, const char *path, struct stat   *buf, int flags);
   int dlsym_fstatat64 (int dfd, const char *path, struct stat64 *buf, int flags);
+  int dlsym_statfs    (const char *path, struct statfs   *buf);
+  int dlsym_statfs64  (const char *path, struct statfs64 *buf);
 
   int dlsym_rename (const char *old_path, const char *new_path);
   int dlsym_unlink (char *path);
@@ -145,3 +144,4 @@
   #endif
 
 #endif
+

@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -18,6 +18,7 @@
  *  along with Expand.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 
 /* ... Include / Inclusion ........................................... */
 
@@ -195,9 +196,9 @@ int copy(char *entry, int is_file, int blocksize, int replication_level, int ran
             // Write in new_ranks
             if (rank_actual_to_new[rank] != -1) {
                 // Calculate the block
-                XpnCalculateBlockInvert(blocksize, replication_level, new_size, rank_actual_to_new[rank], offset_dest,
+                XpnCalculateBlockInvert(blocksize, replication_level, new_size, rank_actual_to_new[rank], offset_dest, 0,
                                         &offset_real, &replication);
-                XpnCalculateBlock(blocksize, replication_level, old_size, offset_real, replication, &offset_src,
+                XpnCalculateBlock(blocksize, replication_level, old_size, offset_real, replication, 0, &offset_src,
                                   &rank_to_send);
 
                 MPI_Send(&offset_src, 1, MPI_LONG, rank_old_to_actual[rank_to_send], TAG_OFFSET, MPI_COMM_WORLD);
@@ -526,6 +527,7 @@ int main(int argc, char *argv[]) {
 
     list(dir_name, blocksize, replication_level, rank, size);
 
+    MPI_Barrier(MPI_COMM_WORLD);
     if (rank == 0) {
         printf("Rebuild elapsed time %f mseg\n", (MPI_Wtime() - start_time) * 1000);
     }
@@ -543,7 +545,6 @@ int main(int argc, char *argv[]) {
         free(rank_old_to_actual);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
     return res;
 }

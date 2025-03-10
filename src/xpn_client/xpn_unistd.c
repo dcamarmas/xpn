@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2000-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
+ *  Copyright 2000-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Luis Miguel Sanchez Garcia, Borja Bergua Guerra
  *
  *  This file is part of Expand.
  *
@@ -25,12 +25,6 @@
 #include "xpn.h"
 #include "xpn_client/xpn/xpn_simple/xpn_simple_lib.h"
 #include "xpn_api_mutex.h"
-
-
-/* ... Const / Const ................................................. */
-
-
-/* ... Global variables / Variables globales ........................ */
 
 
 /* ... Functions / Funciones ......................................... */
@@ -74,6 +68,32 @@ int xpn_mark_error_server ( int index )
   ret = xpn_simple_mark_error_server(index);
 
   debug_info("[XPN_UNISTD] [xpn_mark_error_server] >> End\n");
+
+  return ret;
+}
+
+int xpn_get_block_locality ( char *path, off_t offset, int *url_c, char **url_v[] )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_get_block_locality] >> End\n");
+
+  ret = xpn_simple_get_block_locality(path, offset, url_c, url_v);
+
+  debug_info("[XPN_UNISTD] [xpn_get_block_locality] >> End\n");
+
+  return ret;
+}
+
+int xpn_free_block_locality ( int *url_c, char **url_v[] )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_free_block_locality] >> End\n");
+
+  ret = xpn_simple_free_block_locality(url_c, url_v);
+
+  debug_info("[XPN_UNISTD] [xpn_free_block_locality] >> End\n");
 
   return ret;
 }
