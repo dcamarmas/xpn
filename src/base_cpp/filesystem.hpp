@@ -22,8 +22,9 @@
 #pragma once
 
 #include <unistd.h>
-#include <base_cpp/proxy.hpp>
+
 #include <base_cpp/debug.hpp>
+#include <base_cpp/proxy.hpp>
 
 namespace XPN {
 
@@ -47,6 +48,28 @@ class filesystem {
         debug_info(">> End = " << len);
         return len;
     }
+
+    static ssize_t pwrite(int fd, const void* data, size_t len, off_t offset) {
+        int r;
+        int l = len;
+        off_t off = offset;
+        const char* buffer = static_cast<const char*>(data);
+        debug_info(">> Begin");
+
+        do {
+            r = PROXY(pwrite)(fd, buffer, l, off);
+            if (r <= 0) return r; /* fail */
+
+            l = l - r;
+            buffer = buffer + r;
+            off = off + r;
+
+        } while ((l > 0) && (r >= 0));
+
+        debug_info(">> End = " << len);
+        return len;
+    }
+
     static ssize_t read(int fd, void* data, size_t len) {
         int r;
         int l = len;
@@ -59,6 +82,27 @@ class filesystem {
 
             l = l - r;
             buffer = buffer + r;
+
+        } while ((l > 0) && (r >= 0));
+
+        debug_info(">> End = " << len);
+        return len;
+    }
+
+    static ssize_t pread(int fd, void* data, size_t len, off_t offset) {
+        int r;
+        int l = len;
+        off_t off = offset;
+        debug_info(">> Begin");
+        char* buffer = static_cast<char*>(data);
+
+        do {
+            r = PROXY(pread)(fd, buffer, l, off);
+            if (r <= 0) return r; /* fail */
+
+            l = l - r;
+            buffer = buffer + r;
+            off = off + r;
 
         } while ((l > 0) && (r >= 0));
 

@@ -222,6 +222,9 @@ int xpn_server::run()
     int recv_code = 0;
     timer timer;
 
+    XPN_PROFILE_BEGIN_SESSION("xpn_server");
+    XPN_PROFILE_FUNCTION();
+
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] >> Begin");
 
     // Initialize server
@@ -261,7 +264,7 @@ int xpn_server::run()
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Listening to conections");
         ret = socket::server_accept(server_socket, connection_socket);
         if (ret < 0) continue;
-
+        XPN_PROFILE_SCOPE("Op control socket");
         ret = socket::recv(connection_socket, &recv_code, sizeof(recv_code));
         if (ret < 0) continue;
 

@@ -31,7 +31,7 @@
 #include "base_cpp/timer.hpp"
 #include "base_cpp/workers.hpp"
 #include "nfi/nfi_server.hpp"
-#include "xpn/xpn_conf.hpp"
+#include "base_cpp/xpn_conf.hpp"
 #include "xpn/xpn_stats.hpp"
 
 using namespace XPN;
@@ -56,8 +56,8 @@ void monitor_stats(std::filesystem::path csv_path) {
     std::mutex comb_stats_mutex;
 
     for (auto& url : conf.partitions[0].server_urls) {
-        nfi_parser parser(url);
-        auto& name = parser.m_server;
+        xpn_parser parser(url);
+        auto name = std::string(parser.m_server);
 
         worker->launch_no_future([name, &comb_stats_mutex, &comb_stats]() {
             int socket;

@@ -33,6 +33,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <thread>
+#include <algorithm>
 
 namespace XPN
 {
@@ -124,7 +125,7 @@ namespace XPN
         if (size_str == 0){
             return 0;
         }
-        debug_info("Send_str "<<str);
+        debug_info("Send_str "<<std::string_view(str.data(), std::min(str.size(), static_cast<size_t>(128))));
         ret = socket::send(socket, &str[0], size_str);
         if (ret != static_cast<int64_t>(size_str)){
             print_error("send string");
@@ -153,7 +154,7 @@ namespace XPN
             print_error("send string");
             return ret;
         }
-        debug_info("Recv_str "<<str);
+        debug_info("Recv_str "<<std::string_view(str.data(), std::min(str.size(), static_cast<size_t>(128))));
         return ret;
     }
 

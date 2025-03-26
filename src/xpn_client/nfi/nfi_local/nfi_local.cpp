@@ -455,7 +455,7 @@ int nfi_local::nfi_read_mdata (const std::string &path, xpn_metadata &mdata)
   return ret;
 }
 
-int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata &mdata, bool only_file_size)
+int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata::data &mdata, bool only_file_size)
 {
   int ret, fd;
 
@@ -472,7 +472,7 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata &mda
     std::size_t length = srv_path.copy(msg.path.path, srv_path.size());
     msg.path.path[length] = '\0';
     msg.path.size = length + 1;
-    msg.size = mdata.m_data.file_size;
+    msg.size = mdata.file_size;
     ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
 
     if (req.ret < 0){
@@ -489,7 +489,7 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata &mda
       return -1;
     }
 
-    ret = filesystem::write(fd, &mdata.m_data, sizeof(mdata.m_data));
+    ret = filesystem::write(fd, &mdata, sizeof(mdata));
 
     PROXY(close)(fd); //TODO: think if necesary check error in close
   }

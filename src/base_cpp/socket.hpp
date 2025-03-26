@@ -37,6 +37,7 @@ namespace XPN
             constexpr static const int DEFAULT_XPN_CONTROLLER_SCK_PORT = 34567;
             constexpr static const int COMMAND_CODE                   = 111;
             constexpr static const int ACTION_CODE                    = 222;
+            constexpr static const int PROFILER_CODE                  = 333;
         };
 
         class xpn_server {

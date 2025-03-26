@@ -643,7 +643,7 @@ int nfi_xpn_server::nfi_read_mdata (const std::string &path, xpn_metadata &mdata
   return ret;
 }
 
-int nfi_xpn_server::nfi_write_mdata (const std::string &path, const xpn_metadata &mdata, bool only_file_size)
+int nfi_xpn_server::nfi_write_mdata (const std::string &path, const xpn_metadata::data &mdata, bool only_file_size)
 {
   int ret;
   struct st_xpn_server_status req;
@@ -659,14 +659,14 @@ int nfi_xpn_server::nfi_write_mdata (const std::string &path, const xpn_metadata
     std::size_t length = srv_path.copy(msg.path.path, srv_path.size());
     msg.path.path[length] = '\0';
     msg.path.size = length + 1;
-    msg.size = mdata.m_data.file_size;
+    msg.size = mdata.file_size;
     ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
   }else{
     struct st_xpn_server_write_mdata msg;
     std::size_t length = srv_path.copy(msg.path.path, srv_path.size());
     msg.path.path[length] = '\0';
     msg.path.size = length + 1;
-    memcpy(&msg.mdata, &mdata.m_data, sizeof(mdata.m_data));
+    memcpy(&msg.mdata, &mdata, sizeof(mdata));
     ret = nfi_do_request(xpn_server_ops::WRITE_MDATA, msg, req);
   }
 

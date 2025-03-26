@@ -32,6 +32,7 @@ namespace XPN {
 
 nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string &srv_name )
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
   int connection_socket;
   char port_name[MAX_PORT_NAME];
@@ -84,6 +85,7 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
 
 void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm) 
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
   nfi_fabric_server_comm *in_comm = static_cast<nfi_fabric_server_comm*>(comm);
 
@@ -112,6 +114,7 @@ void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
 }
 
 int64_t nfi_fabric_server_comm::write_operation(xpn_server_msg& msg) {
+    XPN_PROFILE_FUNCTION_ARGS(xpn_server_ops_name(static_cast<xpn_server_ops>(msg.op)));
     int ret;
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] >> Begin");
@@ -120,7 +123,7 @@ int64_t nfi_fabric_server_comm::write_operation(xpn_server_msg& msg) {
     msg.tag = (int)(pthread_self() % 32450) + 1;
 
     // Send message
-    debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] Write operation send tag "<< msg[0]);
+    debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] Write operation send tag "<< msg.tag);
 
     ret = lfi_tsend(m_comm, &msg, msg.get_size(), 0);
     if (ret < 0) {
@@ -135,6 +138,7 @@ int64_t nfi_fabric_server_comm::write_operation(xpn_server_msg& msg) {
 }
 
 int64_t nfi_fabric_server_comm::write_data(const void *data, int64_t size) {
+    XPN_PROFILE_FUNCTION_ARGS(size);
     int ret;
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_data] >> Begin");
@@ -166,6 +170,7 @@ int64_t nfi_fabric_server_comm::write_data(const void *data, int64_t size) {
 }
 
 int64_t nfi_fabric_server_comm::read_data(void *data, ssize_t size) {
+    XPN_PROFILE_FUNCTION_ARGS(size);
     int ret;
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_read_data] >> Begin");

@@ -27,8 +27,8 @@
 
 #include "base_cpp/subprocess.hpp"
 #include "base_cpp/workers.hpp"
+#include "base_cpp/xpn_conf.hpp"
 #include "nfi/nfi_server.hpp"
-#include "xpn/xpn_conf.hpp"
 #include "xpn_controller.hpp"
 
 namespace XPN {

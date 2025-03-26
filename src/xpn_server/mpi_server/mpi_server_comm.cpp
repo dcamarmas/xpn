@@ -28,6 +28,7 @@ namespace XPN
 
 mpi_server_control_comm::mpi_server_control_comm(xpn_server_params &params) : m_thread_mode(params.have_threads())
 {
+  XPN_PROFILE_FUNCTION();
   int ret, provided, claimed;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_init] >> Begin");
@@ -100,6 +101,7 @@ mpi_server_control_comm::mpi_server_control_comm(xpn_server_params &params) : m_
 
 mpi_server_control_comm::~mpi_server_control_comm() 
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_destroy] >> Begin");
@@ -125,6 +127,7 @@ mpi_server_control_comm::~mpi_server_control_comm()
 // accept, disconnect
 xpn_server_comm* mpi_server_control_comm::accept ( int socket )
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
 
   MPI_Comm comm;
@@ -154,6 +157,7 @@ xpn_server_comm* mpi_server_control_comm::accept ( int socket )
 
 void mpi_server_control_comm::disconnect ( xpn_server_comm *comm )
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
 
   mpi_server_comm *in_comm = static_cast<mpi_server_comm*>(comm);
@@ -182,6 +186,7 @@ void mpi_server_control_comm::disconnect ( xpn_server_comm *comm )
 
 int64_t mpi_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
   MPI_Status status;
 
@@ -208,6 +213,7 @@ int64_t mpi_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_
 
 int64_t mpi_server_comm::read_data ( void *data, int64_t size, int rank_client_id, int tag_client_id )
 {
+  XPN_PROFILE_FUNCTION_ARGS(size);
   int ret;
   MPI_Status status;
 
@@ -239,6 +245,7 @@ int64_t mpi_server_comm::read_data ( void *data, int64_t size, int rank_client_i
 
 int64_t mpi_server_comm::write_data ( const void *data, int64_t size, int rank_client_id, int tag_client_id )
 {
+  XPN_PROFILE_FUNCTION_ARGS(size);
   int ret;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_write_data] >> Begin");

@@ -165,6 +165,7 @@ struct st_xpn_server_rw {
     uint64_t size;
     int fd;
     char xpn_session;
+    // uint64_t new_file_size;
     xpn_server_path path;
 
     size_t get_size() { return offsetof(std::remove_pointer<decltype(this)>::type, path) + path.get_size(); }

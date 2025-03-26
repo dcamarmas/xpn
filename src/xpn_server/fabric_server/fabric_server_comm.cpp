@@ -33,6 +33,7 @@ namespace XPN
 {
 fabric_server_control_comm::fabric_server_control_comm ()
 {
+  XPN_PROFILE_FUNCTION();
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> Begin");
   
   int port = 0;
@@ -51,6 +52,7 @@ fabric_server_control_comm::fabric_server_control_comm ()
 
 fabric_server_control_comm::~fabric_server_control_comm()
 {
+  XPN_PROFILE_FUNCTION();
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [~fabric_server_control_comm] >> Begin");
 
   lfi_server_close(m_server_comm);
@@ -60,6 +62,7 @@ fabric_server_control_comm::~fabric_server_control_comm()
 
 xpn_server_comm* fabric_server_control_comm::accept ( int socket )
 {
+  XPN_PROFILE_FUNCTION();
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_accept] >> Begin");
 
   int ret = 0;
@@ -84,6 +87,7 @@ xpn_server_comm* fabric_server_control_comm::accept ( int socket )
 
 void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
 {
+  XPN_PROFILE_FUNCTION();
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_disconnect] >> Begin");
   
   fabric_server_comm *in_comm = static_cast<fabric_server_comm*>(comm);
@@ -97,6 +101,7 @@ void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
 
 void fabric_server_control_comm::disconnect ( int id )
 {
+  XPN_PROFILE_FUNCTION();
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_disconnect] >> Begin");
   
   lfi_client_close(id);
@@ -107,6 +112,7 @@ void fabric_server_control_comm::disconnect ( int id )
 
 int64_t fabric_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
 {
+  XPN_PROFILE_FUNCTION();
   int ret = 0;
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
 
@@ -179,6 +185,7 @@ int64_t fabric_server_comm::read_operation ( xpn_server_msg &msg, int &rank_clie
 
 int64_t fabric_server_comm::read_data ( void *data, int64_t size, int rank_client_id, int tag_client_id )
 {
+  XPN_PROFILE_FUNCTION_ARGS(size);
   int64_t ret = 0;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_data] >> Begin");
@@ -208,6 +215,7 @@ int64_t fabric_server_comm::read_data ( void *data, int64_t size, int rank_clien
 
 int64_t fabric_server_comm::write_data ( const void *data, int64_t size, int rank_client_id, int tag_client_id )
 {
+  XPN_PROFILE_FUNCTION_ARGS(size);
   int64_t ret = 0;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] >> Begin");

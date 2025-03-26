@@ -19,186 +19,168 @@
  *
  */
 
-#include "base_cpp/debug.hpp"
-#include "xpn/xpn_api.hpp"
-#include "base_cpp/xpn_env.hpp"
-#include "xpn/xpn_conf.hpp"
-
-#include <iostream>
-#include <cstdio>
 #include <csignal>
+#include <cstdio>
+#include <iostream>
 
-namespace XPN
-{
-    int xpn_api::init()
-    {
-        int res = 0;
+#include "base_cpp/debug.hpp"
+#include "base_cpp/profiler.hpp"
+#include "base_cpp/xpn_conf.hpp"
+#include "base_cpp/xpn_env.hpp"
+#include "xpn/xpn_api.hpp"
 
-        XPN_DEBUG_BEGIN;
+namespace XPN {
+int xpn_api::init() {
+    int res = 0;
+    XPN_PROFILE_BEGIN_SESSION("xpn_client");
+    XPN_DEBUG_BEGIN;
 
-        std::setbuf(stdout,NULL);
-        std::setbuf(stderr,NULL);
+    std::setbuf(stdout, NULL);
+    std::setbuf(stderr, NULL);
 
-        std::unique_lock<std::mutex> lock(m_init_mutex);
-        if (m_initialized){
-            XPN_DEBUG("Already initialized");
-            XPN_DEBUG_END;
-            return res;
-        }
-        m_initialized = true;
-        
-        xpn_conf conf;
-        xpn_env::get_instance();
-
-        for (const auto &part : conf.partitions)
-        {
-            // Emplace without creation of temp xpn_partition
-            auto[key, inserted] = m_partitions.emplace(std::piecewise_construct,
-                                                       std::forward_as_tuple(part.partition_name),
-                                                       std::forward_as_tuple(part.partition_name, part.replication_level, part.bsize));
-            if (!inserted){
-                std::cerr << "Error: cannot create xpn_partition" << std::endl;
-                std::raise(SIGTERM);
-            }
-            //  = {part.partition_name, part.replication_level, part.bsize};
-            auto& xpn_part = m_partitions.at(part.partition_name);
-            // m_partitions.emplace(std::make_pair(part.partition_name, xpn_partition{part.partition_name,part.replication_level, part.bsize}));
-            int server_with_error = 0;
-            for (const auto &srv_url : part.server_urls)
-            {
-                res = xpn_part.init_server(srv_url);
-            }
-
-            for (const auto &srv : xpn_part.m_data_serv)
-            {
-                if (srv->m_error < 0)
-                {
-                    server_with_error++;
-                }
-            }
-            if (server_with_error > xpn_part.m_replication_level)
-            {
-                std::cerr << "Error: More servers with errors '" << server_with_error 
-                << "' than replication level permit '" << xpn_part.m_replication_level 
-                << "'" << std::endl;
-                std::raise(SIGTERM);
-            }
-        }
-        
-        m_worker = workers::Create(static_cast<workers_mode>(xpn_env::get_instance().xpn_thread));
-
+    std::unique_lock<std::mutex> lock(m_init_mutex);
+    if (m_initialized) {
+        XPN_DEBUG("Already initialized");
         XPN_DEBUG_END;
         return res;
     }
+    m_initialized = true;
 
-    int xpn_api::destroy()
-    {
-        int res = 0;
-        XPN_DEBUG_BEGIN;
-        std::unique_lock<std::mutex> lock(m_init_mutex);
-        if (!m_initialized){
-            XPN_DEBUG("Not initialized");
-            XPN_DEBUG_END;
-            return res;
+    xpn_conf conf;
+    xpn_env::get_instance();
+
+    for (const auto &part : conf.partitions) {
+        // Emplace without creation of temp xpn_partition
+        auto [key, inserted] =
+            m_partitions.emplace(std::piecewise_construct, std::forward_as_tuple(part.partition_name),
+                                 std::forward_as_tuple(part.partition_name, part.replication_level, part.bsize));
+        if (!inserted) {
+            std::cerr << "Error: cannot create xpn_partition" << std::endl;
+            std::raise(SIGTERM);
         }
-        m_initialized = false;
+        auto &xpn_part = m_partitions.at(part.partition_name);
+        int server_with_error = 0;
+        for (const auto &srv_url : part.server_urls) {
+            res = xpn_part.init_server(srv_url);
+        }
 
-        for (auto &[key, part] : m_partitions)
-        {
-            for (auto &serv : part.m_data_serv)
-            {
-                serv->destroy_comm();
+        for (const auto &srv : xpn_part.m_data_serv) {
+            if (srv->m_error < 0) {
+                server_with_error++;
             }
         }
-        m_partitions.clear();
+        if (server_with_error > xpn_part.m_replication_level) {
+            std::cerr << "Error: More servers with errors '" << server_with_error << "' than replication level permit '"
+                      << xpn_part.m_replication_level << "'" << std::endl;
+            std::raise(SIGTERM);
+        }
+    }
+
+    m_worker = workers::Create(static_cast<workers_mode>(xpn_env::get_instance().xpn_thread));
+
+    XPN_DEBUG_END;
+    return res;
+}
+
+int xpn_api::destroy() {
+    int res = 0;
+    XPN_DEBUG_BEGIN;
+    std::unique_lock<std::mutex> lock(m_init_mutex);
+    if (!m_initialized) {
+        XPN_DEBUG("Not initialized");
         XPN_DEBUG_END;
         return res;
     }
+    m_initialized = false;
 
-    int xpn_api::mark_error_server(int index)
-    {
-        int res = -1;
-        XPN_DEBUG_BEGIN;
-        for (auto &[key, part] : m_partitions)
-        {
-            if (index < static_cast<int>(part.m_data_serv.size())){
-                part.m_data_serv[index]->m_error = -1;
-                res = 0;
-            }
+    for (auto &[key, part] : m_partitions) {
+        for (auto &serv : part.m_data_serv) {
+            serv->destroy_comm();
         }
-        XPN_DEBUG_END;
-        return res;
+    }
+    m_partitions.clear();
+    XPN_DEBUG_END;
+    XPN_PROFILE_END_SESSION();
+    return res;
+}
+
+int xpn_api::mark_error_server(int index) {
+    int res = -1;
+    XPN_DEBUG_BEGIN;
+    for (auto &[key, part] : m_partitions) {
+        if (index < static_cast<int>(part.m_data_serv.size())) {
+            part.m_data_serv[index]->m_error = -1;
+            res = 0;
+        }
+    }
+    XPN_DEBUG_END;
+    return res;
+}
+
+int xpn_api::get_block_locality(char *path, off_t offset, int *url_c, char **url_v[]) {
+    XPN_DEBUG_BEGIN_CUSTOM(path << ", " << offset);
+    int res = 0;
+    off_t local_offset;
+    int serv;
+
+    std::string file_path;
+    auto part_name = check_remove_part_from_path(path, file_path);
+    if (part_name.empty()) {
+        errno = ENOENT;
+        XPN_DEBUG_END_CUSTOM(path << ", " << offset);
+        return -1;
     }
 
-    int xpn_api::get_block_locality(char *path, off_t offset, int *url_c, char **url_v[])
-    {
-        XPN_DEBUG_BEGIN_CUSTOM(path<<", "<<offset);
-        int res = 0;
-        off_t local_offset;
-        int serv;
-        
-        std::string file_path;
-        auto part_name = check_remove_part_from_path(path, file_path);
-        if (part_name.empty()){
-            errno = ENOENT;
-            XPN_DEBUG_END_CUSTOM(path<<", "<<offset);
+    xpn_file file(file_path, m_partitions.at(part_name));
+
+    res = read_metadata(file.m_mdata);
+
+    if (res < 0 || !file.m_mdata.m_data.is_valid()) {
+        XPN_DEBUG_END_CUSTOM(path << ", " << offset);
+        return -1;
+    }
+
+    (*url_v) = (char **)malloc(((file.m_part.m_replication_level + 1) + 1) * sizeof(char *));
+    if ((*url_v) == NULL) {
+        XPN_DEBUG_END_CUSTOM(path << ", " << offset);
+        return -1;
+    }
+
+    for (int i = 0; i < file.m_part.m_replication_level + 1; i++) {
+        (*url_v)[i] = (char *)malloc(PATH_MAX * sizeof(char));
+        if ((*url_v)[i] == NULL) {
+            XPN_DEBUG_END_CUSTOM(path << ", " << offset);
             return -1;
         }
-
-        xpn_file file(file_path, m_partitions.at(part_name));
-
-        res = read_metadata(file.m_mdata);
-        
-        if (res < 0 || !file.m_mdata.m_data.is_valid()){
-            XPN_DEBUG_END_CUSTOM(path<<", "<<offset);
-            return -1;
-        }
-
-        (*url_v) = (char **)malloc(((file.m_part.m_replication_level+1) + 1) * sizeof(char*));
-        if ((*url_v) == NULL){
-            XPN_DEBUG_END_CUSTOM(path<<", "<<offset);
-            return -1;
-        }
-
-        for (int i = 0; i < file.m_part.m_replication_level+1; i++)
-        {
-            (*url_v)[i] = (char *)malloc(PATH_MAX * sizeof(char));
-            if ((*url_v)[i] == NULL){
-                XPN_DEBUG_END_CUSTOM(path<<", "<<offset);
-                return -1;
-            }
-            memset((*url_v)[i], 0, PATH_MAX);
-        }
-
-        (*url_v)[file.m_part.m_replication_level+1] = NULL;
-
-        for (int i = 0; i < file.m_part.m_replication_level+1; i++)
-        {   
-            file.map_offset_mdata(offset, i, local_offset, serv);
-            auto &serv_url = file.m_part.m_data_serv[serv]->m_server;
-            serv_url.copy((*url_v)[i], serv_url.size());
-        }
-
-        (*url_c) = file.m_part.m_replication_level+1;
-
-        XPN_DEBUG_END_CUSTOM(path<<", "<<offset);
-        return res;
+        memset((*url_v)[i], 0, PATH_MAX);
     }
 
-    int xpn_api::free_block_locality(int *url_c, char **url_v[])
-    {
-        XPN_DEBUG_BEGIN;
-        int res = 0;
-        for (int i = 0; i < (*url_c); i++)
-        {
-            free((*url_v)[i]);
-        }
-        
-        free((*url_v));
+    (*url_v)[file.m_part.m_replication_level + 1] = NULL;
 
-        (*url_v) = NULL;
-        (*url_c) = 0;
-        XPN_DEBUG_END;
-        return res;
+    for (int i = 0; i < file.m_part.m_replication_level + 1; i++) {
+        file.map_offset_mdata(offset, i, local_offset, serv);
+        auto &serv_url = file.m_part.m_data_serv[serv]->m_server;
+        serv_url.copy((*url_v)[i], serv_url.size());
     }
-} // namespace XPN
+
+    (*url_c) = file.m_part.m_replication_level + 1;
+
+    XPN_DEBUG_END_CUSTOM(path << ", " << offset);
+    return res;
+}
+
+int xpn_api::free_block_locality(int *url_c, char **url_v[]) {
+    XPN_DEBUG_BEGIN;
+    int res = 0;
+    for (int i = 0; i < (*url_c); i++) {
+        free((*url_v)[i]);
+    }
+
+    free((*url_v));
+
+    (*url_v) = NULL;
+    (*url_c) = 0;
+    XPN_DEBUG_END;
+    return res;
+}
+}  // namespace XPN

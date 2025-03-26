@@ -60,6 +60,17 @@ namespace XPN
 
         queue_pool<xpn_server_msg> msg_pool;
 
+        // op_write_mdata_file_size
+        struct file_map_md_fq_item {
+            uint64_t m_count = 0;
+            
+            std::atomic_bool m_writing = {false};
+            std::mutex m_queue_mutex = {};
+            uint64_t m_in_queue = 0;
+        };
+        std::mutex m_file_map_md_fq_mutex;
+        std::unordered_map<std::string, file_map_md_fq_item> m_file_map_md_fq;
+
     public:
         // File operations
         void op_open        ( xpn_server_comm &comm, const st_xpn_server_path_flags   &head, int rank_client_id, int tag_client_id );
@@ -88,5 +99,6 @@ namespace XPN
         void op_read_mdata   ( xpn_server_comm &comm, const st_xpn_server_path        &head, int rank_client_id, int tag_client_id );
         void op_write_mdata  ( xpn_server_comm &comm, const st_xpn_server_write_mdata &head, int rank_client_id, int tag_client_id );
         void op_write_mdata_file_size  ( xpn_server_comm &comm, const st_xpn_server_write_mdata_file_size &head, int rank_client_id, int tag_client_id );
+        st_xpn_server_status op_write_mdata_file_size_internal  ( const char* path, uint64_t new_size );
     };    
 }

@@ -19,7 +19,7 @@
  *
  */
 
-#include "xpn/xpn_conf.hpp"
+#include "base_cpp/xpn_conf.hpp"
 #include "base_cpp/xpn_env.hpp"
 #include "base_cpp/debug.hpp"
 
@@ -75,7 +75,7 @@ namespace XPN
 
     xpn_conf::xpn_conf()
     {   
-        XPN_DEBUG_BEGIN;
+        // XPN_DEBUG_BEGIN;
         const char * cfile_path = xpn_env::get_instance().xpn_conf;
         if (cfile_path == nullptr)
         {
@@ -138,7 +138,7 @@ namespace XPN
             std::cerr << "Error: while parsing the XPN_CONF file: " << cfile_path << " not found any partition" << std::endl;
             std::raise(SIGTERM);
         }
-        int res = 0;
-        XPN_DEBUG_END;
+        // int res = 0;
+        // XPN_DEBUG_END;
     }
 }

@@ -32,33 +32,21 @@
 #include "xpn_server/xpn_server_ops.hpp"
 #include "nfi_xpn_server_comm.hpp"
 #include "base_cpp/debug.hpp"
+#include "base_cpp/xpn_parser.hpp"
 
 namespace XPN
 {
     // Fordward declaration
     class xpn_fh;
     class xpn_metadata;
-    
-    class nfi_parser
-    {
-    public:
-        nfi_parser(const std::string &url);
-        static std::tuple<std::string, std::string, std::string> parse(const std::string& url);
-        static std::string create(const std::string& protocol, const std::string& server, const std::string& path);
-
-        const std::string m_url;
-        std::string m_protocol;
-        std::string m_server;
-        std::string m_path;
-    };
 
     class nfi_server 
     {
     public:
-        nfi_server(const nfi_parser &url);
+        nfi_server(const xpn_parser &url);
         int init_comm();
         int destroy_comm();
-        static bool is_local_server(const std::string &server);
+        static bool is_local_server(const std::string_view &server);
         
         static std::unique_ptr<nfi_server> Create(const std::string &url);
     public:
@@ -93,7 +81,7 @@ namespace XPN
         virtual int nfi_rmdir       (const std::string &path, bool is_async) = 0;
         virtual int nfi_statvfs     (const std::string &path, struct ::statvfs &inf) = 0;
         virtual int nfi_read_mdata  (const std::string &path, xpn_metadata &mdata) = 0;
-        virtual int nfi_write_mdata (const std::string &path, const xpn_metadata &mdata, bool only_file_size) = 0;
+        virtual int nfi_write_mdata (const std::string &path, const xpn_metadata::data &mdata, bool only_file_size) = 0;
     protected:
     
         template<typename msg_struct>
