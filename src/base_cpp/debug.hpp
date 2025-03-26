@@ -24,6 +24,7 @@
 #include <iostream>
 #include <cstring>
 #include "xpn_env.hpp"
+#include "profiler.hpp"
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -61,9 +62,9 @@ namespace XPN
         std::cerr<<out_format<<std::endl;\
     }
 
-    #define XPN_DEBUG_BEGIN_CUSTOM(out_format) XPN_DEBUG("Begin "<<__func__<<"("<<out_format<<")");
+    #define XPN_DEBUG_BEGIN_CUSTOM(out_format) XPN_DEBUG("Begin "<<__func__<<"("<<out_format<<")"); XPN_PROFILE_FUNCTION();
     #define XPN_DEBUG_END_CUSTOM(out_format)   XPN_DEBUG("End   "<<__func__<<"("<<out_format<<")="<<res<<", errno="<<errno<<" "<<std::strerror(errno)<<"");
-    #define XPN_DEBUG_BEGIN XPN_DEBUG("Begin "<<__func__<<"()");
+    #define XPN_DEBUG_BEGIN XPN_DEBUG("Begin "<<__func__<<"()"); XPN_PROFILE_FUNCTION();
     #define XPN_DEBUG_END   XPN_DEBUG("End   "<<__func__<<"()="<<res<<", errno="<<errno<<" "<<std::strerror(errno)<<"");
 
     #ifdef DEBUG
@@ -79,6 +80,6 @@ namespace XPN
     #define print(out_format) std::cout << out_format << std::endl;
 
     #define print_error(out_format)                                                                                     \
-            std::cerr << std::dec << "[ERROR] [" << file_name(__FILE__) << ":" << __LINE__ << "] [" << __func__  \
+            std::cerr << std::dec << "[ERROR] [" << ::XPN::file_name(__FILE__) << ":" << __LINE__ << "] [" << __func__  \
                     << "] " << out_format << " : " << std::strerror(errno) << std::endl;
 } // namespace XPN
