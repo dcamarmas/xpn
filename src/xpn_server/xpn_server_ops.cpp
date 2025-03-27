@@ -629,29 +629,64 @@ cleanup_xpn_server_op_write_mdata:
 
 }
 
+// pthread_mutex_t op_write_mdata_file_size_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// void xpn_server::op_write_mdata_file_size ( xpn_server_comm &comm, const st_xpn_server_write_mdata_file_size &head, int rank_client_id, int tag_client_id )
+// {
+//   XPN_PROFILE_FUNCTION_ARGS("with mutex");
+//   int ret, fd;
+//   uint64_t actual_file_size = 0;
+//   struct st_xpn_server_status req;
+
+//   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] >> Begin");
+//   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path<<", "<<head.size<<")");
+  
+//   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] mutex lock");
+//   pthread_mutex_lock(&op_write_mdata_file_size_mutex);
+
+//   fd = PROXY(open)(head.path.path, O_RDWR);
+//   if (fd < 0){
+//     if (errno == EISDIR){
+//       // if is directory there are no metadata to write so return 0
+//       ret = 0;
+//       goto cleanup_xpn_server_op_write_mdata_file_size;
+//     }
+//     ret = fd;
+//     goto cleanup_xpn_server_op_write_mdata_file_size;
+//   }
+
+//   ret = filesystem::pread(fd, &actual_file_size, sizeof(actual_file_size), offsetof(struct xpn_metadata::data, file_size));
+//   if (ret > 0 && actual_file_size < head.size){
+//     ret = filesystem::pwrite(fd, &head.size, sizeof(ssize_t), offsetof(struct xpn_metadata::data, file_size));
+//   }
+
+//   PROXY(close)(fd); //TODO: think if necesary check error in close
+
+// cleanup_xpn_server_op_write_mdata_file_size:
+
+//   pthread_mutex_unlock(&op_write_mdata_file_size_mutex);
+//   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] mutex unlock");
+
+//   req.ret = ret;
+//   req.server_errno = errno;
+
+//   comm.write_data((char *)&req,sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
+
+//   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path<<", "<<head.size<<")="<< req.ret);
+//   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] << End");
+// }
+
 void xpn_server::op_write_mdata_file_size ( xpn_server_comm &comm, const st_xpn_server_write_mdata_file_size &head, int rank_client_id, int tag_client_id )
 {
-  XPN_PROFILE_FUNCTION();
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] >> Begin");
-  st_xpn_server_status req = op_write_mdata_file_size_internal(head.path.path, head.size); 
-
-  comm.write_data((char *)&req,sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
-
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")="<< req.ret);
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] << End");
-}
-
-st_xpn_server_status xpn_server::op_write_mdata_file_size_internal ( const char* path, uint64_t new_size )
-{
-  XPN_PROFILE_FUNCTION();
+  XPN_PROFILE_FUNCTION_ARGS("without mutex");
   int ret = 0, fd;
   uint64_t actual_file_size = 0;
-  st_xpn_server_status req;
+  st_xpn_server_status req = {};
 
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size_internal] >> Begin");
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size_internal] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")");
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] >> Begin");
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")");
   
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size_internal] mutex lock");
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] mutex lock");
   auto get_mdata_queue = [&](const char* name){
     std::unique_lock lock(m_file_map_md_fq_mutex);
     auto it = m_file_map_md_fq.find(name);
@@ -664,21 +699,26 @@ st_xpn_server_status xpn_server::op_write_mdata_file_size_internal ( const char*
       return std::ref(it->second);
     }
   };
-  auto item_ref_wrap = get_mdata_queue(path);
-  auto& item = item_ref_wrap.get();
+
+  file_map_md_fq_item& item = get_mdata_queue(head.path.path);
 
   {
     std::unique_lock lock(item.m_queue_mutex);
-    if (item.m_in_queue < new_size){
-      item.m_in_queue = new_size;
+    if (item.m_in_queue < head.size){
+      item.m_in_queue = head.size;
     }
+  }
 
+  // comm.write_data((char *)&req,sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
+
+  {
+    std::unique_lock lock(item.m_queue_mutex);
     while(item.m_in_queue != 0){
       if (!item.m_writing.exchange(true)) {
         uint64_t best_file_size = item.m_in_queue;
         item.m_in_queue = 0;
         lock.unlock();
-        fd = PROXY(open)(path, O_RDWR);
+        fd = PROXY(open)(head.path.path, O_RDWR);
         if (fd < 0){
           if (errno == EISDIR){
             // if is directory there are no metadata to write so return 0
@@ -707,18 +747,13 @@ st_xpn_server_status xpn_server::op_write_mdata_file_size_internal ( const char*
     std::unique_lock lock(m_file_map_md_fq_mutex);
     item.m_count--;
     if (item.m_count == 0){
-      m_file_map_md_fq.erase(path);
+      m_file_map_md_fq.erase(head.path.path);
     }
   }
 
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size_internal] mutex unlock");
-
-  req.ret = ret;
-  req.server_errno = errno;
-
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size_internal] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")="<< req.ret);
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size_internal] << End");
-  return req;
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] mutex unlock");
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")="<< req.ret);
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] << End");
 }
 
 void xpn_server::op_statvfs ( xpn_server_comm &comm, const st_xpn_server_path &head, int rank_client_id, int tag_client_id )

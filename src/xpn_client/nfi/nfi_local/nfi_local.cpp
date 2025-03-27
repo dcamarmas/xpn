@@ -473,7 +473,8 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata::dat
     msg.path.path[length] = '\0';
     msg.path.size = length + 1;
     msg.size = mdata.file_size;
-    ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
+    // ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
+    ret = nfi_write_operation(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg);
 
     if (req.ret < 0){
       errno = req.server_errno;
