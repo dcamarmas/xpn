@@ -9,7 +9,6 @@ set(UTILS_LIST_CPP
 	xpn_server_monitor
 )
 
-# add the executables cpp
 foreach (util ${UTILS_LIST_CPP})
 	add_executable(${util} ${util}.cpp)
 	target_link_libraries(${util} PRIVATE xpn)
@@ -22,7 +21,6 @@ set(UTILS_LIST_C
 	xpn_tree
 )
 
-# add the executables c
 foreach (util ${UTILS_LIST_C})
 	add_executable(${util} ${util}.c)
 	target_link_libraries(${util} PRIVATE xpn)

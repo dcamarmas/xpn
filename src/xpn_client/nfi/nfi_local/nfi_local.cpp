@@ -467,7 +467,7 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata::dat
 
   // is necessary to do it in xpn_server in order to ensure atomic operation
   if(only_file_size){
-    struct st_xpn_server_status req;
+    // struct st_xpn_server_status req;
     struct st_xpn_server_write_mdata_file_size msg;
     std::size_t length = srv_path.copy(msg.path.path, srv_path.size());
     msg.path.path[length] = '\0';
@@ -476,10 +476,10 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata::dat
     // ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
     ret = nfi_write_operation(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg);
 
-    if (req.ret < 0){
-      errno = req.server_errno;
-      ret = req.ret;
-    }
+    // if (req.ret < 0){
+    //   errno = req.server_errno;
+    //   ret = req.ret;
+    // }
   }else{
     fd = PROXY(open)(srv_path.c_str(), O_WRONLY | O_CREAT, S_IRWXU);
     if (fd < 0){

@@ -676,12 +676,12 @@ cleanup_xpn_server_op_write_mdata:
 //   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] << End");
 // }
 
-void xpn_server::op_write_mdata_file_size ( xpn_server_comm &comm, const st_xpn_server_write_mdata_file_size &head, int rank_client_id, int tag_client_id )
+void xpn_server::op_write_mdata_file_size ( [[maybe_unused]] xpn_server_comm &comm, const st_xpn_server_write_mdata_file_size &head, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
 {
   XPN_PROFILE_FUNCTION_ARGS("without mutex");
   int ret = 0, fd;
   uint64_t actual_file_size = 0;
-  st_xpn_server_status req = {};
+  // st_xpn_server_status req = {};
 
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] >> Begin");
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")");
