@@ -94,7 +94,13 @@ cd "$SRC_PATH"
 mkdir -p build
 cd build
 
-cmake -S .. -B . -D BUILD_TESTS=ON -D CMAKE_INSTALL_PREFIX="${INSTALL_PATH}/xpn" -D ENABLE_MPI_SERVER="${MPICC_PATH}" -D ENABLE_FABRIC_SERVER="${LIBFABRIC_PATH}"
+GENERATOR="Unix Makefiles"
+if command -v ninja &> /dev/null
+then
+   GENERATOR="Ninja"
+fi
+
+cmake -S .. -B . -D BUILD_TESTS=ON -D CMAKE_INSTALL_PREFIX="${INSTALL_PATH}/xpn" -D ENABLE_MPI_SERVER="${MPICC_PATH}" -D ENABLE_FABRIC_SERVER="${LIBFABRIC_PATH}" -G "${GENERATOR}"
 
 cmake --build . -j "$(nproc)"
 

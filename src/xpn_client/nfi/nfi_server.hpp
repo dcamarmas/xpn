@@ -105,7 +105,7 @@ namespace XPN
                 return -1;
             }
 
-            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" -> ");
+            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" -> "<<ret);
 
             debug_info("[NFI_XPN] [nfi_write_operation] >> End");
 
@@ -127,6 +127,7 @@ namespace XPN
 
             ret = nfi_write_operation(op, msg);
             if (ret < 0) {
+                debug_error("[NFI_XPN] [nfi_server_do_request] Error in nfi_write_operation");
                 return -1;
             }
 

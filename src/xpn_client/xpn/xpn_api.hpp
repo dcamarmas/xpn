@@ -135,11 +135,11 @@ namespace XPN
 
         // RW api
         ssize_t read            (int fd, void *buffer, size_t size);
-        ssize_t secuencial_read (xpn_file &file, void *buffer, size_t size);
-        ssize_t parallel_read   (xpn_file &file, void *buffer, size_t size);
+        ssize_t pread           (int fd, void *buffer, size_t size, off_t offset);
+        ssize_t pread           (std::shared_ptr<xpn_file> file, void *buffer, size_t size, off_t offset);
         ssize_t write           (int fd, const void *buffer, size_t size);
-        ssize_t secuencial_write(xpn_file &file, xpn_rw_buffer &rw_buff);
-        ssize_t parallel_write  (xpn_file &file, xpn_rw_buffer &rw_buff);
+        ssize_t pwrite          (int fd, const void *buffer, size_t size, off_t offset);
+        ssize_t pwrite          (std::shared_ptr<xpn_file> file, const void *buffer, size_t size, off_t offset);
         off_t   lseek           (int fd, off_t offset, int flag);
 
         // f_file api

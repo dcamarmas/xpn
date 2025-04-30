@@ -23,7 +23,7 @@ endif(ENABLE_SCK_SERVER)
 
 option(ENABLE_MPI_SERVER "Enable the mpi_server module" ON)
 if(ENABLE_MPI_SERVER)
-    message(STATUS "ENABLE_MPI_SERVER : true")
+    message(STATUS "ENABLE_MPI_SERVER : ${ENABLE_MPI_SERVER}")
     add_compile_options("-DENABLE_MPI_SERVER")
     set(MPI_PATH ${ENABLE_MPI_SERVER})
     find_library(MPI_LIBRARY NAMES mpi PATHS ${MPI_PATH}/lib)
@@ -51,6 +51,7 @@ add_subdirectory(src/xpn_client)
 add_subdirectory(src/xpn_server)
 add_subdirectory(src/xpn_controller)
 add_subdirectory(src/utils)
+# add_subdirectory(src/connector_fuse)
 
 
 option(BUILD_TESTS "Build the test" OFF)

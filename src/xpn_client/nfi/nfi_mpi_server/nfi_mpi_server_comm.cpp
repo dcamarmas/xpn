@@ -289,7 +289,7 @@ int64_t nfi_mpi_server_comm::write_data(const void *data, int64_t size) {
     int tag = (int)(pthread_self() % 32450) + 1;
 
     // Send message
-    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_data] Write data tag "<< tag);
+    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_data] Write data ("<<size<<", "<<tag<<")");
 
     ret = MPI_Send(data, size, MPI_CHAR, 0, tag, m_comm);
     if (MPI_SUCCESS != ret) {
@@ -322,7 +322,7 @@ int64_t nfi_mpi_server_comm::read_data(void *data, ssize_t size) {
     int tag = (int)(pthread_self() % 32450) + 1;
 
     // Get message
-    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_read_data] Read data tag "<< tag);
+    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_read_data] Read data ("<<size<<", "<<tag<<")");
 
     ret = MPI_Recv(data, size, MPI_CHAR, 0, tag, m_comm, &status);
     if (MPI_SUCCESS != ret) {

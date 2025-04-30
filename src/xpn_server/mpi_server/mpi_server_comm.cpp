@@ -188,7 +188,7 @@ int64_t mpi_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_
 {
   XPN_PROFILE_FUNCTION();
   int ret;
-  MPI_Status status;
+  MPI_Status status = {};
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_operation] >> Begin");
 
@@ -215,9 +215,9 @@ int64_t mpi_server_comm::read_data ( void *data, int64_t size, int rank_client_i
 {
   XPN_PROFILE_FUNCTION_ARGS(size);
   int ret;
-  MPI_Status status;
+  MPI_Status status = {};
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_data] >> Begin");
+  debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_read_data] >> Begin ("<<size<<", "<<rank_client_id<<", "<<tag_client_id<<")");
 
   if (size == 0) {
     return  0;
@@ -248,7 +248,7 @@ int64_t mpi_server_comm::write_data ( const void *data, int64_t size, int rank_c
   XPN_PROFILE_FUNCTION_ARGS(size);
   int ret;
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_write_data] >> Begin");
+  debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_COMM] [mpi_server_comm_write_data] >> Begin ("<<size<<", "<<rank_client_id<<", "<<tag_client_id<<")");
 
   if (size == 0) {
       return 0;

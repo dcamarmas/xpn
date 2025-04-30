@@ -25,47 +25,49 @@
 
 namespace XPN
 {
-    ssize_t xpn_api::read(int fd, void *buffer, size_t size)
+    ssize_t xpn_api::pread(int fd, void *buffer, size_t size, off_t offset)
     {
-        XPN_DEBUG_BEGIN_CUSTOM(fd<<", "<<buffer<<", "<<size);
-        ssize_t res = 0;
-
         auto file = m_file_table.get(fd);
         if (!file){
             errno = EBADF;
-            res = -1;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
-            return res;
+            return -1;
         }
 
+        return pread(file, buffer, size, offset);
+    }
+
+    ssize_t xpn_api::pread(std::shared_ptr<xpn_file> file, void *buffer, size_t size, off_t offset)
+    {
+        XPN_DEBUG_BEGIN_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
+        ssize_t res = 0;
 
         if (buffer == NULL){
             errno = EFAULT;
             res = -1;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
         if (size == 0){
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
         if (file->m_flags == O_WRONLY){
             errno = EBADF;
             res = -1;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
         if (file->m_type == file_type::dir){
             errno = EISDIR;
             res = -1;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
-        xpn_rw_buffer rw_buff(*file.get(), file->m_offset, const_cast<void*>(buffer), size);
+        xpn_rw_buffer rw_buff(*file.get(), offset, const_cast<void*>(buffer), size);
         rw_buff.calculate_reads();
 
         std::vector<std::future<int>> v_res(rw_buff.num_ops());
@@ -102,19 +104,16 @@ namespace XPN
 
         res = sum;
 
-        if(res > 0){
-            file->m_offset += res;
-        }
-
         rw_buff.fix_ops_reads();
 
-        XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+        XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
         return res;
     }
 
-    ssize_t xpn_api::write(int fd, const void *buffer, size_t size)
+    ssize_t xpn_api::read(int fd, void *buffer, size_t size)
     {
         XPN_DEBUG_BEGIN_CUSTOM(fd<<", "<<buffer<<", "<<size);
+
         ssize_t res = 0;
 
         auto file = m_file_table.get(fd);
@@ -124,35 +123,60 @@ namespace XPN
             XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
             return res;
         }
+        
+        res = pread(file, buffer, size, file->m_offset);
 
+        if(res > 0){
+            file->m_offset += res;
+        }
+
+        XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+        return res;
+    }
+
+    ssize_t xpn_api::pwrite(int fd, const void *buffer, size_t size, off_t offset)
+    {
+        auto file = m_file_table.get(fd);
+        if (!file){
+            errno = EBADF;
+            return -1;
+        }
+
+        return pwrite(file, buffer, size, offset);
+    }
+
+    ssize_t xpn_api::pwrite(std::shared_ptr<xpn_file> file, const void *buffer, size_t size, off_t offset)
+    {
+        XPN_DEBUG_BEGIN_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
+        ssize_t res = 0;
 
         if (buffer == NULL){
             errno = EFAULT;
             res = -1;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
         if (size == 0){
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
         if (file->m_flags == O_RDONLY){
             errno = EBADF;
             res = -1;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
         if (file->m_type == file_type::dir){
             errno = EISDIR;
             res = -1;
-            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
             return res;
         }
 
-        xpn_rw_buffer rw_buff(*file.get(), file->m_offset, const_cast<void*>(buffer), size);
+        xpn_rw_buffer rw_buff(*file.get(), offset, const_cast<void*>(buffer), size);
         rw_buff.calculate_writes();
 
         std::vector<std::future<int>> v_res(rw_buff.num_ops());
@@ -191,12 +215,35 @@ namespace XPN
             res = sum / (file->m_part.m_replication_level+1);
         }else{
             res = static_cast<ssize_t>(rw_buff.m_size);
-            file->m_offset += res;
             // Update file_size in metadata
-            if (file->m_offset > static_cast<off_t>(file->m_mdata.m_data.file_size)){
-                file->m_mdata.m_data.file_size = file->m_offset;
+            if ((offset+res) > static_cast<off_t>(file->m_mdata.m_data.file_size)){
+                file->m_mdata.m_data.file_size = offset+res;
                 write_metadata(file->m_mdata, true);
             }
+        }
+
+        XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size<<", "<<offset);
+        return res;
+    }
+
+    ssize_t xpn_api::write(int fd, const void *buffer, size_t size)
+    {
+        XPN_DEBUG_BEGIN_CUSTOM(fd<<", "<<buffer<<", "<<size);
+
+        ssize_t res = 0;
+
+        auto file = m_file_table.get(fd);
+        if (!file){
+            errno = EBADF;
+            res = -1;
+            XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);
+            return res;
+        }
+        
+        res = pwrite(file, buffer, size, file->m_offset);
+
+        if(res > 0){
+            file->m_offset += res;
         }
 
         XPN_DEBUG_END_CUSTOM(fd<<", "<<buffer<<", "<<size);

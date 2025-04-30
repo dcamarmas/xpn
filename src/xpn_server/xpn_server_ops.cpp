@@ -94,7 +94,7 @@ void xpn_server::op_open ( xpn_server_comm &comm, const st_xpn_server_path_flags
 
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_open] >> Begin");
 
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_open] open("<<head.path.path<<", "<<head.flags<<", "<<head.mode<<")");
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_open] open("<<head.path.path<<", "<<format_open_flags(head.flags)<<", "<<format_open_mode(head.mode)<<")");
 
   // do open
   status.ret = PROXY(open)(head.path.path, head.flags, head.mode);
@@ -171,6 +171,7 @@ void xpn_server::op_read ( xpn_server_comm &comm, const st_xpn_server_rw &head, 
     req.size = -1;
     req.status.ret = fd;
     req.status.server_errno = errno;
+    debug_error("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write] Error open "<<head.path.path<<" "<<strerror(errno));
     comm.write_data((char *)&req,sizeof(struct st_xpn_server_rw_req), rank_client_id, tag_client_id);
     goto cleanup_xpn_server_op_read;
   }
@@ -259,6 +260,7 @@ void xpn_server::op_write ( xpn_server_comm &comm, const st_xpn_server_rw &head,
   {
     req.size = -1;
     req.status.ret = -1;
+    debug_error("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write] Error open "<<head.path.path<<" "<<strerror(errno));
     goto cleanup_xpn_server_op_write;
   }
 
@@ -574,6 +576,7 @@ void xpn_server::op_read_mdata   ( xpn_server_comm &comm, const st_xpn_server_pa
       goto cleanup_xpn_server_op_read_mdata;
     }
     ret = fd;
+    debug_error("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_read_mdata] Error open "<<head.path.path<<" "<<strerror(errno));
     goto cleanup_xpn_server_op_read_mdata;
   }
 
@@ -612,6 +615,7 @@ void xpn_server::op_write_mdata ( xpn_server_comm &comm, const st_xpn_server_wri
       goto cleanup_xpn_server_op_write_mdata;
     }
     ret = fd;
+    debug_error("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata] Error open "<<head.path.path<<" "<<strerror(errno));
     goto cleanup_xpn_server_op_write_mdata;
   }
   ret = filesystem::write(fd, &head.mdata, sizeof(head.mdata));
@@ -624,7 +628,7 @@ cleanup_xpn_server_op_write_mdata:
 
   comm.write_data((char *)&req,sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
 
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata] write_mdata("<<head.path.path<<")=%d"<< req.ret);
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata] write_mdata("<<head.path.path<<")="<<req.ret<<" "<<strerror(req.server_errno));
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata] << End");
 
 }
@@ -752,7 +756,7 @@ void xpn_server::op_write_mdata_file_size ( [[maybe_unused]] xpn_server_comm &co
   }
 
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] mutex unlock");
-  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")="<< req.ret);
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] write_mdata_file_size("<<head.path.path<<", "<<head.size<<")="<< ret);
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] << End");
 }
 
