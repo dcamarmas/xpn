@@ -60,6 +60,36 @@ int xpn_destroy ( void )
   return ret;
 }
 
+int xpn_print_partitions ( void )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_print_partitions] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().print_partitions();
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_print_partitions] >> End");
+
+  return ret;
+}
+
+int xpn_clean_connections ( void )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_clean_connections] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().clean_connections();
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_clean_connections] >> End");
+
+  return ret;
+}
+
 int xpn_mark_error_server ( int index )
 {
   int ret = -1;

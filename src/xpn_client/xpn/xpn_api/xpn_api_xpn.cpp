@@ -76,6 +76,8 @@ int xpn_api::init() {
         }
     }
 
+    m_file_table.init_vfhs(m_partitions);
+
     m_worker = workers::Create(static_cast<workers_mode>(xpn_env::get_instance().xpn_thread));
 
     XPN_DEBUG_END;
@@ -101,6 +103,27 @@ int xpn_api::destroy() {
     m_partitions.clear();
     XPN_DEBUG_END;
     XPN_PROFILE_END_SESSION();
+    return res;
+}
+
+int xpn_api::print_partitions() {
+    printf("Partitions size %ld\n", m_partitions.size());
+    for (auto &[key, part] : m_partitions) {
+        printf("Partition %s:\n", part.m_name.c_str());
+        for (auto &serv : part.m_data_serv) {
+            printf("  %s\n", serv->m_server.c_str());
+        }
+    }
+    return 0;
+}
+
+int xpn_api::clean_connections() {
+    int res = 0;
+    // Clean file table virtual file handlers
+    m_file_table.clean_vfhs();
+
+    res = destroy();
+
     return res;
 }
 

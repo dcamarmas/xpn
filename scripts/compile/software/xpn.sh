@@ -25,26 +25,29 @@ set -e
 function usage {
     echo ""
     echo " Usage:"
-    echo " $0  -m <mpicc path> -l <libfabric path> -i <Install path> -s <Source path>"
+    echo " $0  -m <mpicc path> -l <libfabric path> -i <Install path> -s <Source path> -d <dmtcp path>"
     echo " Where:"
     echo " * <mpicc   path> = full path where the mpicc is installed."
     echo " * <libfabric   path> = full path where the libfabric is installed."
     echo " * <Install path> = full path where XPN is going to be installed."
     echo " * <Source  path> = full path to the source code XPN."
+    echo " * <dmtcp  path> = full path to the source code of DMTCP."
     echo ""
 }
 
 LIBFABRIC_PATH=""
 ## get arguments
-while getopts "m:f:i:s:" opt; do
+while getopts "m:f:i:s:d:" opt; do
     case "${opt}" in
-          m) MPICC_PATH=${OPTARG}
+          m) MPICC_PATH="-D ENABLE_MPI_SERVER=${OPTARG}"
              ;;
           f) LIBFABRIC_PATH=${OPTARG}
              ;;
           i) INSTALL_PATH=${OPTARG}
              ;;
           s) SRC_PATH=${OPTARG}
+             ;;
+          d) DMTCP_PATH="-D DMTCP_PATH=${OPTARG}"
              ;;
           *) echo " Error:"
              echo " * Unknown option: ${opt}"
@@ -100,7 +103,7 @@ then
    GENERATOR="Ninja"
 fi
 
-cmake -S .. -B . -D BUILD_TESTS=ON -D CMAKE_INSTALL_PREFIX="${INSTALL_PATH}/xpn" -D ENABLE_MPI_SERVER="${MPICC_PATH}" -D ENABLE_FABRIC_SERVER="${LIBFABRIC_PATH}" -G "${GENERATOR}"
+cmake -S .. -B . -D BUILD_TESTS=ON -D CMAKE_INSTALL_PREFIX="${INSTALL_PATH}/xpn" $MPICC_PATH -D ENABLE_FABRIC_SERVER="${LIBFABRIC_PATH}" -G "${GENERATOR}" $DMTCP_PATH
 
 cmake --build . -j "$(nproc)"
 

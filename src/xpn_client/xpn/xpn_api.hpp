@@ -72,6 +72,7 @@ namespace XPN
     {
     public:
         xpn_api() { init(); }
+        ~xpn_api() { destroy(); }
         // Delete copy constructor
         xpn_api(const xpn_api&) = delete;
         // Delete copy assignment operator
@@ -104,6 +105,8 @@ namespace XPN
         // XPN api
         int init();
         int destroy();
+        int print_partitions();
+        int clean_connections();
         int mark_error_server(int index);
         int get_block_locality(char *path, off_t offset, int *url_c, char **url_v[]);
         int free_block_locality(int *url_c, char **url_v[]);

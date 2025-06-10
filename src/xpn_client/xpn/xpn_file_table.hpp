@@ -23,6 +23,7 @@
 
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "xpn_file.hpp"
 
@@ -61,10 +62,12 @@ namespace XPN
         std::string to_string();
 
         void clean();
+        void init_vfhs(const std::unordered_map<std::string, xpn_partition>& partitions);
+        void clean_vfhs();
 
     private:
         std::unordered_map<int, std::shared_ptr<xpn_file>> m_files;
-        std::queue<int> m_free_keys;
+        std::unordered_set<int> m_free_keys;
         int secuencial_key = 1;
     };
 } // namespace XPN
