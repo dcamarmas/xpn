@@ -463,7 +463,7 @@ void xpn_server::op_opendir ( xpn_server_comm &comm, const st_xpn_server_path_fl
 void xpn_server::op_readdir ( xpn_server_comm &comm, const st_xpn_server_readdir &head, int rank_client_id, int tag_client_id )
 {
   XPN_PROFILE_FUNCTION();
-  struct dirent * ret;
+  struct dirent * ret = NULL;
   struct st_xpn_server_readdir_req ret_entry;
   DIR* s = NULL;
 
@@ -475,16 +475,18 @@ void xpn_server::op_readdir ( xpn_server_comm &comm, const st_xpn_server_readdir
     errno = 0;
     ret = PROXY(readdir)(head.dir);
   }else{
-
     s = PROXY(opendir)(head.path.path);
     ret_entry.status.ret = s == NULL ? -1 : 0;
     ret_entry.status.server_errno = errno;
-
-    PROXY(seekdir)(s, head.telldir);
-
-    // Reset errno
-    errno = 0;
-    ret = PROXY(readdir)(s);
+    if (s == NULL) {
+      ret = NULL;
+    }else{
+      PROXY(seekdir)(s, head.telldir);
+      
+      // Reset errno
+      errno = 0;
+      ret = PROXY(readdir)(s);
+    }
   }
   if (ret != NULL)
   {

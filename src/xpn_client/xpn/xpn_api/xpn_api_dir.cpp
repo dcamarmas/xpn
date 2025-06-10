@@ -53,7 +53,7 @@ namespace XPN
         if (res < 0)
         {
             XPN_DEBUG_END_CUSTOM(path);
-            return NULL;
+            return nullptr;
         }
 
         dirp = new (std::nothrow) DIR;

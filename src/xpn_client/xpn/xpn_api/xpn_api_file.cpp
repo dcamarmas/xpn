@@ -116,6 +116,10 @@ namespace XPN
                 });
             }
             res = fut.get();
+            if (res < 0) {
+                XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
+                return res;
+            }
         }
 
         
