@@ -31,9 +31,7 @@ namespace XPN {
 
 nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &srv_name )
 {
-  struct hostent * hp;
-  struct sockaddr_in server_addr;
-  int ret, sd, flag, val;
+  int ret, sd;
   int connection_socket;
   char port_name[MAX_PORT_NAME];
 
@@ -70,76 +68,14 @@ nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &s
 
   debug_info("[NFI_SCK_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name);
 
-  // Socket...
-  sd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sd < 0) {
-    perror("socket: ");
-    return nullptr;
-  }
-  debug_info("[NFI_SCK_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name<<" ==> "<<sd);
-
-  // Set sockopt
-  flag = 1;
-  ret = ::setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, & flag, sizeof(flag));
-  if (ret < 0) {
-    perror("setsockopt: ");
-    return nullptr;
-  }
-
-  val = MAX_BUFFER_SIZE; //1 MB
-  ret = ::setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (char * ) & val, sizeof(int));
-  if (ret < 0) {
-    perror("setsockopt: ");
-    return nullptr;
-  }
-
-  val = MAX_BUFFER_SIZE; //1 MB
-  ret = setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (char * ) & val, sizeof(int));
-  if (ret < 0) {
-    perror("setsockopt: ");
-    return nullptr;
-  }
-
-  // gethost by name
-  hp = gethostbyname(srv_name.c_str());
-  if (hp == NULL)
-  {
-    fprintf(stderr, "nfi_sck_server_init: error gethostbyname %s (%s,%s)\n",
-    srv_name.c_str(), srv_name.c_str(), port_name);
-    return nullptr;
-  }
-
   // Connect...
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] Connect port "<<port_name);
 
-  bzero((char * ) & server_addr, sizeof(server_addr));
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port   = htons(atoi(port_name));
-  memcpy( & (server_addr.sin_addr), hp->h_addr, hp->h_length);
-
-  int connect_retries = 0;
-  do
-  {
-    ret = ::connect(sd, (struct sockaddr * ) & server_addr, sizeof(server_addr));
-    if (ret < 0)
-    {
-      if (connect_retries == 0)
-      {
-        printf("----------------------------------------------------------------\n");
-        print("XPN Client "<<ns::get_host_name()<<" : Waiting for servers being up and runing...");
-        printf("----------------------------------------------------------------\n\n");
-      }
-      connect_retries++;
-      sleep(2);
-    }
-  } while(ret < 0 && connect_retries < 1);
-
-  if (ret < 0)
-  {
-    printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: connect fails\n");
+  ret = socket::client_connect(srv_name, atoi(port_name), sd);
+  if (ret < 0) {
+    fprintf(stderr, "[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: client_connect(%s,%s)\n", srv_name.c_str(), port_name);
     return nullptr;
   }
-
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] << End\n");
 
   return new (std::nothrow) nfi_sck_server_comm(sd);

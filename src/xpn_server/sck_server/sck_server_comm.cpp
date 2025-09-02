@@ -30,8 +30,8 @@ namespace XPN
 {
 sck_server_control_comm::sck_server_control_comm ()
 {
-  int ret, val;
-  struct sockaddr_in server_addr;
+  int ret;
+  struct sockaddr_storage server_addr;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] >> Begin");
 
@@ -41,64 +41,25 @@ sck_server_control_comm::sck_server_control_comm ()
   // Socket init
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Scoket init");
 
-  m_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (m_socket < 0)
-  {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket fails");
-    std::raise(SIGTERM);
-  }
-
-  // tcp_nodalay
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] TCP nodelay");
-
-  val = 1;
-  ret = ::setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
+  ret = socket::server_create(0, m_socket);
   if (ret < 0)
   {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: setsockopt fails");
-    std::raise(SIGTERM);
-  }
-
-  // sock_reuseaddr
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Socket reuseaddr");
-
-  val = 1;
-  ret = ::setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(int));
-  if (ret < 0)
-  {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: setsockopt fails");
-    std::raise(SIGTERM);
-  }
-
-  // bind
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Socket bind");
-
-  bzero((char * )&server_addr, sizeof(server_addr));
-  server_addr.sin_family      = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port        = htons(0);
-
-
-  ret = ::bind(m_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
-  if (ret < 0)
-  {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: bind fails");
-    std::raise(SIGTERM);
-  }
-
-  // listen
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Socket listen");
-
-  ret = ::listen(m_socket, 20);
-  if (ret < 0)
-  {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: listen fails");
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_create fails");
     std::raise(SIGTERM);
   }
   socklen_t len = sizeof(server_addr);
   ::getsockname(m_socket, (struct sockaddr *)&server_addr, &len);
-  m_port_name = std::to_string(ntohs(server_addr.sin_port));
-
+  
+  if (server_addr.ss_family == AF_INET) {
+      const sockaddr_in* sin = reinterpret_cast<const sockaddr_in*>(&server_addr);
+      m_port_name = std::to_string(ntohs(sin->sin_port));
+  } else if (server_addr.ss_family == AF_INET6) {
+      const sockaddr_in6* sin6 = reinterpret_cast<const sockaddr_in6*>(&server_addr);
+      m_port_name = std::to_string(ntohs(sin6->sin6_port));
+  } else {
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_addres with family not supported");
+    std::raise(SIGTERM);
+  }
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] available at "<<m_port_name);
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] accepting...");
 

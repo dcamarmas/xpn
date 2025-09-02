@@ -58,6 +58,7 @@ namespace XPN
         static int64_t send_str ( int socket, const std::string& str );
         static int64_t send_str ( int socket, const std::string_view& str );
         static int64_t recv_str ( int socket, std::string& str );
+        static int socket_create( int socket_domain = AF_INET6);
         static int server_create ( int port, int &out_socket );
         static int server_accept ( int socket, int &out_conection_socket );
         static int client_connect ( const std::string &srv_name, int port, int &out_socket );

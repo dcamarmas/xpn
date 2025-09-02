@@ -158,21 +158,27 @@ namespace XPN
         return ret;
     }
 
-    int socket::server_create ( int port, int &out_socket )
-    {
+    int socket::socket_create(int socket_domain) {
         int ret = 0;
-        int server_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if (server_socket < 0)
-        {
+        int server_socket = ::socket(socket_domain, SOCK_STREAM, IPPROTO_TCP);
+        if (server_socket < 0) {
             debug_error("[SOCKET] [socket::server_create] ERROR: socket fails");
             return -1;
         }
 
+        debug_info("[SOCKET] [socket::server_create] Socket quit ipv6 only");
+        int val = 0;
+        if (socket_domain == AF_INET6){
+            ret = setsockopt(server_socket, IPPROTO_IPV6, IPV6_V6ONLY, &val, sizeof(val));
+            if (ret < 0) {
+                debug_error("[SOCKET] [socket::server_create] ERROR: setsockopt fails");
+                return -1;
+            }
+        }
 
-        int val = 1;
+        val = 1;
         ret = setsockopt(server_socket, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
-        if (ret < 0)
-        {
+        if (ret < 0) {
             debug_error("[SOCKET] [socket::server_create] ERROR: setsockopt fails");
             return -1;
         }
@@ -181,21 +187,31 @@ namespace XPN
 
         val = 1;
         ret = setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(int));
-        if (ret < 0)
-        {
+        if (ret < 0) {
             debug_error("[SOCKET] [socket::server_create] ERROR: setsockopt fails");
+            return -1;
+        }
+        return server_socket;
+    }
+
+    int socket::server_create ( int port, int &out_socket )
+    {
+        int ret = 0;
+
+        int server_socket = socket_create();
+        if (server_socket < 0) {
+            debug_error("[SOCKET] [socket::server_create] ERROR: socket fails");
             return -1;
         }
 
         // bind
-        debug_info("[SOCKET] [socket::server_create] Socket bind");
+        debug_info("[SOCKET] [socket::server_create] Socket bind port "<<port);
 
-        struct sockaddr_in server_addr;
+        struct sockaddr_in6 server_addr;
         memset(&server_addr, 0, sizeof(server_addr));
-        server_addr.sin_family      = AF_INET;
-        server_addr.sin_addr.s_addr = INADDR_ANY;
-        server_addr.sin_port        = htons(port);
-
+        server_addr.sin6_family      = AF_INET6;
+        server_addr.sin6_addr        = in6addr_any;
+        server_addr.sin6_port        = htons(port);
 
         ret = bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
         if (ret < 0)
@@ -219,8 +235,8 @@ namespace XPN
 
     int socket::server_accept ( int socket, int &out_conection_socket )
     {
-        struct sockaddr_in client_addr;
-        socklen_t sock_size = sizeof(sockaddr_in);
+        struct sockaddr_storage client_addr;
+        socklen_t sock_size = sizeof(client_addr);
         int new_socket = accept(socket, (struct sockaddr*)&client_addr, &sock_size);
         if (new_socket < 0) {
             debug_error("[SOCKET] [socket::accept_send] ERROR: socket accept");
@@ -230,23 +246,51 @@ namespace XPN
         return 0;
     }
 
-    int resolve_hostname(const std::string &srv_name, sockaddr_in* pAddr)
+    [[maybe_unused]] static void print_sockaddr(const sockaddr* sa) {
+        char host_str[NI_MAXHOST];
+
+        if (sa == nullptr) {
+            std::cerr << "sockaddr is null" << std::endl;
+            return;
+        }
+
+        if (sa->sa_family == AF_INET) {
+            const sockaddr_in* sin = reinterpret_cast<const sockaddr_in*>(sa);
+            inet_ntop(AF_INET, &sin->sin_addr, host_str, NI_MAXHOST);
+            int port = ntohs(sin->sin_port);
+            std::cout << "IPv4 Address: " << host_str << ", Port: " << port << std::endl;
+
+        } else if (sa->sa_family == AF_INET6) {
+            const sockaddr_in6* sin6 = reinterpret_cast<const sockaddr_in6*>(sa);
+            inet_ntop(AF_INET6, &sin6->sin6_addr, host_str, NI_MAXHOST);
+            int port = ntohs(sin6->sin6_port);
+            std::cout << "IPv6 Address: " << host_str << ", Port: " << port << std::endl;
+        } else {
+            std::cerr << "Direction family not supported" << std::endl;
+        }
+    }
+
+    int resolve_hostname(const std::string &srv_name, int port, sockaddr_storage* pAddr)
     {
         int ret;
         addrinfo* pResultList = NULL;
         addrinfo hints = {};
         int result = -1;
 
-        hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
-
-        ret = ::getaddrinfo(srv_name.c_str(), NULL, &hints, &pResultList);
+        hints.ai_protocol = IPPROTO_TCP;
+        auto port_str = std::to_string(port);
+        ret = ::getaddrinfo(srv_name.c_str(), port_str.c_str(), &hints, &pResultList);
+        debug_info("getaddrinfo("<<srv_name<<") = "<<ret<<(ret < 0 ? gai_strerror(ret) : ""));
 
         result = (ret == 0) ? 1 : -1;
         if (result != -1)
         {
             // just pick the first one found
-            *pAddr = *(sockaddr_in*)(pResultList->ai_addr);
+            memcpy(pAddr, pResultList->ai_addr, pResultList->ai_addrlen);
+            #ifdef DEBUG
+            print_sockaddr(pResultList->ai_addr);
+            #endif
             result = 0;
         }
 
@@ -261,19 +305,26 @@ namespace XPN
     int socket::client_connect ( const std::string &srv_name, int port, int &out_socket )
     {
         int client_fd;
-        struct sockaddr_in serv_addr;
-        client_fd = ::socket(AF_INET, SOCK_STREAM, 0);
-        if (client_fd < 0) 
-        {
-            debug_error("[SOCKET] [socket::read] ERROR: socket creation error");
+        struct sockaddr_storage serv_addr;
+        int ret = resolve_hostname(srv_name, port, &serv_addr);
+        if (ret < 0) {
+            debug_error("[SOCKET] [socket::client_connect] ERROR: resolve_hostname");
             return -1;
         }
-        resolve_hostname(srv_name, &serv_addr);
-        serv_addr.sin_port = htons(port);
+        client_fd = socket_create(serv_addr.ss_family);
+        if (client_fd < 0) 
+        {
+            debug_error("[SOCKET] [socket::client_connect] ERROR: socket creation error");
+            return -1;
+        }
+        debug_info("srv_name "<<srv_name<<" port "<<port);
+        #ifdef DEBUG
+        print_sockaddr((struct sockaddr*)&serv_addr);
+        #endif
         int status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
         if (status < 0) 
         {
-            debug_error("[SOCKET] [socket::read] ERROR: socket connection failed to "<<srv_name<<" in port "<< xpn_env::get_instance().xpn_sck_port << " " << strerror(errno));
+            debug_error("[SOCKET] [socket::client_connect] ERROR: socket connection failed to "<<srv_name<<" in port "<< xpn_env::get_instance().xpn_sck_port << " "<<errno<<" " << strerror(errno));
             close(client_fd);
             return -1;
         }
