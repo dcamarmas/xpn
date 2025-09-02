@@ -108,7 +108,7 @@ namespace XPN
         int print_partitions();
         int clean_connections();
         int mark_error_server(int index);
-        int get_block_locality(char *path, off_t offset, int *url_c, char **url_v[]);
+        int get_block_locality(char *path, int64_t offset, int *url_c, char **url_v[]);
         int free_block_locality(int *url_c, char **url_v[]);
 
         // Metadata api
@@ -131,25 +131,25 @@ namespace XPN
         int   fchown    (int  fd,  uid_t owner,  gid_t group);
         int   chmod     (const char *path,  mode_t mode);
         int   fchmod    (int fd,  mode_t mode);
-        int   truncate  (const char *path,  off_t length);
-        int   ftruncate (int fd, off_t length);
+        int   truncate  (const char *path,  int64_t length);
+        int   ftruncate (int fd, int64_t length);
         int   statvfs   (const char *path, struct ::statvfs *buf);
         int   fstatvfs  (int fd, struct ::statvfs *buf);
 
         // RW api
-        ssize_t read            (int fd, void *buffer, size_t size);
-        ssize_t pread           (int fd, void *buffer, size_t size, off_t offset);
-        ssize_t pread           (std::shared_ptr<xpn_file> file, void *buffer, size_t size, off_t offset);
-        ssize_t write           (int fd, const void *buffer, size_t size);
-        ssize_t pwrite          (int fd, const void *buffer, size_t size, off_t offset);
-        ssize_t pwrite          (std::shared_ptr<xpn_file> file, const void *buffer, size_t size, off_t offset);
-        off_t   lseek           (int fd, off_t offset, int flag);
+        int64_t read            (int fd, void *buffer, uint64_t size);
+        int64_t pread           (int fd, void *buffer, uint64_t size, int64_t offset);
+        int64_t pread           (std::shared_ptr<xpn_file> file, void *buffer, uint64_t size, int64_t offset);
+        int64_t write           (int fd, const void *buffer, uint64_t size);
+        int64_t pwrite          (int fd, const void *buffer, uint64_t size, int64_t offset);
+        int64_t pwrite          (std::shared_ptr<xpn_file> file, const void *buffer, uint64_t size, int64_t offset);
+        int64_t   lseek           (int fd, int64_t offset, int flag);
 
         // f_file api
         FILE   *fopen   (const char *filename, const char *mode);
         int     fclose  (FILE *stream);
-        size_t  fread   (void *ptr, size_t size, size_t nmemb, FILE *stream);
-        size_t  fwrite  (const void *ptr, size_t size, size_t nmemb, FILE *stream);
+        uint64_t  fread   (void *ptr, uint64_t size, uint64_t nmemb, FILE *stream);
+        uint64_t  fwrite  (const void *ptr, uint64_t size, uint64_t nmemb, FILE *stream);
         int     fseek   (FILE *stream, long offset, int whence);
         long    ftell   (FILE *stream);
         int     fflush  (FILE *stream);
@@ -169,7 +169,7 @@ namespace XPN
         int             rmdir(const char *path);
         
         // cwd api
-        char* getcwd(char *path, size_t size);
+        char* getcwd(char *path, uint64_t size);
         int   chdir(char *path);
 
         // malleability

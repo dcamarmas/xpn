@@ -26,7 +26,7 @@ namespace XPN
     workers_pool::workers_pool() 
     {   
         m_num_threads = std::thread::hardware_concurrency() * 2;
-        for (size_t i = 0; i < m_num_threads; ++i) { 
+        for (uint64_t i = 0; i < m_num_threads; ++i) { 
             m_threads.emplace_back([this] { 
                 while (true) { 
                     std::variant<std::packaged_task<int()>,std::function<void()>> task; 

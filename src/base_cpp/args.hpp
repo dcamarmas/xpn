@@ -66,7 +66,7 @@ class args {
             help();
             return -1;
         }
-        for (size_t i = 0; i < m_args.size(); i++) {
+        for (uint64_t i = 0; i < m_args.size(); i++) {
             if (m_args[i][0] == '-') {
                 auto it = std::find_if(m_options.begin(), m_options.end(), [arg = m_args[i]](const option& opt) {
                     return arg == opt.sort_name || arg == opt.long_name;
@@ -124,12 +124,12 @@ class args {
         std::cout << m_extra_help << std::endl;
 
         std::vector<std::string> option_lines(m_options.size());
-        size_t max_line = 0;
+        uint64_t max_line = 0;
 
         std::string line;
         line.reserve(1024);
         // Construct the lines without help
-        for (size_t i = 0; i < m_options.size(); i++) {
+        for (uint64_t i = 0; i < m_options.size(); i++) {
             auto& line = option_lines[i];
             auto& opt = m_options[i];
             line += "  ";
@@ -146,7 +146,7 @@ class args {
             }
         }
         // Resize to make all lines the same size
-        for (size_t i = 0; i < m_options.size(); i++) {
+        for (uint64_t i = 0; i < m_options.size(); i++) {
             auto& line = option_lines[i];
             auto& opt = m_options[i];
 
@@ -177,7 +177,7 @@ class args {
         return false;
     }
 
-    std::string_view get_arg(size_t pos) {
+    std::string_view get_arg(uint64_t pos) {
         if (pos >= m_args_values.size()) return "";
         return m_args_values[pos];
     }

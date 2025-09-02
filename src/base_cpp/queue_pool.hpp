@@ -29,8 +29,8 @@
 template <typename T>
 class queue_pool {
 public:
-    queue_pool(size_t initialSize = 10) {
-        for (size_t i = 0; i < initialSize; ++i) {
+    queue_pool(uint64_t initialSize = 10) {
+        for (uint64_t i = 0; i < initialSize; ++i) {
             m_queue.push(new T());
         }
     }

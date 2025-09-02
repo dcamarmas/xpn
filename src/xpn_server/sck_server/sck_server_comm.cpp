@@ -183,7 +183,7 @@ void sck_server_control_comm::disconnect ( xpn_server_comm* comm )
 int64_t sck_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
 {
   int ret;
-  size_t received = 0;
+  uint64_t received = 0;
   char * msg_p = reinterpret_cast<char*>(&msg);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] >> Begin");
@@ -241,7 +241,7 @@ int64_t sck_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] 
   }
 
   // Get message
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] Read data tag "<< tag_client_id);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] Read data tag "<<tag_client_id<<" size "<<size);
 
   ret = socket::recv(m_socket, data, size);
   if (ret <= 0) {
@@ -271,7 +271,7 @@ int64_t sck_server_comm::write_data ( const void *data, int64_t size, [[maybe_un
   }
 
   // Send message
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] Write data tag "<< tag_client_id);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] Write data tag "<<tag_client_id<<" size "<<size);
 
   ret = socket::send(m_socket, data, size);
   if (ret <= 0) {

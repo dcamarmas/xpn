@@ -316,7 +316,7 @@ int xpn_controller::recv_expand_new(int socket) {
     auto it = std::remove_if(new_servers.begin(), new_servers.end(), [&old_servers](const std::string_view &srv) {
         return std::find(old_servers.begin(), old_servers.end(), srv) != old_servers.end();
     });
-    size_t num_erased = new_servers.end() - it;
+    uint64_t num_erased = new_servers.end() - it;
     new_servers.erase(it, new_servers.end());
 
     if (num_erased != old_servers.size()) {
@@ -422,7 +422,7 @@ int xpn_controller::recv_shrink_change(int socket) {
     auto it = std::remove_if(servers.begin(), servers.end(), [&to_remove_servers](const std::string_view &srv) {
         return std::find(to_remove_servers.begin(), to_remove_servers.end(), srv) != to_remove_servers.end();
     });
-    size_t num_erased = servers.end() - it;
+    uint64_t num_erased = servers.end() - it;
     servers.erase(it, servers.end());
 
     if (num_erased != to_remove_servers.size()) {

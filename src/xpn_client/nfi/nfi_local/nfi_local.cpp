@@ -84,9 +84,9 @@ int nfi_local::nfi_close (const xpn_fh &fh)
   }
 }
 
-ssize_t nfi_local::nfi_read (const xpn_fh &fh, char *buffer, int64_t offset, uint64_t size)
+int64_t nfi_local::nfi_read (const xpn_fh &fh, char *buffer, int64_t offset, uint64_t size)
 {
-  ssize_t ret;
+  int64_t ret;
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_read] >> Begin");
 
@@ -133,9 +133,9 @@ cleanup_nfi_local_read:
   return ret;
 }
 
-ssize_t nfi_local::nfi_write (const xpn_fh &fh, const char *buffer, int64_t offset, uint64_t size)
+int64_t nfi_local::nfi_write (const xpn_fh &fh, const char *buffer, int64_t offset, uint64_t size)
 {
-  ssize_t ret;
+  int64_t ret;
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_write] >> Begin");
 
@@ -241,7 +241,7 @@ int nfi_local::nfi_getattr (const std::string &path, struct ::stat &st)
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_getattr] nfi_local_getattr("<<srv_path<<")");
 
-  ret = PROXY(__xstat)(_STAT_VER, srv_path.c_str(), &st);
+  ret = PROXY(stat)(srv_path.c_str(), &st);
   if (ret < 0)
   {
     debug_error("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_getattr] ERROR: real_posix_stat fails to stat '"<<srv_path<<"'");
@@ -314,7 +314,7 @@ int nfi_local::nfi_opendir(const std::string &path, xpn_fh &fho)
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_opendir] nfi_local_opendir("<<fho.path<<")="<<s);
 
-  fho.dir = s;
+  fho.dir = reinterpret_cast<int64_t>(s);
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_opendir] >> End");
 
@@ -341,7 +341,7 @@ int nfi_local::nfi_readdir(xpn_fh &fhd, struct ::dirent &entry)
     
     PROXY(seekdir)(s, fhd.telldir);
   }else{
-    s = fhd.dir;
+    s = reinterpret_cast<::DIR*>(fhd.dir);
   }
   // Reset errno
   errno = 0;
@@ -373,7 +373,7 @@ int nfi_local::nfi_closedir (const xpn_fh &fhd)
 
     debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_closedir] nfi_local_closedir("<<fhd.dir<<")");
 
-    ret = PROXY(closedir)(fhd.dir);
+    ret = PROXY(closedir)(reinterpret_cast<::DIR*>(fhd.dir));
 
     debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_closedir] nfi_local_closedir("<<fhd.dir<<")="<<ret);
     debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_closedir] >> End");
@@ -473,7 +473,7 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata::dat
   if(only_file_size){
     // struct st_xpn_server_status req;
     struct st_xpn_server_write_mdata_file_size msg;
-    std::size_t length = srv_path.copy(msg.path.path, srv_path.size());
+    uint64_t length = srv_path.copy(msg.path.path, srv_path.size());
     msg.path.path[length] = '\0';
     msg.path.size = length + 1;
     msg.size = mdata.file_size;

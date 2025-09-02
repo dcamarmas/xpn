@@ -212,7 +212,7 @@ int64_t nfi_sck_server_comm::write_data(const void *data, int64_t size) {
     }
 
     // Send message
-    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_data] Write data");
+    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_data] Write data size "<<size);
 
     ret = socket::send(m_socket, data, size);
     if (ret < 0) {
@@ -226,7 +226,7 @@ int64_t nfi_sck_server_comm::write_data(const void *data, int64_t size) {
     return size;
 }
 
-int64_t nfi_sck_server_comm::read_data(void *data, ssize_t size) {
+int64_t nfi_sck_server_comm::read_data(void *data, int64_t size) {
     int ret;
 
     debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_read_data] >> Begin");
@@ -241,7 +241,7 @@ int64_t nfi_sck_server_comm::read_data(void *data, ssize_t size) {
     }
 
     // Get message
-    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_read_data] Read data");
+    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_read_data] Read data size "<<size);
 
     ret = socket::recv(m_socket, data, size);
     if (ret < 0) {

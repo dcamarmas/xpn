@@ -94,7 +94,7 @@ void print_stats(std::string hostfile, std::string action)
     double comb_bandwidth_net_write = 0;
     double comb_bandwidth_total_read = 0;
     double comb_bandwidth_total_write = 0;
-    std::array<double, static_cast<size_t>(xpn_server_ops::size)> comb_ops = {};
+    std::array<double, static_cast<uint64_t>(xpn_server_ops::size)> comb_ops = {};
 
     for (auto &name : srv_names)
     {
@@ -140,7 +140,7 @@ void print_stats(std::string hostfile, std::string action)
         comb_bandwidth_net_write += stat_buff.m_write_net.get_bandwidth();
         comb_bandwidth_total_read += stat_buff.m_read_total.get_bandwidth();
         comb_bandwidth_total_write += stat_buff.m_write_total.get_bandwidth();
-        for (size_t i = 0; i < comb_ops.size(); i++)
+        for (uint64_t i = 0; i < comb_ops.size(); i++)
         {
             comb_ops[i] += stat_buff.m_ops_stats[i].get_ops_sec();
         }
@@ -158,7 +158,7 @@ void print_stats(std::string hostfile, std::string action)
 
     if (action == actions::comb_ops || actions::is_all(action)){
         std::cout << "Combination ops/sec :" << std::endl;
-        for (size_t i = 0; i < comb_ops.size(); i++)
+        for (uint64_t i = 0; i < comb_ops.size(); i++)
         {
             std::cout << std::setw(22) << xpn_server_ops_names[i] << " : " << std::fixed << std::setprecision(2) << std::setw(10) << comb_ops[i] << " ops/sec" << std::endl;
         }
@@ -171,7 +171,7 @@ void print_stats(std::string hostfile, std::string action)
 void show_usage(){
     
     std::cout << "Usage: xpn_server_stats <hostfile> <optional action:";
-    for (size_t i = 0; i < actions::list.size(); i++)
+    for (uint64_t i = 0; i < actions::list.size(); i++)
     {
         std::cout << actions::list[i];
         if (i < actions::list.size() - 1) {

@@ -30,8 +30,8 @@ namespace XPN {
 
 class filesystem {
    public:
-    static ssize_t write(int fd, const void* data, size_t len) {
-        ssize_t ret = 0;
+    static int64_t write(int fd, const void* data, uint64_t len) {
+        int64_t ret = 0;
         int r;
         int l = len;
         const char* buffer = static_cast<const char*>(data);
@@ -54,11 +54,11 @@ class filesystem {
         return ret;
     }
 
-    static ssize_t pwrite(int fd, const void* data, size_t len, off_t offset) {
-        ssize_t ret = 0;
+    static int64_t pwrite(int fd, const void* data, uint64_t len, int64_t offset) {
+        int64_t ret = 0;
         int r;
         int l = len;
-        off_t off = offset;
+        int64_t off = offset;
         const char* buffer = static_cast<const char*>(data);
         debug_info(">> Begin pwrite(" << fd << ", " << len << ", " << offset << ")");
 
@@ -80,8 +80,8 @@ class filesystem {
         return ret;
     }
 
-    static ssize_t read(int fd, void* data, size_t len) {
-        ssize_t ret = 0;
+    static int64_t read(int fd, void* data, uint64_t len) {
+        int64_t ret = 0;
         int r;
         int l = len;
         debug_info(">> Begin");
@@ -104,11 +104,11 @@ class filesystem {
         return ret;
     }
 
-    static ssize_t pread(int fd, void* data, size_t len, off_t offset) {
-        ssize_t ret = 0;
+    static int64_t pread(int fd, void* data, uint64_t len, int64_t offset) {
+        int64_t ret = 0;
         int r;
         int l = len;
-        off_t off = offset;
+        int64_t off = offset;
         debug_info(">> Begin pread(" << fd << ", " << len << ", " << offset << ")");
         char* buffer = static_cast<char*>(data);
 

@@ -169,7 +169,7 @@ int64_t nfi_fabric_server_comm::write_data(const void *data, int64_t size) {
     return size;
 }
 
-int64_t nfi_fabric_server_comm::read_data(void *data, ssize_t size) {
+int64_t nfi_fabric_server_comm::read_data(void *data, int64_t size) {
     XPN_PROFILE_FUNCTION_ARGS(size);
     int ret;
 

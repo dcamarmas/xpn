@@ -34,9 +34,9 @@ namespace XPN
 
     void xpn_rw_buffer::calculate_reads()
     {
-        off_t new_offset, l_offset;
+        int64_t new_offset, l_offset;
         int l_serv;
-        size_t l_size, count;
+        uint64_t l_size, count;
 
         new_offset = m_offset;
         count = 0;
@@ -79,7 +79,7 @@ namespace XPN
             {
                 if (!op.was_move()) continue;
                 uint64_t offset = 0;
-                for (size_t i = 0; i < op.origin_buffer.size(); i++)
+                for (uint64_t i = 0; i < op.origin_buffer.size(); i++)
                 {
                     std::copy(op.v_buffer.begin()+offset, op.v_buffer.begin()+offset+op.origin_buffer_size[i], op.origin_buffer[i]);
                     offset += op.origin_buffer_size[i];
@@ -90,9 +90,9 @@ namespace XPN
 
     void xpn_rw_buffer::calculate_writes()
     {
-        off_t new_offset, l_offset;
+        int64_t new_offset, l_offset;
         int l_serv;
-        size_t l_size = 0, count;
+        uint64_t l_size = 0, count;
 
         new_offset = m_offset;
         count = 0;
@@ -135,7 +135,7 @@ namespace XPN
         {   
             if (serv_ops.size() < 2) continue;
             std::sort(serv_ops.begin(), serv_ops.end(), [](rw_buffer &a, rw_buffer &b){return a.offset_serv<b.offset_serv;});
-            for (size_t i = 0; i < serv_ops.size()-1;)
+            for (uint64_t i = 0; i < serv_ops.size()-1;)
             {   
                 rw_buffer &actual = serv_ops[i];
                 rw_buffer &next = serv_ops[i+1];
@@ -160,9 +160,9 @@ namespace XPN
         debug_info(to_string());
     }
 
-    size_t xpn_rw_buffer::num_ops()
+    uint64_t xpn_rw_buffer::num_ops()
     {
-        size_t count = 0;
+        uint64_t count = 0;
         for (auto &srv_ops : m_ops)
         {
             count += srv_ops.size();
@@ -170,7 +170,7 @@ namespace XPN
         return count;
     }
 
-    size_t xpn_rw_buffer::size()
+    uint64_t xpn_rw_buffer::size()
     {
         int count = 0;
         for (auto &srv_ops : m_ops)
@@ -195,10 +195,10 @@ namespace XPN
         out << " size " << m_size;
         out << " off " << m_offset << std::endl;
 
-        for (size_t i = 0; i < m_ops.size(); i++)
+        for (uint64_t i = 0; i < m_ops.size(); i++)
         {
             out << "Ops in serv " << i << ":" << std::endl;
-            for (size_t j = 0; j < m_ops[i].size(); j++)
+            for (uint64_t j = 0; j < m_ops[i].size(); j++)
             {
                 out << "    " << m_ops[i][j].to_string() << std::endl;
             }

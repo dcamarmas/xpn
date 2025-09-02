@@ -51,10 +51,10 @@ namespace XPN
             constexpr static const int PING_CODE            = 333;
         };
     public:
-        static int64_t send ( int socket, const void * buffer, size_t size );
-        static int64_t recv ( int socket, void * buffer, size_t size );
+        static int64_t send ( int socket, const void * buffer, uint64_t size );
+        static int64_t recv ( int socket, void * buffer, uint64_t size );
         static int64_t send_line ( int socket, const char *buffer );
-        static int64_t recv_line ( int socket, char *buffer, size_t n );
+        static int64_t recv_line ( int socket, char *buffer, uint64_t n );
         static int64_t send_str ( int socket, const std::string& str );
         static int64_t send_str ( int socket, const std::string_view& str );
         static int64_t recv_str ( int socket, std::string& str );

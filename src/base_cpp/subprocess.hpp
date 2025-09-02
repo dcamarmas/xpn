@@ -84,7 +84,7 @@ class subprocess {
 
         void execute(const std::string& command, bool supress_output = true) {
             std::vector<std::string> args;
-            size_t start = 0, end = 0;
+            uint64_t start = 0, end = 0;
 
             while ((end = command.find(' ', start)) != std::string::npos) {
                 args.push_back(command.substr(start, end - start));

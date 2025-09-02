@@ -37,7 +37,7 @@
 
 namespace XPN
 {
-    int64_t socket::send ( int socket, const void * buffer, size_t size )
+    int64_t socket::send ( int socket, const void * buffer, uint64_t size )
     {
         int64_t ret;
 
@@ -49,7 +49,7 @@ namespace XPN
         return size;
     }
 
-    int64_t socket::recv ( int socket, void * buffer, size_t size )
+    int64_t socket::recv ( int socket, void * buffer, uint64_t size )
     {
         int64_t ret;
 
@@ -66,10 +66,10 @@ namespace XPN
         return socket::send(socket, buffer, strlen(buffer)+1);
     }
 
-    int64_t socket::recv_line ( int socket, char *buffer, size_t n )
+    int64_t socket::recv_line ( int socket, char *buffer, uint64_t n )
     {
         int64_t numRead;  /* bytes read in the last read() */
-        size_t totRead;   /* total bytes read so far */
+        uint64_t totRead;   /* total bytes read so far */
         char *buf;
         char ch;
 
@@ -115,7 +115,7 @@ namespace XPN
     int64_t socket::send_str ( int socket, const std::string_view& str )
     {
         int64_t ret;
-        size_t size_str = str.size();
+        uint64_t size_str = str.size();
         debug_info("Send_str size "<<size_str);
         ret = socket::send(socket, &size_str, sizeof(size_str));
         if (ret != sizeof(size_str)){
@@ -137,7 +137,7 @@ namespace XPN
     int64_t socket::recv_str ( int socket, std::string& str )
     {
         int64_t ret;
-        size_t size_str = 0;
+        uint64_t size_str = 0;
         ret = socket::recv(socket, &size_str, sizeof(size_str));
         if (ret != sizeof(size_str)){
             print_error("send size of string");

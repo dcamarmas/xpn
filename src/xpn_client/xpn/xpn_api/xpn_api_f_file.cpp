@@ -91,19 +91,19 @@ namespace XPN
         return res;
     }
 
-    size_t xpn_api::fread(void *ptr, size_t size, size_t nmemb, FILE *stream)
+    uint64_t xpn_api::fread(void *ptr, uint64_t size, uint64_t nmemb, FILE *stream)
     {
         XPN_DEBUG_BEGIN;
-        size_t res = 0;
+        uint64_t res = 0;
         res = read(stream->_fileno, ptr, size*nmemb);
         XPN_DEBUG_END;
         return res;
     }
 
-    size_t xpn_api::fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
+    uint64_t xpn_api::fwrite(const void *ptr, uint64_t size, uint64_t nmemb, FILE *stream)
     {
         XPN_DEBUG_BEGIN;
-        size_t res = 0;
+        uint64_t res = 0;
         res = write(stream->_fileno, ptr, size*nmemb);
         XPN_DEBUG_END;
         return res;
@@ -112,7 +112,7 @@ namespace XPN
     int xpn_api::fseek(FILE *stream, long offset, int whence)
     {
         XPN_DEBUG_BEGIN;
-        off_t res;
+        int64_t res;
         res = lseek(stream->_fileno, offset, whence);
         XPN_DEBUG_END;
         return static_cast<int>(res);

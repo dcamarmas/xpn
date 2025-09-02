@@ -39,7 +39,7 @@ int xpn_file_table::insert(std::shared_ptr<xpn_file> file) {
     int fd;
     if (m_free_keys.empty()) {
         while (has(secuencial_key)) {
-            debug_info("Has " << fd << " increment");
+            debug_info("Has " << secuencial_key << " increment");
             secuencial_key++;
         }
         fd = secuencial_key;

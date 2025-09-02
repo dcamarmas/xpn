@@ -105,7 +105,7 @@ namespace XPN
                 return -1;
             }
 
-            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" -> "<<ret);
+            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" "<<xpn_server_ops_name(op)<<" -> "<<ret);
 
             debug_info("[NFI_XPN] [nfi_write_operation] >> End");
 
@@ -115,7 +115,7 @@ namespace XPN
         template<typename msg_struct, typename req_struct>
         int nfi_do_request ( xpn_server_ops op, msg_struct &msg, req_struct &req )
         {
-            ssize_t ret;
+            int64_t ret;
             debug_info("[NFI_XPN] [nfi_server_do_request] >> Begin");
 
             if (!xpn_env::get_instance().xpn_session_connect && m_comm == nullptr){
@@ -123,7 +123,7 @@ namespace XPN
             }
 
             // send request...
-            debug_info("[NFI_XPN] [nfi_server_do_request] Send operation: "<<static_cast<int>(op));
+            debug_info("[NFI_XPN] [nfi_server_do_request] Send operation: "<<static_cast<int>(op)<<" "<<xpn_server_ops_name(op));
 
             ret = nfi_write_operation(op, msg);
             if (ret < 0) {
@@ -132,12 +132,18 @@ namespace XPN
             }
 
             // read response...
-            debug_info("[NFI_XPN] [nfi_server_do_request] Response operation: "<<static_cast<int>(op));
-
+            debug_info("[NFI_XPN] [nfi_server_do_request] Response operation: "<<static_cast<int>(op)<<" "<<xpn_server_ops_name(op)<<" to read "<<sizeof(req));
             ret = m_comm->read_data((void *)&(req), sizeof(req));
             if (ret < 0) {
                 return -1;
             }
+            
+            #ifdef DEBUG
+            if constexpr (std::is_same<req_struct, st_xpn_server_status>::value) {
+                debug_info("[NFI_XPN] [nfi_server_do_request] req ret "<<req.ret<<" server_errno "<<req.server_errno);
+            }
+            #endif
+
 
             if (!xpn_env::get_instance().xpn_session_connect){
                 m_control_comm->disconnect(m_comm);

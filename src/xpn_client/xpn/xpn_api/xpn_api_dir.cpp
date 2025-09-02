@@ -28,9 +28,9 @@ struct __dirstream
 {
     int fd;                       // File descriptor.
     //__libc_lock_define (, lock) // Mutex lock for this structure. //TODO
-    size_t allocation;            // Space allocated for the block.
-    size_t size;                  // Total valid data in the block.
-    size_t offset;                // Current offset into the block.
+    uint64_t allocation;            // Space allocated for the block.
+    uint64_t size;                  // Total valid data in the block.
+    uint64_t offset;                // Current offset into the block.
     off_t  filepos;               // Position of next entry to read.
     /* Directory block.  */
     char data[0] __attribute__ ((aligned (__alignof__ (void*))));
@@ -84,7 +84,7 @@ namespace XPN
         auto file = m_file_table.get(dirp->fd);
         XPN_DEBUG("Close : '"<<file->m_path<<"'")
         std::vector<std::future<int>> v_res(file->m_data_vfh.size());
-        for (size_t i = 0; i < file->m_data_vfh.size(); i++)
+        for (uint64_t i = 0; i < file->m_data_vfh.size(); i++)
         {
             if (file->m_data_vfh[i].is_initialized()){
                 v_res[i] = m_worker->launch([i, &file](){
@@ -180,7 +180,7 @@ namespace XPN
         xpn_file file(file_path, m_partitions.at(part_name));
 
         std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
-        for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+        for (uint64_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             auto& serv = file.m_part.m_data_serv[i];
             v_res[i] = m_worker->launch([&serv, &file, perm](){
@@ -227,7 +227,7 @@ namespace XPN
         xpn_file file(file_path, m_partitions.at(part_name));
 
         std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
-        for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+        for (uint64_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             auto& serv = file.m_part.m_data_serv[i];
             v_res[i] = m_worker->launch([&serv, &file](){

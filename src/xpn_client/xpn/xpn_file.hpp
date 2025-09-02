@@ -34,7 +34,7 @@ namespace XPN
     {
         std::string path;           // url in the server   
         long telldir = 0;           // telldir of directory in the server when XPN_SESSION_DIR is not set
-        DIR *dir = nullptr;         // pointer to directory in the server when XPN_SESSION_DIR set
+        int64_t dir = 0;            // pointer to directory in the server when XPN_SESSION_DIR set
         int fd = -1;                // file_descriptor in the server when XPN_SESSION_FILE set
 
         bool is_initialized() {return !path.empty();}
@@ -90,7 +90,7 @@ namespace XPN
         mode_t m_mode = 0;                  // S_IRUSR , S_IWUSR ,....  
         const xpn_partition &m_part;              // partition
         xpn_metadata m_mdata;               // metadata
-        off_t m_offset = 0;                 // offset of the open file
+        int64_t m_offset = 0;                 // offset of the open file
         std::vector<xpn_fh> m_data_vfh;     // virtual FH
 
     };

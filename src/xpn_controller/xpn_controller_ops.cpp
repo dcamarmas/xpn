@@ -39,7 +39,7 @@ std::string xpn_controller::usage() {
     std::stringstream out;
     out << "xpn_controller [OPTION]... [ACTION]" << std::endl;
     out << "Actions: " << std::endl;
-    size_t max_str = 0;
+    uint64_t max_str = 0;
     for (auto& [key, _] : actions_str) {
         if (max_str < key.size()) {
             max_str = key.size();
@@ -309,7 +309,7 @@ int xpn_controller::start_servers(bool await, int server_cores, bool debug) {
         args.emplace_back("--export=ALL");
         args.emplace_back("--mpi=none");
         std::stringstream servers_list;
-        for (size_t i = 0; i < servers.size(); i++) {
+        for (uint64_t i = 0; i < servers.size(); i++) {
             servers_list << servers[0];
             if (i != (servers.size() - 1)) {
                 servers_list << ",";
@@ -331,7 +331,7 @@ int xpn_controller::start_servers(bool await, int server_cores, bool debug) {
         args.emplace_back("-s");
         std::string protocol;
         std::tie(protocol, std::ignore, std::ignore) = xpn_parser::parse(conf.partitions[0].server_urls[0]);
-        size_t pos = protocol.find('_');
+        uint64_t pos = protocol.find('_');
         args.emplace_back(protocol.substr(0, pos));
         args.emplace_back("-t");
         args.emplace_back("pool");
@@ -505,7 +505,7 @@ int xpn_controller::expand(const std::vector<std::string_view>& new_hostlist) {
 #endif
             args.emplace_back("--export=ALL");
             std::stringstream servers_list;
-            for (size_t i = 0; i < new_hostlist.size(); i++) {
+            for (uint64_t i = 0; i < new_hostlist.size(); i++) {
                 servers_list << new_hostlist[i];
                 if (i != (new_hostlist.size() - 1)) {
                     servers_list << ",";
@@ -596,7 +596,7 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
 #endif
             args.emplace_back("--export=ALL");
             std::stringstream servers_list;
-            for (size_t i = 0; i < old_hostlist.size(); i++) {
+            for (uint64_t i = 0; i < old_hostlist.size(); i++) {
                 servers_list << old_hostlist[i];
                 if (i != (old_hostlist.size() - 1)) {
                     servers_list << ",";
@@ -612,7 +612,7 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
             args.emplace_back(path);
             // The new list of servers
             std::stringstream new_servers_list;
-            for (size_t i = 0; i < new_hostlist.size(); i++) {
+            for (uint64_t i = 0; i < new_hostlist.size(); i++) {
                 new_servers_list << new_hostlist[i];
                 if (i != (new_hostlist.size() - 1)) {
                     new_servers_list << ",";

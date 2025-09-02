@@ -75,7 +75,7 @@ class profiler {
     std::string m_current_session = "";
     std::string m_hostname = "";
     std::list<std::future<int>> m_fut_save_data;
-    constexpr static size_t m_buffer_cap = 1024;
+    constexpr static uint64_t m_buffer_cap = 1024;
     std::vector<profiler_data> m_buffer;
 };
 

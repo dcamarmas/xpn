@@ -76,7 +76,7 @@ namespace XPN
         if ((O_CREAT == (flags & O_CREAT))){
 
             std::vector<std::future<int>> v_res(file->m_part.m_data_serv.size());
-            for (size_t i = 0; i < file->m_part.m_data_serv.size(); i++)
+            for (uint64_t i = 0; i < file->m_part.m_data_serv.size(); i++)
             {
                 auto& serv = file->m_part.m_data_serv[i];
                 if (file->exist_in_serv(i)){
@@ -159,7 +159,7 @@ namespace XPN
         }
 
         std::vector<std::future<int>> v_res(file->m_data_vfh.size());
-        for (size_t i = 0; i < file->m_data_vfh.size(); i++)
+        for (uint64_t i = 0; i < file->m_data_vfh.size(); i++)
         {
             if (file->m_data_vfh[i].fd != -1)
             {
@@ -208,7 +208,7 @@ namespace XPN
         }
 
         std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
-        for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+        for (uint64_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             if (file.exist_in_serv(i)){
                 v_res[i] = m_worker->launch([i, &v_res, &file](){
@@ -269,7 +269,7 @@ namespace XPN
         }
 
         std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
-        for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+        for (uint64_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             if (file.exist_in_serv(i)){
                 if (!new_file.exist_in_serv(i)){

@@ -107,7 +107,7 @@ int xpn_api::destroy() {
 }
 
 int xpn_api::print_partitions() {
-    printf("Partitions size %ld\n", m_partitions.size());
+    printf("Partitions size %d\n", static_cast<int32_t>(m_partitions.size()));
     for (auto &[key, part] : m_partitions) {
         printf("Partition %s:\n", part.m_name.c_str());
         for (auto &serv : part.m_data_serv) {
@@ -140,10 +140,10 @@ int xpn_api::mark_error_server(int index) {
     return res;
 }
 
-int xpn_api::get_block_locality(char *path, off_t offset, int *url_c, char **url_v[]) {
+int xpn_api::get_block_locality(char *path, int64_t offset, int *url_c, char **url_v[]) {
     XPN_DEBUG_BEGIN_CUSTOM(path << ", " << offset);
     int res = 0;
-    off_t local_offset;
+    int64_t local_offset;
     int serv;
 
     std::string file_path;

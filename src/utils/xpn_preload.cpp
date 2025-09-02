@@ -67,13 +67,13 @@
     int fd_src, fd_dest;
     char *buf ;
     int buf_len;
-    off64_t offset_src ;
-    off64_t ret_2;
-    off_t local_offset;
-    off_t local_size = 0;
+    int64_t offset_src ;
+    int64_t ret_2;
+    int64_t local_offset;
+    int64_t local_size = 0;
     int local_server;
     int i;
-    ssize_t read_size, write_size;
+    int64_t read_size, write_size;
     struct stat st;
 
     //Alocate buffer

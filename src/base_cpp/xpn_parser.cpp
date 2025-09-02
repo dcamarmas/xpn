@@ -61,7 +61,7 @@ std::tuple<std::string_view, std::string_view, std::string_view> xpn_parser::par
     std::string_view sv_server;
     std::string_view sv_path;
     // Find the position of "://"
-    size_t protocol_pos = sv_url.find("://");
+    uint64_t protocol_pos = sv_url.find("://");
     if (protocol_pos == std::string_view::npos) {
         std::cerr << "Invalid format of server_url: '://' not found '" << url << "'" << std::endl;
     } else {
@@ -72,7 +72,7 @@ std::tuple<std::string_view, std::string_view, std::string_view> xpn_parser::par
         std::string_view remainder = sv_url.substr(protocol_pos + 3);
 
         // Find the position of the first '/'
-        size_t ip_pos = remainder.find('/');
+        uint64_t ip_pos = remainder.find('/');
         if (ip_pos == std::string_view::npos) {
             std::cerr << "Invalid format: '/' not found after IP '" << url << "'" << std::endl;
         } else {

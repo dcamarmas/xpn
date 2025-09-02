@@ -387,7 +387,9 @@ void xpn_server::op_getattr ( xpn_server_comm &comm, const st_xpn_server_path &h
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_getattr] stat("<<head.path.path<<")");
 
   // do getattr
-  req.status = PROXY(__xstat)(_STAT_VER, head.path.path, &req.attr);
+  struct ::stat st = {};
+  req.status = PROXY(stat)(head.path.path, &st);
+  req.attr = st_xpn_server_stat{&st};
   req.status_req.ret = req.status;
   req.status_req.server_errno = errno;
 
@@ -443,7 +445,7 @@ void xpn_server::op_opendir ( xpn_server_comm &comm, const st_xpn_server_path_fl
 
   if (req.status.ret == 0){
     if (head.xpn_session == 1){
-      req.dir = ret;
+      req.dir = reinterpret_cast<int64_t>(ret);
     }else{
       req.status.ret = PROXY(telldir)(ret);
     }
@@ -473,7 +475,7 @@ void xpn_server::op_readdir ( xpn_server_comm &comm, const st_xpn_server_readdir
   if (head.xpn_session == 1){
     // Reset errno
     errno = 0;
-    ret = PROXY(readdir)(head.dir);
+    ret = PROXY(readdir)(reinterpret_cast<::DIR*>(head.dir));
   }else{
     s = PROXY(opendir)(head.path.path);
     ret_entry.status.ret = s == NULL ? -1 : 0;
@@ -488,12 +490,10 @@ void xpn_server::op_readdir ( xpn_server_comm &comm, const st_xpn_server_readdir
       ret = PROXY(readdir)(s);
     }
   }
-  if (ret != NULL)
-  {
+  if (ret != NULL) {
     ret_entry.end = 1;
-    ret_entry.ret = *ret;
-  }
-  else{
+    ret_entry.ret = st_xpn_server_dirent{ret};
+  } else {
     ret_entry.end = 0;
   }
 
@@ -521,7 +521,7 @@ void xpn_server::op_closedir ( xpn_server_comm &comm, const st_xpn_server_close 
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_closedir] closedir("<<(void*)head.dir<<")");
 
   // do rm
-  status.ret = PROXY(closedir)(head.dir);
+  status.ret = PROXY(closedir)(reinterpret_cast<::DIR*>(head.dir));
   status.server_errno = errno;
   comm.write_data((char *)&status, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
 
@@ -564,7 +564,7 @@ void xpn_server::op_read_mdata   ( xpn_server_comm &comm, const st_xpn_server_pa
 {
   XPN_PROFILE_FUNCTION();
   int ret, fd;
-  struct st_xpn_server_read_mdata_req req;
+  struct st_xpn_server_read_mdata_req req = {};
 
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_read_mdata] >> Begin");
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_read_mdata] read_mdata("<<head.path.path<<")");
@@ -627,6 +627,7 @@ void xpn_server::op_write_mdata ( xpn_server_comm &comm, const st_xpn_server_wri
 cleanup_xpn_server_op_write_mdata:
   req.ret = ret;
   req.server_errno = errno;
+  debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_write_mdata] ret "<<req.ret<<" server_errno "<<req.server_errno);
 
   comm.write_data((char *)&req,sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
 
@@ -663,7 +664,7 @@ cleanup_xpn_server_op_write_mdata:
 
 //   ret = filesystem::pread(fd, &actual_file_size, sizeof(actual_file_size), offsetof(struct xpn_metadata::data, file_size));
 //   if (ret > 0 && actual_file_size < head.size){
-//     ret = filesystem::pwrite(fd, &head.size, sizeof(ssize_t), offsetof(struct xpn_metadata::data, file_size));
+//     ret = filesystem::pwrite(fd, &head.size, sizeof(int64_t), offsetof(struct xpn_metadata::data, file_size));
 //   }
 
 //   PROXY(close)(fd); //TODO: think if necesary check error in close
@@ -737,7 +738,7 @@ void xpn_server::op_write_mdata_file_size ( [[maybe_unused]] xpn_server_comm &co
         ret = filesystem::pread(fd, &actual_file_size, sizeof(actual_file_size), offsetof(xpn_metadata::data, file_size));
 
         if (ret > 0 && actual_file_size < best_file_size){
-          ret = filesystem::pwrite(fd, &best_file_size, sizeof(ssize_t), offsetof(xpn_metadata::data, file_size));
+          ret = filesystem::pwrite(fd, &best_file_size, sizeof(int64_t), offsetof(xpn_metadata::data, file_size));
         }
         
         PROXY(close)(fd); //TODO: think if necesary check error in close
@@ -771,7 +772,9 @@ void xpn_server::op_statvfs ( xpn_server_comm &comm, const st_xpn_server_path &h
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_getattr] statvfs("<<head.path.path<<")");
 
   // do statvfs
-  req.status_req.ret = PROXY(statvfs)(head.path.path, &req.attr);
+  struct ::statvfs attr = {};
+  req.status_req.ret = PROXY(statvfs)(head.path.path, &attr);
+  req.attr = st_xpn_server_statvfs{&attr};
   req.status_req.server_errno = errno;
 
   comm.write_data(&req, sizeof(req), rank_client_id, tag_client_id);
