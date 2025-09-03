@@ -47,7 +47,7 @@ int main ( int argc, char *argv[] )
 
 	fd1 = open(argv[1], O_RDWR);
 	if (fd1 < 0) {
-	    printf("%d = open('%s', %o)\n", ret, argv[1], 00777) ;
+	    printf("%d = open('%s', %o)\n", fd1, argv[1], 00777) ;
 	    return -1 ;
 	}
 
@@ -58,6 +58,9 @@ int main ( int argc, char *argv[] )
 	for (int i = 0; i < mb; i++)
 	{
 	     ret = read(fd1, buffer, BUFF_SIZE);
+		 if (ret < 0) {
+			perror("read");
+		 }
 	  // printf("%d = read_%d(%d, %p, %lu)\n", ret, i, fd1, buffer, (unsigned long)BUFF_SIZE);
 	}
 	

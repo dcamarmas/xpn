@@ -47,7 +47,7 @@ int main ( int argc, char *argv[] )
 
 	fd1 = creat(argv[1], 00777);
 	if (fd1 < 0) {
-	    printf("%d = creat('%s', %o)\n", ret, argv[1], 00777) ;
+	    printf("%d = creat('%s', %o)\n", fd1, argv[1], 00777) ;
 	    return -1 ;
 	}
 
@@ -58,6 +58,9 @@ int main ( int argc, char *argv[] )
 	for (int i = 0; i < mb; i++)
 	{
 	     ret = write(fd1, buffer, BUFF_SIZE);
+		 if (ret < 0) {
+			perror("read");
+		 }
 	  // printf("%d = write_%d(%d, %p, %lu)\n", ret, i, fd1, buffer, (unsigned long)BUFF_SIZE);
 	}
 	
