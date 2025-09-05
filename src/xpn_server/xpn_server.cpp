@@ -27,7 +27,10 @@
 #include "base_cpp/timer.hpp"
 #include "base_cpp/xpn_env.hpp"
 #include "xpn_server_comm.hpp"
+
+#ifdef ENABLE_FABRIC_SERVER
 #include "fabric_server/fabric_server_comm.hpp"
+#endif
 
 #include "xpn_server.hpp"
 
@@ -94,11 +97,11 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] End");
 }
 
-void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
-{
-    int ret;
-
+void xpn_server::fabric_dispatcher ( [[maybe_unused]] xpn_server_comm* comm ) {
+    
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] >> Begin");
+#ifdef ENABLE_FABRIC_SERVER
+    int ret;
     xpn_server_msg* msg;
     xpn_server_ops type_op = xpn_server_ops::size;
     int rank_client_id = 0, tag_client_id = 0;
@@ -132,7 +135,7 @@ void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
 
             fabric_server_control_comm::disconnect(rank_client_id);
             m_clients--;
-
+            
             debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Currently "<<m_clients.load()<<" clients");
             continue;
         }
@@ -145,14 +148,15 @@ void xpn_server::fabric_dispatcher ( xpn_server_comm* comm )
             do_operation(comm, *msg, rank_client_id, tag_client_id, timer);
             msg_pool.release(msg);
         });
-
+        
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Worker launched");
     }
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] Client "<<rank_client_id<<" close");
-
+    
     m_control_comm->disconnect(comm);
-
+    
+#endif
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_fabric_dispatcher] End");
 }
 
@@ -167,6 +171,8 @@ void xpn_server::accept ( int connection_socket )
 
     if (m_params.server_type == XPN_SERVER_TYPE_FABRIC){
         delete comm;
+        
+#ifdef ENABLE_FABRIC_SERVER
         xpn_server_comm* general_comm = new fabric_server_comm(-1);
         static bool only_one = true;
         if (only_one){
@@ -176,6 +182,7 @@ void xpn_server::accept ( int connection_socket )
                 return 0;
             });
         }
+#endif
     }else{
         m_worker1->launch_no_future([this, comm]{
             this->dispatcher(comm);

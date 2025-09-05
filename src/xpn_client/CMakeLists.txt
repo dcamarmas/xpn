@@ -1,12 +1,4 @@
 
-if(ENABLE_MPI_SERVER)
-	link_libraries("${MPI_LIBRARY}")
-	include_directories("${MPI_INCLUDE_DIR}")
-endif()
-if(ENABLE_FABRIC_SERVER)
-	link_libraries(lfi)
-endif()
-
 add_subdirectory(nfi)
 add_subdirectory(xpn)
 
@@ -29,14 +21,6 @@ target_include_directories(xpn PUBLIC
 	"${PROJECT_SOURCE_DIR}/src"
 	"${PROJECT_SOURCE_DIR}/src/xpn_client"
 )
-
-if(ENABLE_MPI_SERVER)
-	target_link_libraries(xpn PUBLIC "${MPI_LIBRARY}")
-	target_include_directories(xpn PUBLIC "${MPI_INCLUDE_DIR}")
-endif()
-if(ENABLE_FABRIC_SERVER)
-	target_link_libraries(xpn PUBLIC lfi)
-endif()
 
 install(TARGETS xpn LIBRARY DESTINATION lib)
 install(TARGETS xpn_shared LIBRARY DESTINATION lib)

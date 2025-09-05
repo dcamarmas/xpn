@@ -1,13 +1,19 @@
 
 set(UTILS_LIST_CPP
-	xpn_flush
-	xpn_preload
-	xpn_expand
-	xpn_shrink
 	# xpn_rebuild_active_reader # TODO: fix with metadata
 	xpn_server_stats
 	xpn_server_monitor
 )
+
+if(ENABLE_MPI_SERVER)
+	list(APPEND UTILS_LIST_CPP 
+		xpn_flush
+		xpn_preload
+		xpn_expand
+		xpn_shrink
+	)
+endif()
+
 
 foreach (util ${UTILS_LIST_CPP})
 	add_executable(${util} ${util}.cpp)

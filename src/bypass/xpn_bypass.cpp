@@ -23,7 +23,9 @@
 // #define DEBUG
 #include "base_cpp/proxy.hpp"
 #include "xpn.h"
+#ifdef ENABLE_MPI_SERVER
 #include "mpi.h"
+#endif
 // #include <signal.h>
 #include <dirent.h>
 #include <dlfcn.h>
@@ -1366,7 +1368,7 @@ extern "C" int fstatfs(int fd, struct statfs *buf) {
 }
 
 // MPI API
-
+#ifdef ENABLE_MPI_SERVER
 extern "C" int MPI_Init ( int *argc, char ***argv )
 {
   char *value;
@@ -1411,3 +1413,4 @@ extern "C" int MPI_Finalize (void)
   debug_info("[BYPASS] << After MPI_Finalize");
   return PMPI_Finalize();
 }
+#endif

@@ -27,6 +27,10 @@
 #include <csignal>
 #include <xpn_server/xpn_server_ops.hpp>
 
+#ifdef ENABLE_MQ_SERVER
+#include "../nfi_mq_server/nfi_mq_server_comm.hpp"
+#endif
+
 namespace XPN {
 
 nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &srv_name )
@@ -76,9 +80,17 @@ nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &s
     fprintf(stderr, "[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: client_connect(%s,%s)\n", srv_name.c_str(), port_name);
     return nullptr;
   }
+
+  void* res_mqtt = nullptr;
+#ifdef ENABLE_MQ_SERVER
+  mosquitto * mqtt = nullptr;
+  nfi_mq_server::init(&mqtt, srv_name);
+  res_mqtt = mqtt;
+#endif
+
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] << End\n");
 
-  return new (std::nothrow) nfi_sck_server_comm(sd);
+  return new (std::nothrow) nfi_sck_server_comm(sd, res_mqtt);
 }
 
 void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm) 
@@ -104,6 +116,10 @@ void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
   if (ret < 0) {
     printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] ERROR: MPI_Comm_disconnect fails");
   }
+  
+#ifdef ENABLE_MQ_SERVER
+  nfi_mq_server::destroy(static_cast<mosquitto*>(in_comm->m_mqtt));
+#endif
 
   delete comm;
 

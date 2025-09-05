@@ -1,21 +1,13 @@
 
-if(ENABLE_MPI_SERVER)
-    link_libraries("${MPI_LIBRARY}")
-	include_directories("${MPI_INCLUDE_DIR}")
-endif()
-if(ENABLE_FABRIC_SERVER)
-    link_libraries(lfi)
-endif()
-
-file(GLOB_RECURSE XPN_SERVER_HEADERS 
+file(GLOB XPN_SERVER_HEADERS 
     "*.hpp"
 )
 
-file(GLOB_RECURSE XPN_SERVER_SOURCE 
+file(GLOB XPN_SERVER_SOURCE 
     "*.cpp"
 )
 
-add_executable(xpn_server ${XPN_SERVER_SOURCE})
+add_executable(xpn_server ${XPN_SERVER_HEADERS} ${XPN_SERVER_SOURCE})
 
 target_link_libraries(xpn_server PRIVATE xpn_base_cpp)
 
@@ -23,6 +15,11 @@ target_include_directories(xpn_server PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
     "${PROJECT_SOURCE_DIR}/src/xpn_client"
 )
+
+add_subdirectory(fabric_server)
+add_subdirectory(mpi_server)
+add_subdirectory(mq_server)
+add_subdirectory(sck_server)
 
 add_custom_command(
     OUTPUT xpn_stop_server

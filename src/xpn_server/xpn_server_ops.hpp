@@ -156,8 +156,9 @@ struct st_xpn_server_path {
 struct st_xpn_server_close {
     int fd;
     uint64_t dir;
+    xpn_server_path path;
 
-    uint64_t get_size() { return sizeof(*this); }
+    uint64_t get_size() { return offsetof(std::remove_pointer<decltype(this)>::type, path) + path.get_size(); }
 };
 
 struct st_xpn_server_rw {

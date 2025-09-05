@@ -26,6 +26,10 @@
 #include "base_cpp/socket.hpp"
 #include <csignal>
 
+#ifdef ENABLE_MQ_SERVER
+#include "../mq_server/mq_server_comm.hpp"
+#endif
+
 namespace XPN
 {
 sck_server_control_comm::sck_server_control_comm ()
@@ -60,6 +64,13 @@ sck_server_control_comm::sck_server_control_comm ()
     print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_addres with family not supported");
     std::raise(SIGTERM);
   }
+
+#ifdef ENABLE_MQ_SERVER
+  if (xpn_env::get_instance().xpn_mqtt) {
+    mq_server_comm::mq_server_mqtt_init(static_cast<mosquitto*>(mqtt));
+  }
+#endif
+
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] available at "<<m_port_name);
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] accepting...");
 
@@ -68,6 +79,11 @@ sck_server_control_comm::sck_server_control_comm ()
 
 sck_server_control_comm::~sck_server_control_comm()
 {
+#ifdef ENABLE_MQ_SERVER
+  if (xpn_env::get_instance().xpn_mqtt) {
+    mq_server_comm::mq_server_mqtt_destroy(static_cast<mosquitto*>(mqtt));
+  }
+#endif
   socket::close(m_socket);
 }
 

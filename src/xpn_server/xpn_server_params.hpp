@@ -71,10 +71,6 @@ namespace XPN
     workers_mode  thread_mode_operations;
     int  server_type;  // it can be XPN_SERVER_TYPE_MPI, XPN_SERVER_TYPE_SCK
 
-    #ifdef ENABLE_SCK_SERVER
-    int server_socket; // For sck_server
-    #endif
-
     int await_stop;
 
     // server arguments

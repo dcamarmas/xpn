@@ -52,6 +52,8 @@ namespace XPN
     void disconnect(xpn_server_comm *comm) override;
   private:
     int m_socket;
+  public:
+    void* mqtt;
   };
 
 } // namespace XPN
