@@ -101,4 +101,5 @@ struct format_open_mode {
 #define print_error(out_format)                                                                                        \
     std::cerr << std::dec << "[ERROR] [" << ::XPN::file_name(__FILE__) << ":" << __LINE__ << "] [" << __func__ << "] " \
               << out_format << " : " << std::strerror(errno) << std::endl;
+#define unreachable(msg) print_error(msg); std::abort();
 }  // namespace XPN

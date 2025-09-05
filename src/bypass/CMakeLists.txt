@@ -1,4 +1,9 @@
 
+if(ENABLE_MPI_SERVER)
+    link_libraries("${MPI_LIBRARY}")
+    include_directories("${MPI_INCLUDE_DIR}")
+endif()
+
 add_library(xpn_bypass SHARED "xpn_bypass.cpp")
 
 set_target_properties(xpn_bypass PROPERTIES PREFIX "")

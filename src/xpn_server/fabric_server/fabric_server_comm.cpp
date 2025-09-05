@@ -84,6 +84,13 @@ xpn_server_comm* fabric_server_control_comm::accept ( int socket )
   return new (std::nothrow) fabric_server_comm(new_comm);
 }
 
+xpn_server_comm* fabric_server_control_comm::create ( int rank_client_id ) {
+  return new (std::nothrow) fabric_server_comm(rank_client_id);
+}
+
+int fabric_server_control_comm::rearm([[maybe_unused]] int rank_client_id) {
+  return 0;
+}
 
 void fabric_server_control_comm::disconnect ( xpn_server_comm* comm )
 {
@@ -110,11 +117,11 @@ void fabric_server_control_comm::disconnect ( int id )
 }
 
 
-int64_t fabric_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
+int64_t fabric_server_control_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
 {
   XPN_PROFILE_FUNCTION();
   int ret = 0;
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm_read_operation] >> Begin");
 
   if (!shm_request){
     shm_request = {lfi_request_create(LFI_ANY_COMM_SHM), lfi_request_free};
@@ -144,8 +151,8 @@ int64_t fabric_server_comm::read_operation ( xpn_server_msg &msg, int &rank_clie
 
   int completed = lfi_wait_any(requests, 2);
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request shm  (RANK "<<lfi_request_source(shm_request.get())<<", TAG "<<shm_msg.tag<<")");
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request peer (RANK "<<lfi_request_source(peer_request.get())<<", TAG "<<peer_msg.tag<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm_read_operation] request shm  (RANK "<<lfi_request_source(shm_request.get())<<", TAG "<<shm_msg.tag<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm_read_operation] request peer (RANK "<<lfi_request_source(peer_request.get())<<", TAG "<<peer_msg.tag<<")");
   if (completed == 0){
     rank_client_id = lfi_request_source(shm_request.get());
     tag_client_id  = shm_msg.tag;
@@ -176,7 +183,80 @@ int64_t fabric_server_comm::read_operation ( xpn_server_msg &msg, int &rank_clie
     return -1;
   }
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] read (RANK "<<rank_client_id<<", TAG "<<tag_client_id<<") = "<<ret);
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm_read_operation] read (RANK "<<rank_client_id<<", TAG "<<tag_client_id<<") = "<<ret);
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm_read_operation] << End");
+
+  // Return OK
+  return ret;
+}
+
+int64_t fabric_server_comm::read_operation ([[maybe_unused]] xpn_server_msg &msg,[[maybe_unused]] int &rank_client_id,[[maybe_unused]] int &tag_client_id )
+{
+  XPN_PROFILE_FUNCTION();
+  int ret = 0;
+  debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] >> Begin");
+
+  // if (!shm_request){
+  //   shm_request = {lfi_request_create(LFI_ANY_COMM_SHM), lfi_request_free};
+  //   if (!shm_request){
+  //       print("Error shm_request is null");
+  //   }
+
+  //   if (lfi_trecv_async(shm_request.get(), &shm_msg, sizeof(shm_msg), 0) < 0){
+  //       print("Error in lfi_trecv_async")
+  //       return -1;
+  //   }
+  // }
+
+  // if (!peer_request){
+  //   peer_request = {lfi_request_create(LFI_ANY_COMM_PEER), lfi_request_free};
+  //   if (!peer_request){
+  //       print("Error peer_request is null");
+  //   }
+
+  //   if (lfi_trecv_async(peer_request.get(), &peer_msg, sizeof(peer_msg), 0) < 0){
+  //       print("Error in lfi_trecv_async")
+  //       return -1;
+  //   }
+  // }
+
+  // lfi_request *requests[2] = {shm_request.get(), peer_request.get()};
+
+  // int completed = lfi_wait_any(requests, 2);
+
+  // debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request shm  (RANK "<<lfi_request_source(shm_request.get())<<", TAG "<<shm_msg.tag<<")");
+  // debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] request peer (RANK "<<lfi_request_source(peer_request.get())<<", TAG "<<peer_msg.tag<<")");
+  // if (completed == 0){
+  //   rank_client_id = lfi_request_source(shm_request.get());
+  //   tag_client_id  = shm_msg.tag;
+  //   ret = lfi_request_size(shm_request.get());
+  //   std::memcpy(&msg, &shm_msg, shm_msg.get_size());
+
+  //   // shm_msg = {};
+
+  //   // Reuse the request for a new recv
+  //   if (lfi_trecv_async(shm_request.get(), &shm_msg, sizeof(shm_msg), 0) < 0){
+  //       print("Error in lfi_trecv_async")
+  //       return -1;
+  //   }
+  // }else if (completed == 1){
+  //   rank_client_id = lfi_request_source(peer_request.get());
+  //   tag_client_id  = peer_msg.tag;
+  //   ret = lfi_request_size(peer_request.get());
+  //   std::memcpy(&msg, &peer_msg, peer_msg.get_size());
+
+  //   // peer_msg = {};
+
+  //   // Reuse the request for a new recv
+  //   if (lfi_trecv_async(peer_request.get(), &peer_msg, sizeof(peer_msg), 0) < 0){
+  //       print("Error in lfi_trecv_async")
+  //       return -1;
+  //   }
+  // }else{
+  //   return -1;
+  // }
+
+  // debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] read (RANK "<<rank_client_id<<", TAG "<<tag_client_id<<") = "<<ret);
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_read_operation] << End");
 
   // Return OK

@@ -30,10 +30,6 @@
   #include <ctype.h>
   #include "base_cpp/workers.hpp"
 
-  #if defined(ENABLE_MPI_SERVER)
-  #include "mpi.h"
-  #endif
-
   /* ... Const / Const ................................................. */
 
   #define XPN_SERVER_TYPE_MPI 0
@@ -46,12 +42,7 @@ namespace XPN
   constexpr const int MB = (KB*KB);
   constexpr const int GB = (KB*MB);
   constexpr const int MAX_BUFFER_SIZE = (1*MB);
-
-  #ifdef MPI_MAX_PORT_NAME
-    constexpr const int MAX_PORT_NAME = MPI_MAX_PORT_NAME;
-  #else
-    constexpr const int MAX_PORT_NAME = 1024;
-  #endif
+  constexpr const int MAX_PORT_NAME = 1024;
 
   /* ... Data structures / Estructuras de datos ........................ */
 

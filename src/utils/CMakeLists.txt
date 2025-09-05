@@ -12,6 +12,9 @@ if(ENABLE_MPI_SERVER)
 		xpn_expand
 		xpn_shrink
 	)
+	
+    link_libraries("${MPI_LIBRARY}")
+    include_directories("${MPI_INCLUDE_DIR}")
 endif()
 
 

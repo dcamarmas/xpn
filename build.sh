@@ -9,14 +9,16 @@ fi
 
 cd $1
 
-cmake -S .. -B . \
-    -D BUILD_TESTS=true \
-    -D CMAKE_INSTALL_PREFIX=$2 \
-    -D CMAKE_C_COMPILER=gcc \
-    -D CMAKE_CXX_COMPILER=g++ \
-    -D ENABLE_MPI_SERVER=off \
-    -D ENABLE_FABRIC_SERVER=off \
-    -D ENABLE_MQ_SERVER=off
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/install/lib
+
+# cmake -S .. -B . \
+#     -D BUILD_TESTS=true \
+#     -D CMAKE_INSTALL_PREFIX=$2 \
+#     -D CMAKE_C_COMPILER=gcc \
+#     -D CMAKE_CXX_COMPILER=g++ \
+#     -D ENABLE_MPI_SERVER=off \
+#     -D ENABLE_FABRIC_SERVER=off \
+#     -D ENABLE_MQ_SERVER=off
 
 # cmake -S .. -B . \
 #     -D BUILD_TESTS=true \
@@ -36,6 +38,15 @@ cmake -S .. -B . \
 #     -D ENABLE_MPI_SERVER=off \
 #     -D ENABLE_FABRIC_SERVER=/home/lab/bin/libfabric \
 #     -D ENABLE_MQ_SERVER=/usr/lib/x86_64-linux-gnu
+
+cmake -S .. -B . \
+    -D BUILD_TESTS=true \
+    -D CMAKE_INSTALL_PREFIX=$2 \
+    -D CMAKE_C_COMPILER=gcc \
+    -D CMAKE_CXX_COMPILER=g++ \
+    -D ENABLE_MPI_SERVER=/usr/lib/x86_64-linux-gnu/mpich \
+    -D ENABLE_FABRIC_SERVER=/home/lab/bin/libfabric \
+    -D ENABLE_MQ_SERVER=/usr/lib/x86_64-linux-gnu
 
 # cmake -S .. -B . \
 #     -D BUILD_TESTS=true \

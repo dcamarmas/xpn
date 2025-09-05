@@ -42,7 +42,7 @@ namespace XPN
 
         void accept(int socket);
         void dispatcher(xpn_server_comm *comm);
-        void fabric_dispatcher(xpn_server_comm *comm);
+        void one_dispatcher();
         void do_operation(xpn_server_comm *comm, const xpn_server_msg& msg, int rank_client_id, int tag_client_id, timer timer);
         void finish();
 
@@ -55,8 +55,10 @@ namespace XPN
         xpn_stats m_stats;
         std::unique_ptr<xpn_window_stats> m_window_stats;
 
-        std::atomic_bool m_disconnect = {false};
-        std::atomic_int64_t m_clients = {0};
+        bool m_disconnect = false;
+        int64_t m_clients = 0;
+        std::mutex m_clients_mutex = {};
+        std::condition_variable m_clients_cv = {};
 
         queue_pool<xpn_server_msg> msg_pool;
 

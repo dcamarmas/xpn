@@ -47,6 +47,12 @@ namespace XPN
     virtual xpn_server_comm* accept(int socket) = 0;
     virtual void disconnect(xpn_server_comm *comm) = 0;
 
+    // Multiplexing
+    virtual xpn_server_comm* create(int rank_client_id) = 0;
+    virtual int rearm(int rank_client_id) = 0;
+    virtual void disconnect(int rank_client_id) = 0;
+    virtual int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) = 0;
+
     static std::unique_ptr<xpn_server_control_comm> Create(xpn_server_params &params);
   public:
     std::string m_port_name = std::string(MAX_PORT_NAME, '\0');

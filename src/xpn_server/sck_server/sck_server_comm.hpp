@@ -50,8 +50,15 @@ namespace XPN
     
     xpn_server_comm* accept(int socket) override;
     void disconnect(xpn_server_comm *comm) override;
+    
+    xpn_server_comm* create(int rank_client_id) override;
+    int rearm(int rank_client_id) override;
+    void disconnect(int rank_client_id) override;
+    int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) override;
   private:
     int m_socket;
+    int m_epoll;
+
   public:
     void* mqtt;
   };

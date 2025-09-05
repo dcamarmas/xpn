@@ -29,6 +29,7 @@
 #ifdef ENABLE_MQ_SERVER
 #include "../mq_server/mq_server_comm.hpp"
 #endif
+#include <sys/epoll.h>
 
 namespace XPN
 {
@@ -70,6 +71,12 @@ sck_server_control_comm::sck_server_control_comm ()
     mq_server_comm::mq_server_mqtt_init(static_cast<mosquitto*>(mqtt));
   }
 #endif
+
+  m_epoll = epoll_create1(0);
+  if (m_epoll == -1) {
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: epoll cannot create "<<strerror(errno));
+    std::raise(SIGTERM);
+  }
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] available at "<<m_port_name);
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] accepting...");
@@ -138,17 +145,43 @@ xpn_server_comm* sck_server_control_comm::accept ( int socket )
     return nullptr;
   }
 
+  struct epoll_event event;
+  event.events = EPOLLIN | EPOLLONESHOT;
+  event.data.fd = sc;
+
+  if (epoll_ctl(m_epoll, EPOLL_CTL_ADD, sc, &event) == -1) {
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] Error: epoll_ctl fails "<<strerror(errno));
+    return nullptr;
+  }
+
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] << End");
 
   return new (std::nothrow) sck_server_comm(sc);
 }
 
+int sck_server_control_comm::rearm(int socket) {
+  
+  struct epoll_event event;
+  event.events = EPOLLIN | EPOLLONESHOT;
+  event.data.fd = socket;
+
+  if (epoll_ctl(m_epoll, EPOLL_CTL_MOD, socket, &event) == -1) {
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] Error: epoll_ctl fails "<<strerror(errno));
+    return -1;
+  }
+  return 0;
+}
 
 void sck_server_control_comm::disconnect ( xpn_server_comm* comm )
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] >> Begin");
   
   sck_server_comm *in_comm = static_cast<sck_server_comm*>(comm);
+
+  if (epoll_ctl(m_epoll, EPOLL_CTL_DEL, in_comm->m_socket, NULL) == -1){
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] Error: epoll_ctl "<<strerror(errno));
+  }
+
   socket::close(in_comm->m_socket);
 
   delete comm;
@@ -156,50 +189,87 @@ void sck_server_control_comm::disconnect ( xpn_server_comm* comm )
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] << End");
 }
 
+void sck_server_control_comm::disconnect ( int socket )
+{
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] >> Begin");
+  
+  socket::close(socket);
 
-int64_t sck_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] << End");
+}
+
+xpn_server_comm* sck_server_control_comm::create ( int rank_client_id ) {
+  return new (std::nothrow) sck_server_comm(rank_client_id);
+}
+
+int64_t sck_read_operation ( int socket, xpn_server_msg &msg, int &tag_client_id )
 {
   int ret;
   uint64_t received = 0;
   char * msg_p = reinterpret_cast<char*>(&msg);
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] >> Begin");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] >> Begin");
 
   // Get message
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] Read operation");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] Read operation");
 
   // Receive the head
   while(received < msg.get_header_size()) {
-    ret = PROXY(read)(m_socket, msg_p+received, msg.get_header_size()-received);
+    ret = PROXY(read)(socket, msg_p+received, msg.get_header_size()-received);
     if (ret <= 0) {
-      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] ERROR: read fails");
+      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] ERROR: read fails");
       return -1;
     }
     received += ret;
-    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] received "<<received<<" msg header size "<<msg.get_header_size());
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] received "<<received<<" msg header size "<<msg.get_header_size());
   }
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] readed the msg header");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] readed the msg header");
   
   // Receive the rest of the msg
   while (received < msg.get_size()) {
-    ret = PROXY(read)(m_socket, msg_p+received, msg.get_size()-received);
+    ret = PROXY(read)(socket, msg_p+received, msg.get_size()-received);
     if (ret <= 0) {
-      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] ERROR: read fails");
+      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] ERROR: read fails");
       return -1;
     }
     received += ret;
-    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] received "<<received<<" msg size "<<msg.get_size());
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] received "<<received<<" msg size "<<msg.get_size());
   }
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] readed the msg");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] readed the msg");
   
-  rank_client_id = 0;
   tag_client_id  = msg.tag;
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] read (SOURCE "<<m_socket<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] << End");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] read (SOURCE "<<socket<<", TAG "<<tag_client_id<<", ERROR "<<ret<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] << End");
 
   // Return OK
   return 0;
+}
+
+int64_t sck_server_control_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
+{
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_control_comm_read_operation] >> Begin");
+  struct epoll_event event;
+
+  int nfds = epoll_wait(m_epoll, &event, 1, -1);
+  if (nfds == -1) {
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_control_comm_read_operation] Error epoll_wait "<<strerror(errno));
+    return -1;
+  }
+
+  int socket = event.data.fd;
+  rank_client_id = socket;
+  auto ret = sck_read_operation(socket, msg, tag_client_id);
+
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_control_comm_read_operation] << End");
+
+  return ret;
+}
+
+int64_t sck_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
+{
+  rank_client_id = 0;
+  return sck_read_operation(m_socket, msg, tag_client_id);
 }
 
 int64_t sck_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
