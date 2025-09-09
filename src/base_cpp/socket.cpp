@@ -233,6 +233,29 @@ namespace XPN
         return 0;
     }
 
+    int socket::server_port( int socket ) {
+        struct sockaddr_storage server_addr;
+        socklen_t len = sizeof(server_addr);
+        int ret = ::getsockname(socket, (struct sockaddr *)&server_addr, &len);
+        if (ret < 0) {
+            debug_error("[SOCKET] [socket::server_port] ERROR: getsockname fails");
+            return -1;
+        }
+        
+        if (server_addr.ss_family == AF_INET) {
+            const sockaddr_in* sin = reinterpret_cast<const sockaddr_in*>(&server_addr);
+            ret = ntohs(sin->sin_port);
+        } else if (server_addr.ss_family == AF_INET6) {
+            const sockaddr_in6* sin6 = reinterpret_cast<const sockaddr_in6*>(&server_addr);
+            ret = ntohs(sin6->sin6_port);
+        } else {
+            debug_error("[SOCKET] [socket::server_port] ERROR: socket server_addres with family not supported");
+            return -1;
+        }
+        debug_info("[SOCKET] [socket::server_port] port "<<ret);
+        return ret;
+    }
+
     int socket::server_accept ( int socket, int &out_conection_socket )
     {
         struct sockaddr_storage client_addr;

@@ -60,17 +60,19 @@ fabric_server_control_comm::~fabric_server_control_comm()
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [~fabric_server_control_comm] >> End");
 }
 
-xpn_server_comm* fabric_server_control_comm::accept ( int socket )
+xpn_server_comm* fabric_server_control_comm::accept ( int socket, bool sendData )
 {
   XPN_PROFILE_FUNCTION();
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_accept] >> Begin");
-
-  int ret = 0;
   
-  ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: socket send port fails");
-    return nullptr;
+  int ret = 0;
+  if (sendData) {
+    debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_accept] send port");
+    ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
+    if (ret < 0){
+      print("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_CONTROL_COMM] [fabric_server_control_comm_accept] ERROR: socket send port fails");
+      return nullptr;
+    }
   }
 
   int new_comm = lfi_server_accept(m_server_comm);
@@ -314,7 +316,7 @@ int64_t fabric_server_comm::write_data ( const void *data, int64_t size, int ran
 
   ret = lfi_tsend(rank_client_id, data, size, tag_client_id);
   if (ret < 0) {
-    debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] ERROR: MPI_Send fails");
+    debug_warning("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] ERROR: lfi_tsend fails "<<lfi_strerror(ret));
   }
 
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_comm_write_data] "<<ret<<" << End");

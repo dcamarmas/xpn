@@ -35,7 +35,7 @@ namespace XPN {
 
 nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &srv_name )
 {
-  int ret, sd;
+  int ret;
   int connection_socket;
   char port_name[MAX_PORT_NAME];
 
@@ -73,11 +73,17 @@ nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &s
   debug_info("[NFI_SCK_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name);
 
   // Connect...
+  return connect(srv_name, port_name);
+}
+
+nfi_xpn_server_comm* nfi_sck_server_control_comm::connect(const std::string &srv_name, const std::string &port_name) {
+  int ret, sd;
+  // Connect...
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] Connect port "<<port_name);
 
-  ret = socket::client_connect(srv_name, atoi(port_name), sd);
+  ret = socket::client_connect(srv_name, atoi(port_name.c_str()), sd);
   if (ret < 0) {
-    fprintf(stderr, "[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: client_connect(%s,%s)\n", srv_name.c_str(), port_name);
+    fprintf(stderr, "[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: client_connect(%s,%s)\n", srv_name.c_str(), port_name.c_str());
     return nullptr;
   }
 
@@ -93,20 +99,22 @@ nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &s
   return new (std::nothrow) nfi_sck_server_comm(sd, res_mqtt);
 }
 
-void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm) 
+void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm, bool needSendCode) 
 {
   int ret;
   nfi_sck_server_comm *in_comm = static_cast<nfi_sck_server_comm*>(comm);
 
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] >> Begin");
 
-  debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] Send disconnect message");  
-  xpn_server_msg msg = {};
-  msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
-  msg.msg_size = 0;
-  ret = in_comm->write_operation(msg);
-  if (ret < 0) {
-    printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] ERROR: nfi_sck_server_comm_write_operation fails");
+  if (needSendCode){
+    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] Send disconnect message");  
+    xpn_server_msg msg = {};
+    msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
+    msg.msg_size = 0;
+    ret = in_comm->write_operation(msg);
+    if (ret < 0) {
+      printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] ERROR: nfi_sck_server_comm_write_operation fails");
+    }
   }
 
   // Disconnect

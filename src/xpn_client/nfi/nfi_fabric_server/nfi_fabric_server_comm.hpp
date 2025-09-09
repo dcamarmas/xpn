@@ -48,7 +48,8 @@ namespace XPN
     ~nfi_fabric_server_control_comm() = default;
     
     nfi_xpn_server_comm* connect(const std::string &srv_name) override;
-    void disconnect(nfi_xpn_server_comm* comm) override;
+    nfi_xpn_server_comm* connect(const std::string &srv_name, const std::string &port_name) override;
+    void disconnect(nfi_xpn_server_comm* comm, bool needSendCode = true) override;
 
   private:
   };

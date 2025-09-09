@@ -127,8 +127,8 @@ int64_t nfi_xpn_server::nfi_read (const xpn_fh &fh, char *buffer, int64_t offset
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_XPN] [nfi_xpn_server_read] nfi_xpn_server_read("<<fh.path<<", "<<offset<<", "<<size<<")");
 
-  if (!xpn_env::get_instance().xpn_session_connect && m_comm == nullptr){
-    m_comm = m_control_comm->connect(m_server);
+  if (!xpn_env::get_instance().xpn_connect && m_comm == nullptr){
+    m_comm =  m_control_comm_connectionless->connect(m_server, m_connectionless_port);
   }
 
   uint64_t length = fh.path.copy(msg.path.path, fh.path.size());
@@ -195,8 +195,8 @@ int64_t nfi_xpn_server::nfi_read (const xpn_fh &fh, char *buffer, int64_t offset
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_XPN] [nfi_xpn_server_read] nfi_xpn_server_read("<<fh.path<<", "<<offset<<", "<<size<<")="<<ret);
   
-  if (!xpn_env::get_instance().xpn_session_connect){
-    m_control_comm->disconnect(m_comm);
+  if (!xpn_env::get_instance().xpn_connect){
+    m_control_comm_connectionless->disconnect(m_comm);
     m_comm = nullptr;
   }
 
@@ -226,8 +226,8 @@ int64_t nfi_xpn_server::nfi_write (const xpn_fh &fh, const char *buffer, int64_t
     return 0;
   }
 
-  if (!xpn_env::get_instance().xpn_session_connect && m_comm == nullptr){
-    m_comm = m_control_comm->connect(m_server);
+  if (!xpn_env::get_instance().xpn_connect && m_comm == nullptr){
+    m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
   }
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_XPN] [nfi_xpn_server_write] nfi_xpn_server_write("<<fh.path<<", "<<offset<<", "<<size<<")");
@@ -307,8 +307,8 @@ int64_t nfi_xpn_server::nfi_write (const xpn_fh &fh, const char *buffer, int64_t
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_XPN] [nfi_xpn_server_write] nfi_xpn_server_write("<<fh.path<<", "<<offset<<", "<<size<<")="<<ret);
   
-  if (!xpn_env::get_instance().xpn_session_connect){
-    m_control_comm->disconnect(m_comm);
+  if (!xpn_env::get_instance().xpn_connect){
+    m_control_comm_connectionless->disconnect(m_comm);
     m_comm = nullptr;
   }
 
@@ -334,7 +334,7 @@ int nfi_xpn_server::nfi_remove (const std::string &path, bool is_async)
   msg.path.size = length + 1;
   if (is_async)
   {
-    ret = nfi_write_operation(xpn_server_ops::RM_FILE_ASYNC, msg);
+    ret = nfi_write_operation(xpn_server_ops::RM_FILE_ASYNC, msg, true);
   }
   else
   {
@@ -585,7 +585,7 @@ int nfi_xpn_server::nfi_rmdir(const std::string &path, bool is_async)
 
   if (is_async)
   {
-    ret = nfi_write_operation(xpn_server_ops::RMDIR_DIR_ASYNC, msg);
+    ret = nfi_write_operation(xpn_server_ops::RMDIR_DIR_ASYNC, msg, true);
   }
   else
   {
@@ -682,7 +682,7 @@ int nfi_xpn_server::nfi_write_mdata (const std::string &path, const xpn_metadata
     msg.path.size = length + 1;
     msg.size = mdata.file_size;
     // ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
-    ret = nfi_write_operation(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg);
+    ret = nfi_write_operation(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, true);
   }else{
     struct st_xpn_server_write_mdata msg;
     uint64_t length = srv_path.copy(msg.path.path, srv_path.size());

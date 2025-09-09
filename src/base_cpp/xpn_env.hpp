@@ -28,8 +28,7 @@
 namespace XPN {
 class xpn_env {
    public:
-    template <typename T>
-    void parse_env(const char* env, T& value) {
+    void parse_env(const char* env, int& value) {
         char* endptr;
         int int_value;
 
@@ -59,7 +58,7 @@ class xpn_env {
         parse_env("XPN_LOCALITY", xpn_locality);
         parse_env("XPN_SESSION_DIR", xpn_session_dir);
         parse_env("XPN_SESSION_FILE", xpn_session_file);
-        parse_env("XPN_SESSION_CONNECT", xpn_session_connect);
+        parse_env("XPN_CONNECT", xpn_connect);
         parse_env("XPN_STATS", xpn_stats);
         xpn_stats_dir = std::getenv("XPN_STATS_DIR");
         xpn_profiler_file = std::getenv("XPN_PROFILER_FILE");
@@ -84,7 +83,7 @@ class xpn_env {
     int xpn_locality = 1;
     int xpn_session_file = 0;
     int xpn_session_dir = 1;
-    int xpn_session_connect = 1;
+    int xpn_connect = 1;
     int xpn_stats = 0;
     const char* xpn_stats_dir = nullptr;
     const char* xpn_profiler_file = nullptr;

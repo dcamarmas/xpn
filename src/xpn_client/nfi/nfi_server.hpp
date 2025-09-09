@@ -54,6 +54,8 @@ namespace XPN
         std::string m_server;   // server address
         std::string m_path;     // path of the server
 
+        std::string m_connectionless_port = {}; // port for the connectionless socket
+
         int m_error = 0;        // For fault tolerance
     protected:
         const std::string m_url;// URL of this server -> protocol
@@ -61,6 +63,7 @@ namespace XPN
                                 // + path + more info (port, ...)
 
         std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm;
+        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm_connectionless;
         nfi_xpn_server_comm                         *m_comm;
 
     public:
@@ -85,7 +88,7 @@ namespace XPN
     protected:
     
         template<typename msg_struct>
-        int nfi_write_operation( xpn_server_ops op, msg_struct &msg )
+        int nfi_write_operation( xpn_server_ops op, msg_struct &msg, bool withoutRequest = false )
         {
             int ret;
 
@@ -98,11 +101,18 @@ namespace XPN
             message.msg_size = msg.get_size();
             std::memcpy(message.msg_buffer, &msg, msg.get_size());
 
+            if (withoutRequest && !xpn_env::get_instance().xpn_connect && m_comm == nullptr){
+                m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
+            }
             ret = m_comm->write_operation(message);
             if (ret < 0)
             {
                 printf("[NFI_XPN] [nfi_write_operation] ERROR: nfi_write_operation fails");
                 return -1;
+            }
+            if (withoutRequest && !xpn_env::get_instance().xpn_connect){
+                m_control_comm_connectionless->disconnect(m_comm);
+                m_comm = nullptr;
             }
 
             debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" "<<xpn_server_ops_name(op)<<" -> "<<ret);
@@ -118,8 +128,8 @@ namespace XPN
             int64_t ret;
             debug_info("[NFI_XPN] [nfi_server_do_request] >> Begin");
 
-            if (!xpn_env::get_instance().xpn_session_connect && m_comm == nullptr){
-                m_comm = m_control_comm->connect(m_server);
+            if (!xpn_env::get_instance().xpn_connect && m_comm == nullptr){
+                m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
             }
 
             // send request...
@@ -144,9 +154,8 @@ namespace XPN
             }
             #endif
 
-
-            if (!xpn_env::get_instance().xpn_session_connect){
-                m_control_comm->disconnect(m_comm);
+            if (!xpn_env::get_instance().xpn_connect){
+                m_control_comm_connectionless->disconnect(m_comm);
                 m_comm = nullptr;
             }
             debug_info("[NFI_XPN] [nfi_server_do_request] >> End");

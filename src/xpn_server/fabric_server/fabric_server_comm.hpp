@@ -49,7 +49,7 @@ namespace XPN
     fabric_server_control_comm();
     ~fabric_server_control_comm() override;
     
-    xpn_server_comm* accept(int socket) override;
+    xpn_server_comm* accept(int socket, bool sendData = true) override;
     void disconnect(xpn_server_comm *comm) override;
     
     xpn_server_comm* create(int rank_client_id) override;

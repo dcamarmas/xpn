@@ -42,13 +42,14 @@ namespace XPN
 
         class xpn_server {
         public:
-            constexpr static const int DEFAULT_XPN_SCK_PORT = 3456;
-            constexpr static const int ACCEPT_CODE          = 123;
-            constexpr static const int FINISH_CODE          = 666;
-            constexpr static const int FINISH_CODE_AWAIT    = 667;
-            constexpr static const int STATS_CODE           = 444;
-            constexpr static const int STATS_wINDOW_CODE    = 445;
-            constexpr static const int PING_CODE            = 333;
+            constexpr static const int DEFAULT_XPN_SCK_PORT     = 3456;
+            constexpr static const int ACCEPT_CODE              = 123;
+            constexpr static const int CONNECTIONLESS_PORT_CODE = 124;
+            constexpr static const int FINISH_CODE              = 666;
+            constexpr static const int FINISH_CODE_AWAIT        = 667;
+            constexpr static const int STATS_CODE               = 444;
+            constexpr static const int STATS_wINDOW_CODE        = 445;
+            constexpr static const int PING_CODE                = 333;
         };
     public:
         static int64_t send ( int socket, const void * buffer, uint64_t size );
@@ -60,6 +61,7 @@ namespace XPN
         static int64_t recv_str ( int socket, std::string& str );
         static int socket_create( int socket_domain = AF_INET6);
         static int server_create ( int port, int &out_socket );
+        static int server_port ( int socket );
         static int server_accept ( int socket, int &out_conection_socket );
         static int client_connect ( const std::string &srv_name, int port, int &out_socket );
         static int client_connect ( const std::string &srv_name, int port, int timeout_ms, int &out_socket, int time_to_sleep_ms = 200 );

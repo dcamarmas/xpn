@@ -68,9 +68,13 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
     return nullptr;
   }
 
+  return connect(srv_name, port_name);
+}
+
+nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect(const std::string &srv_name, const std::string &port_name) {
   debug_info("[NFI_FABRIC_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name);
 
-  int new_comm = lfi_client_create(srv_name.c_str(), atoi(port_name));
+  int new_comm = lfi_client_create(srv_name.c_str(), atoi(port_name.c_str()));
 
   if (new_comm < 0)
   {
@@ -83,7 +87,7 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
   return new (std::nothrow) nfi_fabric_server_comm(new_comm);
 }
 
-void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm) 
+void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm, bool needSendCode) 
 {
   XPN_PROFILE_FUNCTION();
   int ret;
@@ -91,13 +95,15 @@ void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
 
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] >> Begin");
 
-  debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] Send disconnect message");
-  xpn_server_msg msg = {};
-  msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
-  msg.msg_size = 0;
-  ret = in_comm->write_operation(msg);
-  if (ret < 0) {
-    printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
+  if (needSendCode) {
+    debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] Send disconnect message");
+    xpn_server_msg msg = {};
+    msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
+    msg.msg_size = 0;
+    ret = in_comm->write_operation(msg);
+    if (ret < 0) {
+      printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
+    }
   }
 
   // Disconnect

@@ -121,7 +121,6 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     int connection_socket;
     int buffer = socket::xpn_server::ACCEPT_CODE;
     char port_name[MAX_PORT_NAME];
-    MPI_Comm out_comm;
 
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] >> Begin");
 
@@ -169,8 +168,13 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     MPI_Bcast(port_name, MAX_PORT_NAME, MPI_CHAR, 0, MPI_COMM_WORLD);
 
     // Connect...
-    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] Connect port "<<port_name);
+    return connect(srv_name, port_name);
+}
 
+nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect([[maybe_unused]] const std::string &srv_name, const std::string &port_name) {
+    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] Connect port "<<port_name);
+    int ret;
+    MPI_Comm out_comm;
     int connect_retries = 0;
     int errclass, resultlen;
     char err_buffer[MPI_MAX_ERROR_STRING];
@@ -178,7 +182,7 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     MPI_Info_create(&info);
     MPI_Info_set(info, "timeout", "1");
     do {
-        ret = MPI_Comm_connect(port_name, MPI_INFO_NULL, 0, MPI_COMM_WORLD, &out_comm);
+        ret = MPI_Comm_connect(port_name.c_str(), MPI_INFO_NULL, 0, MPI_COMM_WORLD, &out_comm);
 
         MPI_Error_class(ret, &errclass);
         MPI_Error_string(ret, err_buffer, &resultlen);
@@ -206,7 +210,7 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     return new (std::nothrow) nfi_mpi_server_comm(out_comm, m_rank, m_size);
 }
 
-void nfi_mpi_server_control_comm::disconnect(nfi_xpn_server_comm *comm) {
+void nfi_mpi_server_control_comm::disconnect(nfi_xpn_server_comm *comm, bool needSendCode) {
     XPN_PROFILE_FUNCTION();
     int ret;
 
@@ -215,7 +219,7 @@ void nfi_mpi_server_control_comm::disconnect(nfi_xpn_server_comm *comm) {
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &(rank));
-    if (rank == 0) {
+    if (rank == 0 && needSendCode) {
         debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_disconnect] Send disconnect message");  
         xpn_server_msg msg = {};
         msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);

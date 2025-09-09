@@ -43,6 +43,7 @@ namespace XPN
         void accept(int socket);
         void dispatcher(xpn_server_comm *comm);
         void one_dispatcher();
+        void connectionless_dispatcher();
         void do_operation(xpn_server_comm *comm, const xpn_server_msg& msg, int rank_client_id, int tag_client_id, timer timer);
         void finish();
 
@@ -50,7 +51,8 @@ namespace XPN
         char serv_name[HOST_NAME_MAX];
         xpn_server_params m_params;
         std::unique_ptr<xpn_server_control_comm> m_control_comm;
-        std::unique_ptr<workers> m_worker1, m_worker2;
+        std::unique_ptr<xpn_server_control_comm> m_control_comm_connectionless;
+        std::unique_ptr<workers> m_worker1, m_worker2, m_workerConnectionLess;
 
         xpn_stats m_stats;
         std::unique_ptr<xpn_window_stats> m_window_stats;

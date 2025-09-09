@@ -125,7 +125,7 @@ mpi_server_control_comm::~mpi_server_control_comm()
 }
 
 // accept, disconnect
-xpn_server_comm* mpi_server_control_comm::accept ( int socket )
+xpn_server_comm* mpi_server_control_comm::accept ( int socket, bool sendData )
 {
   XPN_PROFILE_FUNCTION();
   int ret;
@@ -133,11 +133,13 @@ xpn_server_comm* mpi_server_control_comm::accept ( int socket )
   MPI_Comm comm;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] >> Begin");
-
-  ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] ERROR: socket send port fails");
-    return nullptr;
+  if (sendData) {
+    debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] send port");
+    ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
+    if (ret < 0){
+      print("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] ERROR: socket send port fails");
+      return nullptr;
+    }
   }
 
   // Accept

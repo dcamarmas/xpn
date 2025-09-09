@@ -36,7 +36,6 @@ namespace XPN
 sck_server_control_comm::sck_server_control_comm ()
 {
   int ret;
-  struct sockaddr_storage server_addr;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] >> Begin");
 
@@ -52,19 +51,13 @@ sck_server_control_comm::sck_server_control_comm ()
     print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_create fails");
     std::raise(SIGTERM);
   }
-  socklen_t len = sizeof(server_addr);
-  ::getsockname(m_socket, (struct sockaddr *)&server_addr, &len);
-  
-  if (server_addr.ss_family == AF_INET) {
-      const sockaddr_in* sin = reinterpret_cast<const sockaddr_in*>(&server_addr);
-      m_port_name = std::to_string(ntohs(sin->sin_port));
-  } else if (server_addr.ss_family == AF_INET6) {
-      const sockaddr_in6* sin6 = reinterpret_cast<const sockaddr_in6*>(&server_addr);
-      m_port_name = std::to_string(ntohs(sin6->sin6_port));
-  } else {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_addres with family not supported");
+  ret = socket::server_port(m_socket);
+  if (ret < 0)
+  {
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_port fails");
     std::raise(SIGTERM);
   }
+  m_port_name = std::to_string(ret);
 
 #ifdef ENABLE_MQ_SERVER
   if (xpn_env::get_instance().xpn_mqtt) {
@@ -94,18 +87,20 @@ sck_server_control_comm::~sck_server_control_comm()
   socket::close(m_socket);
 }
 
-xpn_server_comm* sck_server_control_comm::accept ( int socket )
+xpn_server_comm* sck_server_control_comm::accept ( int socket, bool sendData )
 {
   int    ret, sc, flag;
   struct sockaddr_in client_addr;
   socklen_t size = sizeof(struct sockaddr_in);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] >> Begin");
-
-  ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: socket send port fails");
-    return nullptr;
+  if (sendData) {
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] send port");
+    ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
+    if (ret < 0){
+      print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: socket send port fails");
+      return nullptr;
+    }
   }
 
   // Accept
@@ -268,8 +263,11 @@ int64_t sck_server_control_comm::read_operation ( xpn_server_msg &msg, int &rank
 
 int64_t sck_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
 {
-  rank_client_id = 0;
-  return sck_read_operation(m_socket, msg, tag_client_id);
+  rank_client_id = m_socket;
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm::read_operation] >> Begin");
+  auto ret = sck_read_operation(m_socket, msg, tag_client_id);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm::read_operation] << End");
+  return ret;
 }
 
 int64_t sck_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )

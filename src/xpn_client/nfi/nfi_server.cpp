@@ -21,6 +21,7 @@
 
 #include "base_cpp/debug.hpp"
 #include "base_cpp/ns.hpp"
+#include "base_cpp/socket.hpp"
 #include "nfi_server.hpp"
 #include "xpn/xpn_api.hpp"
 #include "nfi/nfi_xpn_server/nfi_xpn_server.hpp"
@@ -61,6 +62,11 @@ namespace XPN
         int res = 0;
         // Init the comunication
         m_control_comm = nfi_xpn_server_control_comm::Create(m_protocol);
+        m_control_comm_connectionless = nfi_xpn_server_control_comm::Create(server_protocols::sck_server);
+        if (!xpn_env::get_instance().xpn_connect && !m_control_comm_connectionless) {
+            print("Error: to use without XPN_SESSION_CONNECT xpn needs to be build with SCK_SERVER support");
+            std::raise(SIGTERM);
+        }
 
         // Connect to the server
         m_comm = m_control_comm->connect(m_server);
@@ -73,9 +79,41 @@ namespace XPN
             res = -1;
         }
 
-        if (!xpn_env::get_instance().xpn_session_connect){
+        if (!xpn_env::get_instance().xpn_connect){
             m_control_comm->disconnect(m_comm);
             m_comm = nullptr;
+
+            int connection_socket = 0;
+            char port_name[MAX_PORT_NAME] = {};
+            int ret = socket::client_connect(m_server, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+            if (ret < 0) {
+                debug_error("[NFI_SERVER] [init_comm] ERROR: socket connect\n");
+                return -1;
+            }
+            int buffer = socket::xpn_server::CONNECTIONLESS_PORT_CODE;
+            ret = socket::send(connection_socket, &buffer, sizeof(buffer));
+            if (ret < 0)
+            {
+                debug_error("[NFI_SERVER] [init_comm] ERROR: socket send\n");
+                socket::close(connection_socket);
+                return -1;
+            }
+            ret = socket::recv(connection_socket, port_name, MAX_PORT_NAME);
+            if (ret < 0)
+            {
+                debug_error("[NFI_SERVER] [init_comm] ERROR: socket read\n");
+                socket::close(connection_socket);
+                return -1;
+            }
+            socket::close(connection_socket);
+
+            m_connectionless_port = port_name;
+            debug_info("[NFI_SERVER] [init_comm] connection less port "<<m_connectionless_port);
+
+            if (m_connectionless_port.empty()) {
+                print("Error: to use without XPN_SESSION_CONNECT xpn_server needs to be build with SCK_SERVER support")
+                std::raise(SIGTERM);
+            }
         }
 
         XPN_DEBUG_END;

@@ -44,7 +44,7 @@ namespace XPN
     xpn_server_control_comm() = default;
     virtual ~xpn_server_control_comm() = default;
 
-    virtual xpn_server_comm* accept(int socket) = 0;
+    virtual xpn_server_comm* accept(int socket, bool sendData = true) = 0;
     virtual void disconnect(xpn_server_comm *comm) = 0;
 
     // Multiplexing

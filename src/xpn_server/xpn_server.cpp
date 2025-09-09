@@ -28,10 +28,6 @@
 #include "base_cpp/xpn_env.hpp"
 #include "xpn_server_comm.hpp"
 
-#ifdef ENABLE_FABRIC_SERVER
-#include "fabric_server/fabric_server_comm.hpp"
-#endif
-
 #include "xpn_server.hpp"
 
 namespace XPN
@@ -54,7 +50,8 @@ void xpn_server::dispatcher ( xpn_server_comm* comm )
             debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] ERROR: new msg allocation");
             return;
         }
-
+        
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] read operation");
         ret = comm->read_operation(*msg, rank_client_id, tag_client_id);
         if (ret < 0) {
             debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_dispatcher] ERROR: read operation fail");
@@ -121,6 +118,7 @@ void xpn_server::one_dispatcher () {
             return;
         }
 
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_one_dispatcher] read operation");
         ret = m_control_comm->read_operation(*msg, rank_client_id, tag_client_id);
         if (ret < 0) {
             debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_one_dispatcher] ERROR: read operation fail");
@@ -161,6 +159,67 @@ void xpn_server::one_dispatcher () {
     }
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_one_dispatcher] End");
+}
+
+// This is only used in the sck_server
+void xpn_server::connectionless_dispatcher () {
+    
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] >> Begin");
+    int ret;
+    xpn_server_msg* msg;
+    xpn_server_ops type_op = xpn_server_ops::size;
+    int rank_client_id = 0, tag_client_id = 0;
+
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] accept in port "<<m_control_comm_connectionless->m_port_name);
+
+    while (!m_disconnect)
+    {
+
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] Waiting for operation");
+        msg = msg_pool.acquire();
+        if (msg == nullptr) {
+            debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] ERROR: new msg allocation");
+            return;
+        }
+
+        auto comm = m_control_comm_connectionless->accept(-1, false);
+        if (m_disconnect) {
+            return;
+        }
+        if (!comm) {
+            debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] ERROR: server_accept");
+            continue;
+        }
+
+
+        ret = comm->read_operation(*msg, rank_client_id, tag_client_id);
+        if (ret < 0) {
+            debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] ERROR: read operation fail");
+            return;
+        }
+
+        type_op = static_cast<xpn_server_ops>(msg->op);
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] OP '"<<xpn_server_ops_name(type_op)<<"'; OP_ID "<< static_cast<int>(type_op)<<" client_rank "<<rank_client_id<<" tag_client "<<tag_client_id);
+
+        if (type_op == xpn_server_ops::DISCONNECT || type_op == xpn_server_ops::FINALIZE) {
+            debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] DISCONNECT received");
+            continue;
+        }
+
+        timer timer;
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] Worker launch");
+        m_worker2->launch_no_future([this, comm, timer, msg, rank_client_id, tag_client_id]{
+            std::unique_ptr<xpn_stats::scope_stat<xpn_stats::op_stats>> op_stat;
+            if (xpn_env::get_instance().xpn_stats) { op_stat = std::make_unique<xpn_stats::scope_stat<xpn_stats::op_stats>>(m_stats.m_ops_stats[msg->op], timer); }
+            do_operation(comm, *msg, rank_client_id, tag_client_id, timer);
+            m_control_comm_connectionless->disconnect(comm);
+            msg_pool.release(msg);
+        });
+        
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] Worker launched");
+    }
+
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] End");
 }
 
 void xpn_server::accept ( int connection_socket )
@@ -209,8 +268,11 @@ void xpn_server::finish ( void )
         m_clients_cv.notify_all();
     }
 
+    m_control_comm_connectionless.reset();
+
     m_worker1.reset();
     m_worker2.reset();
+    m_workerConnectionLess.reset();
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] mpi_comm destroy");
 
@@ -265,6 +327,23 @@ int xpn_server::run()
         return -1;
     }
 
+    #ifdef ENABLE_SCK_SERVER
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Comm connectionless initialization");
+    xpn_server_params connectionless_params{m_params.argc, m_params.argv};
+    connectionless_params.server_type = XPN_SERVER_TYPE_SCK;
+    m_control_comm_connectionless = xpn_server_control_comm::Create(connectionless_params);
+
+    m_workerConnectionLess = workers::Create(workers_mode::thread_on_demand);
+    if (m_workerConnectionLess == nullptr) {
+        debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Workers initialization fails");
+        return -1;
+    }
+    
+    m_workerConnectionLess->launch_no_future([this](){
+        connectionless_dispatcher();
+    });
+    #endif
+
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Control socket initialization");
     ret = socket::server_create(xpn_env::get_instance().xpn_sck_port, server_socket);
     if (ret < 0) {
@@ -291,6 +370,17 @@ int xpn_server::run()
             case socket::xpn_server::ACCEPT_CODE:
                 accept(connection_socket);
                 break;
+
+            case socket::xpn_server::CONNECTIONLESS_PORT_CODE: {
+                std::string port_name(MAX_PORT_NAME, '\0');
+                if (m_control_comm_connectionless) {
+                    port_name = m_control_comm_connectionless->m_port_name;
+                }
+                ret = socket::send(connection_socket, port_name.data(), MAX_PORT_NAME);
+                if (ret < 0){
+                    print("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_accept] ERROR: socket send port fails");
+                }
+                } break;
 
             case socket::xpn_server::STATS_wINDOW_CODE:
                 if (m_window_stats){
