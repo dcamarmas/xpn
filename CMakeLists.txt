@@ -69,7 +69,21 @@ add_subdirectory(src/xpn_client)
 add_subdirectory(src/xpn_server)
 add_subdirectory(src/xpn_controller)
 add_subdirectory(src/utils)
-# add_subdirectory(src/connector_fuse)
+
+
+option(ENABLE_FUSE "Enable the fuse module" OFF)
+if(ENABLE_FUSE)
+    message(STATUS "ENABLE_FUSE : ${ENABLE_FUSE}")
+    add_compile_options("-DENABLE_FUSE")
+    set(FUSE_PATH ${ENABLE_FUSE})
+    find_library(FUSE_LIBRARY NAMES fuse3 PATHS ${FUSE_PATH}/lib /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
+    find_path(FUSE_INCLUDE_DIR fuse.h PATHS ${FUSE_PATH}/include /usr/include /usr/local/include PATH_SUFFIXES fuse3)
+    message(STATUS "FUSE_LIBRARY : ${FUSE_LIBRARY}")
+    message(STATUS "FUSE_INCLUDE_DIR : ${FUSE_INCLUDE_DIR}")
+    add_subdirectory(src/connector_fuse)
+else()
+        message(STATUS "ENABLE_FUSE : false")
+endif(ENABLE_FUSE)
 
 
 option(BUILD_TESTS "Build the test" OFF)

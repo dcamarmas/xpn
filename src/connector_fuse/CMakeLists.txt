@@ -1,16 +1,10 @@
-
 add_executable(fuse-xpn "fuse-xpn.cpp")
 
-target_link_libraries(fuse-xpn PRIVATE xpn fuse)
+target_link_libraries(fuse-xpn PRIVATE xpn fuse3)
 
-# TODO: change hardcode paths
-target_link_directories(fuse-xpn PRIVATE 
-    "/beegfs/home/javier.garciablas/dariomnz/bin/libfuse/lib"
-)
+target_link_directories(fuse-xpn PRIVATE "${FUSE_LIBRARY}")
 
-target_include_directories(fuse-xpn PRIVATE 
-    "/beegfs/home/javier.garciablas/dariomnz/bin/libfuse/include"
-)
+target_include_directories(fuse-xpn PRIVATE "${FUSE_INCLUDE_DIR}")
 
 target_compile_options(fuse-xpn PRIVATE "-D_FILE_OFFSET_BITS=64")
 
