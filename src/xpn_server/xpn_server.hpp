@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "filesystem/xpn_server_filesystem.hpp"
 #include "xpn_server_params.hpp"
 #include "xpn_server_comm.hpp"
 #include "xpn_server_ops.hpp"
@@ -63,6 +64,8 @@ namespace XPN
         std::condition_variable m_clients_cv = {};
 
         queue_pool<xpn_server_msg> msg_pool;
+
+        std::unique_ptr<xpn_server_filesystem> m_filesystem;
 
         // op_write_mdata_file_size
         struct file_map_md_fq_item {

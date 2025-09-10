@@ -66,6 +66,9 @@ void xpn_server_params::show() {
     if (await_stop == 1) {
         printf(" |\t-w  await true\n");
     }
+    if (fs_mode == filesystem_mode::xpn) {
+        printf(" |\t-w  proxy mode on\n");
+    }
 
     debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show] << End");
 }
@@ -79,6 +82,7 @@ void xpn_server_params::show_usage() {
     printf("\t-f  <path>:          file of servers to be shutdown\n");
     printf("\t-h  <host>:          host server to be shutdown\n");
     printf("\t-w                   await for servers to stop\n");
+    printf("\t-p                   activate proxy mode\n");
 
     debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End");
 }
@@ -97,6 +101,7 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
 #ifdef ENABLE_MPI_SERVER
     server_type = XPN_SERVER_TYPE_MPI;
 #endif
+    fs_mode = filesystem_mode::disk;
     await_stop = 0;
     port_name = "";
     srv_name = "";
@@ -165,6 +170,9 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
                         break;
                     case 'w':
                         await_stop = 1;
+                        break;
+                    case 'p':
+                        fs_mode = filesystem_mode::xpn;
                         break;
 
                     default:

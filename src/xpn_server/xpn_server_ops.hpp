@@ -366,8 +366,6 @@ struct st_xpn_server_statvfs {
         eq_cast(f_fsid, entry->f_fsid);
         eq_cast(f_flag, entry->f_flag);
         eq_cast(f_namemax, entry->f_namemax);
-        eq_cast(f_type, entry->f_type);
-        std::memcpy(__f_spare, entry->__f_spare, std::min(sizeof(__f_spare), sizeof(entry->__f_spare)));
     }
 
     struct ::statvfs to_statvfs() {
@@ -383,8 +381,6 @@ struct st_xpn_server_statvfs {
         eq_cast(ret.f_fsid, f_fsid);
         eq_cast(ret.f_flag, f_flag);
         eq_cast(ret.f_namemax, f_namemax);
-        eq_cast(ret.f_type, f_type);
-        std::memcpy(ret.__f_spare, __f_spare, std::min(sizeof(ret.__f_spare), sizeof(__f_spare)));
         return ret;
     }
 };

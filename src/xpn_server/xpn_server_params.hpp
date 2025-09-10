@@ -29,6 +29,7 @@
   #include <stdio.h>
   #include <ctype.h>
   #include "base_cpp/workers.hpp"
+  #include "filesystem/xpn_server_filesystem.hpp"
 
   /* ... Const / Const ................................................. */
 
@@ -61,6 +62,7 @@ namespace XPN
     workers_mode  thread_mode_connections;
     workers_mode  thread_mode_operations;
     int  server_type;  // it can be XPN_SERVER_TYPE_MPI, XPN_SERVER_TYPE_SCK
+    filesystem_mode fs_mode;
 
     int await_stop;
 

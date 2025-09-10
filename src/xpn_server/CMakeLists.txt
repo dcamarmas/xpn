@@ -1,15 +1,17 @@
 
 file(GLOB XPN_SERVER_HEADERS 
     "*.hpp"
+    "filesystem/*.hpp"
 )
 
 file(GLOB XPN_SERVER_SOURCE 
     "*.cpp"
+    "filesystem/*.cpp"
 )
 
 add_executable(xpn_server ${XPN_SERVER_HEADERS} ${XPN_SERVER_SOURCE})
 
-target_link_libraries(xpn_server PRIVATE xpn_base_cpp)
+target_link_libraries(xpn_server PRIVATE xpn xpn_base_cpp)
 
 target_include_directories(xpn_server PRIVATE
     "${PROJECT_SOURCE_DIR}/src"
