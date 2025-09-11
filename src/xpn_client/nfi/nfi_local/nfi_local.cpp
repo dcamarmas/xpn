@@ -24,6 +24,7 @@
 #include "xpn/xpn_file.hpp"
 #include "xpn_server/xpn_server_ops.hpp"
 #include <fcntl.h>
+#include <sys/stat.h>
 
 namespace XPN
 {
@@ -240,8 +241,11 @@ int nfi_local::nfi_getattr (const std::string &path, struct ::stat &st)
   std::string srv_path = m_path + "/" + path;
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_getattr] nfi_local_getattr("<<srv_path<<")");
-
+  #ifdef _STAT_VER
   ret = PROXY(__xstat)(_STAT_VER, srv_path.c_str(), &st);
+  #else
+  ret = PROXY(stat)(srv_path.c_str(), &st);
+  #endif
   if (ret < 0)
   {
     debug_error("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_getattr] ERROR: real_posix_stat fails to stat '"<<srv_path<<"'");

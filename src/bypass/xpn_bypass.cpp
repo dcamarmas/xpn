@@ -55,10 +55,6 @@
 #define debug_info(...)
 #endif
 
-#ifndef _STAT_VER
-#define _STAT_VER 0
-#endif
-
 #undef __USE_FILE_OFFSET64
 #undef __USE_LARGEFILE64
 
@@ -566,7 +562,11 @@ extern "C" int stat(const char *path, struct stat *buf) {
         ret = xpn_stat(skip_xpn_prefix(path), buf);
         debug_info("[BYPASS] << xpn_stat(%s, %p) -> %d", skip_xpn_prefix(path), buf, ret);
     } else {
+        #ifdef _STAT_VER
         ret = PROXY(__xstat)(_STAT_VER, (const char *)path, buf);
+        #else
+        ret = PROXY(stat)((const char *)path, buf);
+        #endif
         debug_info("[BYPASS] << PROXY(__xstat)(%s, %p) -> %d", path, buf, ret);
     }
     return ret;
@@ -1214,11 +1214,11 @@ extern "C" int fcntl(int fd, int cmd, long arg)  // TODO
 
 extern "C" int access(const char *path, int mode) {
     int ret = -1;
-    struct stat64 stats;
+    struct stat stats;
     debug_info("[BYPASS] >> Begin access(%s, %d)", path, mode);
     // This if checks if variable path passed as argument starts with the expand prefix.
     if (is_xpn_prefix(path)) {
-        if (__lxstat64(_STAT_VER, path, &stats)) {
+        if (stat(path, &stats)) {
             debug_info("[BYPASS] << stat access(%s, %d) -> -1", path, mode);
             return -1;
         }
