@@ -43,9 +43,13 @@ namespace XPN
         // Delete move assignment operator
         xpn_file_table& operator=(xpn_file_table&&) = delete;
     public:        
-        bool has(int fd) {return m_files.find(fd) != m_files.end();}
+        bool has(int fd) {
+            std::unique_lock lock(m_mutex);
+            return m_files.find(fd) != m_files.end();
+        }
 
         std::shared_ptr<xpn_file> get(int fd) {
+            std::unique_lock lock(m_mutex);
             auto it = m_files.find(fd);
             if (it == m_files.end()){
                 return nullptr;
@@ -69,5 +73,6 @@ namespace XPN
         std::unordered_map<int, std::shared_ptr<xpn_file>> m_files;
         std::unordered_set<int> m_free_keys;
         int secuencial_key = 1;
+        std::recursive_mutex m_mutex = {};
     };
 } // namespace XPN

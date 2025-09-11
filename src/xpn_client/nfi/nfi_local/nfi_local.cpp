@@ -241,7 +241,7 @@ int nfi_local::nfi_getattr (const std::string &path, struct ::stat &st)
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_getattr] nfi_local_getattr("<<srv_path<<")");
 
-  ret = PROXY(stat)(srv_path.c_str(), &st);
+  ret = PROXY(__xstat)(_STAT_VER, srv_path.c_str(), &st);
   if (ret < 0)
   {
     debug_error("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_getattr] ERROR: real_posix_stat fails to stat '"<<srv_path<<"'");
@@ -441,8 +441,10 @@ int nfi_local::nfi_read_mdata (const std::string &path, xpn_metadata &mdata)
   if (fd < 0){
     if (errno == EISDIR){
       // if is directory there are no metadata to read so return 0
+      debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_read_mdata] << End");
       return 0;
     }
+    debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_read_mdata] << End");
     return -1;
   }
 

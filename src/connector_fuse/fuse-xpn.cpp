@@ -10,7 +10,7 @@
 */
 
 #define FUSE_USE_VERSION 314
-#define DEBUG
+// #define DEBUG
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

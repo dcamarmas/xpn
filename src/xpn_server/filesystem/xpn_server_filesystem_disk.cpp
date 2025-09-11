@@ -80,7 +80,7 @@ int xpn_server_filesystem_disk::rename(const char *oldPath, const char *newPath)
 
 int xpn_server_filesystem_disk::stat(const char *path, struct ::stat *st) {
     debug_info(" >> BEGIN");
-    auto ret = PROXY(stat)(path, st);
+    auto ret = PROXY(__xstat)(_STAT_VER, path, st);
     debug_info(" << END");
     return ret;
 }

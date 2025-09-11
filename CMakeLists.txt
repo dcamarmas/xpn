@@ -10,7 +10,8 @@ set(CMAKE_SKIP_RPATH TRUE)
 
 
 # add_compile_options("-DDEBUG")
-add_compile_options("-D_GNU_SOURCE" "-DMPICH_SKIP_MPICXX" "-D_REENTRANT")
+add_compile_options("-D_GNU_SOURCE" "-DMPICH_SKIP_MPICXX")
+# add_compile_options("-D_GNU_SOURCE" "-DMPICH_SKIP_MPICXX" "-D_REENTRANT")
 add_compile_options("-fPIC" "-O2" "-g" "-g3" "-ggdb" "-Wall" "-Wextra")
 
 option(ENABLE_SCK_SERVER "Enable the sck_server module" ON)
@@ -76,7 +77,7 @@ if(ENABLE_FUSE)
     message(STATUS "ENABLE_FUSE : ${ENABLE_FUSE}")
     add_compile_options("-DENABLE_FUSE")
     set(FUSE_PATH ${ENABLE_FUSE})
-    find_library(FUSE_LIBRARY NAMES fuse3 PATHS ${FUSE_PATH}/lib /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu)
+    find_library(FUSE_LIBRARY NAMES fuse3 PATHS ${FUSE_PATH}/lib /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu "${FUSE_LIBRARY}")
     find_path(FUSE_INCLUDE_DIR fuse.h PATHS ${FUSE_PATH}/include /usr/include /usr/local/include PATH_SUFFIXES fuse3)
     message(STATUS "FUSE_LIBRARY : ${FUSE_LIBRARY}")
     message(STATUS "FUSE_INCLUDE_DIR : ${FUSE_INCLUDE_DIR}")

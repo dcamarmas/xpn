@@ -566,7 +566,7 @@ extern "C" int stat(const char *path, struct stat *buf) {
         ret = xpn_stat(skip_xpn_prefix(path), buf);
         debug_info("[BYPASS] << xpn_stat(%s, %p) -> %d", skip_xpn_prefix(path), buf, ret);
     } else {
-        ret = PROXY(stat)((const char *)path, buf);
+        ret = PROXY(__xstat)(_STAT_VER, (const char *)path, buf);
         debug_info("[BYPASS] << PROXY(__xstat)(%s, %p) -> %d", path, buf, ret);
     }
     return ret;

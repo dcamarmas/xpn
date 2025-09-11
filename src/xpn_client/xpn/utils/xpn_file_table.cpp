@@ -26,6 +26,7 @@
 namespace XPN {
 xpn_file_table::~xpn_file_table() {
     std::vector<int> keys;
+    std::unique_lock lock(m_mutex);
     for (auto [key, file] : m_files) {
         keys.emplace_back(key);
     }
@@ -37,6 +38,7 @@ xpn_file_table::~xpn_file_table() {
 
 int xpn_file_table::insert(std::shared_ptr<xpn_file> file) {
     int fd;
+    std::unique_lock lock(m_mutex);
     if (m_free_keys.empty()) {
         while (has(secuencial_key)) {
             debug_info("Has " << secuencial_key << " increment");
@@ -57,6 +59,7 @@ int xpn_file_table::insert(std::shared_ptr<xpn_file> file) {
 }
 
 bool xpn_file_table::remove(int fd) {
+    std::unique_lock lock(m_mutex);
     int res = m_files.erase(fd);
     if (res == 1) {
         m_free_keys.emplace(fd);
@@ -68,6 +71,7 @@ bool xpn_file_table::remove(int fd) {
 // It must be checked if fd is in the file_table with has(fd)
 int xpn_file_table::dup(int fd, int new_fd) {
     int ret = -1;
+    std::unique_lock lock(m_mutex);
     auto file = get(fd);
     if (!file) {
         return -1;
@@ -88,6 +92,7 @@ int xpn_file_table::dup(int fd, int new_fd) {
 }
 
 std::string xpn_file_table::to_string() {
+    std::unique_lock lock(m_mutex);
     std::stringstream out;
     for (auto &[key, file] : m_files) {
         out << "fd: " << key << " : " << (*file).m_path << std::endl;
@@ -96,6 +101,7 @@ std::string xpn_file_table::to_string() {
 }
 
 void xpn_file_table::clean() {
+    std::unique_lock lock(m_mutex);
     std::vector<int> fds_to_close;
     fds_to_close.reserve(m_files.size());
     for (auto &[key, file] : m_files) {
@@ -112,6 +118,7 @@ void xpn_file_table::clean() {
 }
 
 void xpn_file_table::init_vfhs(const std::unordered_map<std::string, xpn_partition>& partitions) {
+    std::unique_lock lock(m_mutex);
     for (auto &[key, file] : m_files) {
         if (partitions.size() > 1){
             std::cerr << "TODO: not supported more than one partition when reinit vfhs"<<std::endl;
@@ -123,6 +130,7 @@ void xpn_file_table::init_vfhs(const std::unordered_map<std::string, xpn_partiti
 }
 
 void xpn_file_table::clean_vfhs() {
+    std::unique_lock lock(m_mutex);
     for (auto &[key, file] : m_files) {
         for (auto &vfh : file->m_data_vfh) {
             vfh.reset();
