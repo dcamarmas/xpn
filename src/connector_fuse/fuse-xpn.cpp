@@ -36,7 +36,7 @@
 #endif
 #include <sys/file.h> /* flock(2) */
 
-static void *xmp_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
+static void *xmp_init(struct fuse_conn_info *conn, [[maybe_unused]] struct fuse_config *cfg) {
     int res;
     debug_info("[FUSE-XPN] Init");
     debug_info("[FUSE-XPN] proto_major " << conn->proto_major);
@@ -52,7 +52,7 @@ static void *xmp_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
 
     res = xpn_init();
     debug_info("[FUSE-XPN] End");
-    if (res == -1) return (void *)-errno;
+    if (res == -1) return (void *)static_cast<size_t>(-errno);
 
     return 0;
 }
@@ -64,7 +64,7 @@ static void xmp_destroy(void *) {
     return;
 }
 
-static int xmp_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
+static int xmp_getattr(const char *path, struct stat *stbuf, [[maybe_unused]] fuse_file_info *fi) {
     int res;
     debug_info("[FUSE-XPN] Init getattr(" << path << ", " << stbuf << ")");
 
@@ -73,19 +73,6 @@ static int xmp_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi)
     res = xpn_stat(p.c_str(), stbuf);
 
     debug_info("[FUSE-XPN] End getattr(" << path << ", " << stbuf << ")");
-    if (res == -1) return -errno;
-
-    return 0;
-}
-
-static int xmp_fgetattr(const char *path, struct stat *stbuf, struct fuse_file_info *fi) {
-    int res;
-    debug_info("[FUSE-XPN] Init fgetattr(" << fi->fh << ", " << path << ", " << stbuf << ")");
-
-    (void)path;
-
-    res = xpn_fstat(fi->fh, stbuf);
-    debug_info("[FUSE-XPN] End fgetattr(" << fi->fh << ", " << path << ", " << stbuf << ")");
     if (res == -1) return -errno;
 
     return 0;
@@ -143,7 +130,8 @@ static int xmp_opendir(const char *path, struct fuse_file_info *fi) {
 
 static inline struct xmp_dirp *get_dirp(struct fuse_file_info *fi) { return (struct xmp_dirp *)(uintptr_t)fi->fh; }
 
-static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi, fuse_readdir_flags flags) {
+static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi,
+                       [[maybe_unused]] fuse_readdir_flags flags) {
     debug_info("[FUSE-XPN] Init readdir(" << path << ", " << buf << ", " << offset << ", " << fi->fh << ")");
     struct xmp_dirp *d = get_dirp(fi);
 
@@ -249,10 +237,10 @@ static int xmp_rmdir(const char *path) {
 //     return 0;
 // }
 
-static int xmp_rename(const char *from, const char *to, unsigned int flags) {
+static int xmp_rename(const char *from, const char *to, [[maybe_unused]] unsigned int flags) {
     int res;
     debug_info("[FUSE-XPN] Init rename(" << from << ", " << to << ")");
-
+    // TODO: fix the correct use of flags
     std::string f(from);
     f.insert(0, "xpn");
     std::string t(to);
@@ -274,7 +262,7 @@ static int xmp_rename(const char *from, const char *to, unsigned int flags) {
 //     return 0;
 // }
 
-static int xmp_chmod(const char *path, mode_t mode, fuse_file_info *fi) {
+static int xmp_chmod(const char *path, mode_t mode, [[maybe_unused]] fuse_file_info *fi) {
     int res;
     debug_info("[FUSE-XPN] Init chmod(" << path << ", " << mode << ")");
 
@@ -297,7 +285,7 @@ static int xmp_chmod(const char *path, mode_t mode, fuse_file_info *fi) {
 //     return 0;
 // }
 
-static int xmp_truncate(const char *path, off_t size, fuse_file_info *fi) {
+static int xmp_truncate(const char *path, off_t size, [[maybe_unused]] fuse_file_info *fi) {
     int res;
     debug_info("[FUSE-XPN] Init truncate(" << path << ", " << size << ")");
 
@@ -305,19 +293,6 @@ static int xmp_truncate(const char *path, off_t size, fuse_file_info *fi) {
     p.insert(0, "xpn");
     res = xpn_truncate(p.c_str(), size);
     debug_info("[FUSE-XPN] End truncate(" << path << ", " << size << ")");
-    if (res == -1) return -errno;
-
-    return 0;
-}
-
-static int xmp_ftruncate(const char *path, off_t size, struct fuse_file_info *fi) {
-    int res;
-    debug_info("[FUSE-XPN] Init ftruncate(" << fi->fh << ", " << path << ", " << size << ")");
-
-    (void)path;
-
-    res = xpn_ftruncate(fi->fh, size);
-    debug_info("[FUSE-XPN] End ftruncate(" << fi->fh << ", " << path << ", " << size << ")");
     if (res == -1) return -errno;
 
     return 0;
@@ -482,6 +457,15 @@ static int xmp_fsync(const char *path, int isdatasync, struct fuse_file_info *fi
     return 0;
 }
 
+static off_t xmp_lseek(const char *path, off_t off, int whence, struct fuse_file_info *fi) {
+    debug_info("[FUSE-XPN] Init lseek(" << fi->fh << ", " << path << ", " << off << ", " << whence << ")");
+    (void)path;
+    xpn_lseek(fi->fh, off, whence);
+    debug_info("[FUSE-XPN] End lseek(" << fi->fh << ", " << path << ", " << off << ", " << whence << ")");
+
+    return 0;
+}
+
 #ifdef HAVE_POSIX_FALLOCATE
 static int xmp_fallocate(const char *path, int mode, off_t offset, off_t length, struct fuse_file_info *fi) {
     (void)path;
@@ -569,23 +553,17 @@ static struct fuse_operations xmp_oper = {
     .destroy = xmp_destroy,
     .access = nullptr,
     .create = xmp_create,
-    // .ftruncate = xmp_ftruncate,
-    // .fgetattr = xmp_fgetattr,
     .lock = nullptr,
-    // .utimens = nullptr,
+    .utimens = nullptr,
     .bmap = nullptr,
-    // .flag_nullpath_ok = 1,
-    // .flag_nopath = 0,
-    // .flag_utime_omit_ok = 1,
-    // .flag_reserved = 0,
     .ioctl = nullptr,
     .poll = nullptr,
-    // .write_buf = xmp_write_buf,
-    // .read_buf = xmp_read_buf,
     .write_buf = nullptr,
     .read_buf = nullptr,
     .flock = nullptr,
     .fallocate = nullptr,
+    .copy_file_range = nullptr,
+    .lseek = xmp_lseek,
 };
 
 int main(int argc, char *argv[]) {
