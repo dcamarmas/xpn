@@ -22,9 +22,7 @@
 /* ... Include / Inclusion ........................................... */
 
 #include "xpn_server_comm.hpp"
-#ifdef ENABLE_SCK_SERVER
 #include "sck_server/sck_server_comm.hpp"
-#endif
 #ifdef ENABLE_MPI_SERVER
 #include "mpi_server/mpi_server_comm.hpp"
 #endif
@@ -39,10 +37,8 @@ std::unique_ptr<xpn_server_control_comm> xpn_server_control_comm::Create(xpn_ser
         case server_type::MPI:
             return std::make_unique<mpi_server_control_comm>(params);
 #endif
-#ifdef ENABLE_SCK_SERVER
         case server_type::SCK:
             return std::make_unique<sck_server_control_comm>(params.srv_comm_port);
-#endif
 #ifdef ENABLE_FABRIC_SERVER
         case server_type::FABRIC:
             return std::make_unique<fabric_server_control_comm>();

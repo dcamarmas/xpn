@@ -33,9 +33,7 @@
 #ifdef ENABLE_MQ_SERVER
 #include "mq_server/mq_server_ops.hpp"
 #endif
-#ifdef ENABLE_SCK_SERVER
 #include "sck_server/sck_server_comm.hpp"
-#endif
 
 namespace XPN
 {
@@ -116,7 +114,7 @@ void xpn_server::op_open ( xpn_server_comm &comm, const st_xpn_server_path_flags
     }
     status.server_errno = errno;
 
-#if defined(ENABLE_MQ_SERVER) && defined(ENABLE_SCK_SERVER)
+#if defined(ENABLE_MQ_SERVER)
   if (xpn_env::get_instance().xpn_mqtt){
     if (auto sck_comm = dynamic_cast<sck_server_control_comm*>(m_control_comm.get())){
       mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->mqtt), xpn_env::get_instance().xpn_mqtt_qos, head.path.path);
@@ -148,7 +146,7 @@ void xpn_server::op_creat ( xpn_server_comm &comm, const st_xpn_server_path_flag
     status.ret = m_filesystem->close(status.ret);
     status.server_errno = errno;
 
-#if defined(ENABLE_MQ_SERVER) && defined(ENABLE_SCK_SERVER)
+#if defined(ENABLE_MQ_SERVER)
   if (xpn_env::get_instance().xpn_mqtt){
     if (auto sck_comm = dynamic_cast<sck_server_control_comm*>(m_control_comm.get())){
       mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->mqtt), xpn_env::get_instance().xpn_mqtt_qos, head.path.path);
@@ -348,7 +346,7 @@ void xpn_server::op_close ( xpn_server_comm &comm, const st_xpn_server_close &he
   status.ret = m_filesystem->close(head.fd);
   status.server_errno = errno;
 
-#if defined(ENABLE_MQ_SERVER) && defined(ENABLE_SCK_SERVER)
+#if defined(ENABLE_MQ_SERVER)
   if (xpn_env::get_instance().xpn_mqtt){
     if (auto sck_comm = dynamic_cast<sck_server_control_comm*>(m_control_comm.get())){
       mq_server_ops::unsubscribe(static_cast<mosquitto*>(sck_comm->mqtt), head.path.path);

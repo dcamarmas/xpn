@@ -26,9 +26,7 @@
 #include "xpn_server/xpn_server_ops.hpp"
 #include <fcntl.h>
 
-#ifdef ENABLE_SCK_SERVER
 #include "../nfi_sck_server/nfi_sck_server_comm.hpp"
-#endif
 #ifdef ENABLE_MQ_SERVER
 #include "../nfi_mq_server/nfi_mq_server_comm.hpp"
 #endif
@@ -213,7 +211,7 @@ int64_t nfi_xpn_server::nfi_write (const xpn_fh &fh, const char *buffer, int64_t
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_XPN] [nfi_xpn_server_write] >> Begin");
 
-#if defined(ENABLE_MQ_SERVER) && defined(ENABLE_SCK_SERVER)
+#if defined(ENABLE_MQ_SERVER)
   if (xpn_env::get_instance().xpn_mqtt){
     if (auto sck_comm = dynamic_cast<nfi_sck_server_comm*>(m_comm)){
       nfi_mq_server::publish(static_cast<mosquitto*>(sck_comm->m_mqtt), fh.path.c_str(), buffer, offset, size);

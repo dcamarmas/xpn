@@ -2,6 +2,8 @@
 set -x
 set -e
 
+# intended usage from xpn root dir
+# time ./scripts/dev-build.sh $(pwd)/build $(pwd)/install
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <build_directory> <install_directory>"
     exit 1
@@ -9,7 +11,7 @@ fi
 
 cd $1
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/install/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$2/lib
 
 cmake -S .. -B . \
     -D BUILD_TESTS=true \
@@ -18,7 +20,7 @@ cmake -S .. -B . \
     -D CMAKE_CXX_COMPILER=g++ \
     -D ENABLE_MPI_SERVER=off \
     -D ENABLE_FABRIC_SERVER=off \
-    -D ENABLE_FUSE=on \
+    -D ENABLE_FUSE=off \
     -D ENABLE_MQ_SERVER=off
 
 # cmake -S .. -B . \
@@ -26,7 +28,6 @@ cmake -S .. -B . \
 #     -D CMAKE_INSTALL_PREFIX=$2 \
 #     -D CMAKE_C_COMPILER=gcc \
 #     -D CMAKE_CXX_COMPILER=g++ \
-#     -D ENABLE_SCK_SERVER=on \
 #     -D ENABLE_MPI_SERVER=off \
 #     -D ENABLE_FABRIC_SERVER=off \
 #     -D ENABLE_MQ_SERVER=/usr/lib/x86_64-linux-gnu
@@ -57,7 +58,7 @@ cmake -S .. -B . \
 #     -D ENABLE_MPI_SERVER=/usr/lib/x86_64-linux-gnu/mpich \
 #     -D ENABLE_FABRIC_SERVER=off \
 #     -D ENABLE_MQ_SERVER=/usr/lib/x86_64-linux-gnu
-cmake --build . -j 8 
+cmake --build . -j $(nproc)
 
 cmake --install .
 

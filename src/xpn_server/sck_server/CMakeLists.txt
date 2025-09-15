@@ -1,6 +1,3 @@
-if(NOT ENABLE_SCK_SERVER)  
-    return()
-endif()
 
 file(GLOB SCK_SERVER_HEADERS 
     "*.hpp"

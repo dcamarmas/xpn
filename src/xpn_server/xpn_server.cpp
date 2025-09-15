@@ -333,7 +333,6 @@ int xpn_server::run()
         return -1;
     }
 
-    #ifdef ENABLE_SCK_SERVER
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Comm connectionless initialization");
     xpn_server_params connectionless_params{m_params.argc, m_params.argv};
     connectionless_params.srv_type = server_type::SCK;
@@ -349,7 +348,6 @@ int xpn_server::run()
     m_workerConnectionLess->launch_no_future([this](){
         connectionless_dispatcher();
     });
-    #endif
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Control socket initialization");
     ret = socket::server_create(m_params.srv_control_port, server_socket);

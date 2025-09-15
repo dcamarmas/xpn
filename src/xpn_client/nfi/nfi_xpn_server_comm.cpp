@@ -31,9 +31,7 @@
 #ifdef ENABLE_MPI_SERVER
 #include "nfi_mpi_server/nfi_mpi_server_comm.hpp"
 #endif
-#ifdef ENABLE_SCK_SERVER
 #include "nfi_sck_server/nfi_sck_server_comm.hpp"
-#endif
 
 namespace XPN {
 std::unique_ptr<nfi_xpn_server_control_comm> nfi_xpn_server_control_comm::Create(const std::string &server_protocol) {
@@ -42,9 +40,7 @@ std::unique_ptr<nfi_xpn_server_control_comm> nfi_xpn_server_control_comm::Create
         return std::make_unique<nfi_mpi_server_control_comm>();
 #endif
     } else if (server_protocol == server_protocols::sck_server) {
-#ifdef ENABLE_SCK_SERVER
         return std::make_unique<nfi_sck_server_control_comm>();
-#endif
     } else if (server_protocol == server_protocols::fabric_server) {
 #ifdef ENABLE_FABRIC_SERVER
         return std::make_unique<nfi_fabric_server_control_comm>();
