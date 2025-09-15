@@ -41,7 +41,7 @@ std::unique_ptr<xpn_server_control_comm> xpn_server_control_comm::Create(xpn_ser
 #endif
 #ifdef ENABLE_SCK_SERVER
         case server_type::SCK:
-            return std::make_unique<sck_server_control_comm>();
+            return std::make_unique<sck_server_control_comm>(params.srv_comm_port);
 #endif
 #ifdef ENABLE_FABRIC_SERVER
         case server_type::FABRIC:

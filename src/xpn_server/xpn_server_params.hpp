@@ -47,6 +47,9 @@ namespace XPN
   constexpr const int MAX_BUFFER_SIZE = (1*MB);
   constexpr const int MAX_PORT_NAME = 1024;
   constexpr const int DEFAULT_XPN_SERVER_CONTROL_PORT = 3456;
+  // 0 is for dynamic assigment
+  constexpr const int DEFAULT_XPN_SERVER_COMM_PORT = 0;
+  constexpr const int DEFAULT_XPN_SERVER_CONNECTIONLESS_PORT = 0;
 
   /* ... Data structures / Estructuras de datos ........................ */
 
@@ -58,7 +61,8 @@ namespace XPN
     int  rank;
 
     int srv_control_port;
-    std::string srv_name;
+    int srv_comm_port;
+    int srv_connectionless_port;
 
     // server configuration
     std::string shutdown_file;

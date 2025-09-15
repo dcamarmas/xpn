@@ -45,7 +45,7 @@ namespace XPN
   class sck_server_control_comm : public xpn_server_control_comm
   {
   public:
-    sck_server_control_comm();
+    sck_server_control_comm(int port);
     ~sck_server_control_comm() override;
     
     xpn_server_comm* accept(int socket, bool sendData = true) override;

@@ -33,7 +33,7 @@
 
 namespace XPN
 {
-sck_server_control_comm::sck_server_control_comm ()
+sck_server_control_comm::sck_server_control_comm (int port)
 {
   int ret;
 
@@ -45,7 +45,7 @@ sck_server_control_comm::sck_server_control_comm ()
   // Socket init
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Scoket init");
 
-  ret = socket::server_create(0, m_socket);
+  ret = socket::server_create(port, m_socket);
   if (ret < 0)
   {
     print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_create fails");

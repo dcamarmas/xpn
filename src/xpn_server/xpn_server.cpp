@@ -337,6 +337,7 @@ int xpn_server::run()
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Comm connectionless initialization");
     xpn_server_params connectionless_params{m_params.argc, m_params.argv};
     connectionless_params.srv_type = server_type::SCK;
+    connectionless_params.srv_comm_port = m_params.srv_connectionless_port;
     m_control_comm_connectionless = xpn_server_control_comm::Create(connectionless_params);
 
     m_workerConnectionLess = workers::Create(workers_mode::thread_on_demand);
