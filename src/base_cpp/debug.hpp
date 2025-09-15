@@ -62,11 +62,17 @@ struct format_open_mode {
     std::cerr << "[" << get_time_stamp() << "] [" << __func__ << "] [" << file_name(__FILE__) << ":" << __LINE__ \
               << "] ";
 
+#ifdef DEBUG
+#define XPN_DEBUG(out_format)                 \
+        XPN_DEBUG_COMMON_HEADER               \
+        std::cerr << out_format << std::endl;
+#else
 #define XPN_DEBUG(out_format)                 \
     if (xpn_env::get_instance().xpn_debug) {  \
         XPN_DEBUG_COMMON_HEADER               \
         std::cerr << out_format << std::endl; \
     }
+#endif
 
 #define XPN_DEBUG_BEGIN_CUSTOM(out_format)                       \
     XPN_DEBUG("Begin " << __func__ << "(" << out_format << ")"); \

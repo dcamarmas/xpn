@@ -52,7 +52,7 @@ namespace XPN
 
         if (flags >= 0)
         {
-            res = open(filename, flags, 07000);
+            res = open(filename, flags, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
             if (res >= 0)
             {
                 stream = new (std::nothrow) FILE;

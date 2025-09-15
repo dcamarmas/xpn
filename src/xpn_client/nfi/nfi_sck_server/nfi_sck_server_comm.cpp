@@ -42,7 +42,11 @@ nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &s
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] >> Begin");
 
   // Lookup port name
-  ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+  ret = socket::client_connect(srv_name,
+                          xpn_env::get_instance().xpn_sck_port,
+                          xpn_env::get_instance().xpn_connect_timeout_ms,
+                          connection_socket,
+                          xpn_env::get_instance().xpn_connect_retry_time_ms);
   if (ret < 0)
   {
     debug_error("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: socket connect\n");

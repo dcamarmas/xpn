@@ -47,13 +47,16 @@ class xpn_env {
         value = int_value;
     }
 
-    xpn_env() {
+    xpn_env() { read_env(); }
+
+    void read_env() {
         parse_env("XPN_SCK_PORT", xpn_sck_port);
         parse_env("XPN_CONTROLLER_SCK_PORT", xpn_controller_sck_port);
         xpn_conf = std::getenv("XPN_CONF");
         parse_env("XPN_DEBUG", xpn_debug);
         parse_env("XPN_PROFILER", xpn_profiler);
         parse_env("XPN_CONNECT_TIMEOUT_MS", xpn_connect_timeout_ms);
+        parse_env("XPN_CONNECT_RETRY_TIME_MS", xpn_connect_retry_time_ms);
         parse_env("XPN_THREAD", xpn_thread);
         parse_env("XPN_LOCALITY", xpn_locality);
         parse_env("XPN_SESSION_DIR", xpn_session_dir);
@@ -78,6 +81,7 @@ class xpn_env {
     const char* xpn_conf = nullptr;
     int xpn_debug = 0;
     int xpn_connect_timeout_ms = 5000;
+    int xpn_connect_retry_time_ms = 200;
     int xpn_profiler = 0;
     int xpn_thread = 0;
     int xpn_locality = 1;

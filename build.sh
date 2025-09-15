@@ -60,3 +60,5 @@ cmake -S .. -B . \
 cmake --build . -j 8 
 
 cmake --install .
+
+ctest

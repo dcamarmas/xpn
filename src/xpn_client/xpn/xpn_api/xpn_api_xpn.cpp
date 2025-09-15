@@ -47,7 +47,7 @@ int xpn_api::init() {
     m_initialized = true;
 
     xpn_conf conf;
-    xpn_env::get_instance();
+    xpn_env::get_instance().read_env();
 
     for (const auto &part : conf.partitions) {
         // Emplace without creation of temp xpn_partition

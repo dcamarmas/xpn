@@ -54,16 +54,12 @@ class subprocess {
         process(const std::string& commandPath, std::vector<std::string> args, bool supress_output = true) {
             execute(commandPath, args, supress_output);
         }
-        process(const std::string& command, bool supress_output = true) {
-            execute(command, supress_output);
+        process(const std::string& command, bool supress_output = true) { execute(command, supress_output); }
+        ~process() {
+            if (wait_on_destroy) wait_status();
         }
 
-        ~process() { 
-            if (wait_on_destroy) wait_status(); }
-
-        void set_wait_on_destroy(bool wait){
-            wait_on_destroy = wait;
-        }
+        void set_wait_on_destroy(bool wait) { wait_on_destroy = wait; }
 
         int wait_status() {
             if (pid == 0) return -1;
@@ -82,21 +78,26 @@ class subprocess {
             return false;
         }
 
+        int kill(int signal) {
+            if (pid == 0) return -1;
+            return ::kill(pid, signal);
+        }
+
         void execute(const std::string& command, bool supress_output = true) {
             std::vector<std::string> args;
             uint64_t start = 0, end = 0;
-
             while ((end = command.find(' ', start)) != std::string::npos) {
                 args.push_back(command.substr(start, end - start));
                 start = end + 1;
             }
+            args.push_back(command.substr(start, command.size() - start));
 
             std::string commandPath = args[0];
             args.erase(args.begin());
             return execute(commandPath, args, supress_output);
         }
 
-        void execute(const std::string& commandPath, std::vector<std::string> args, bool supress_output = true) {
+        void execute(const std::string& commandPath, const std::vector<std::string>& args, bool supress_output = true) {
             pid = 0;
             std::vector<char*> cargs;
             // 2, one for the program and the other for the null terminated
@@ -120,7 +121,7 @@ class subprocess {
 
                 // If reaches this is an error to log
                 std::stringstream str;
-                for (auto& arg : args) {
+                for (auto& arg : cargs) {
                     str << "'" << arg << "' ";
                 }
 

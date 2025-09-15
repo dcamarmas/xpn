@@ -62,9 +62,9 @@ namespace XPN
                                 // + server
                                 // + path + more info (port, ...)
 
-        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm;
-        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm_connectionless;
-        nfi_xpn_server_comm                         *m_comm;
+        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm = nullptr;
+        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm_connectionless = nullptr;
+        nfi_xpn_server_comm                         *m_comm = nullptr;
 
     public:
         // Operations 

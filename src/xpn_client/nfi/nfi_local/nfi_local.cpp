@@ -37,7 +37,7 @@ int nfi_local::nfi_open (const std::string &path, int flags, mode_t mode, xpn_fh
 
   fho.path = m_path + "/" + path;
 
-  debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_open] nfi_local_open("<<fho.path<<")");
+  debug_info("[SERV_ID="<<m_server<<"] [NFI_LOCAL] [nfi_local_open] nfi_local_open("<<fho.path<<", "<<format_open_flags(flags)<<", "<<format_open_mode(mode)<<")");
 
   ret = PROXY(open)(fho.path.c_str(), flags, mode);
   if (ret < 0)
@@ -477,27 +477,49 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata::dat
 
   // is necessary to do it in xpn_server in order to ensure atomic operation
   if(only_file_size){
-    // struct st_xpn_server_status req;
-    struct st_xpn_server_write_mdata_file_size msg;
-    uint64_t length = srv_path.copy(msg.path.path, srv_path.size());
-    msg.path.path[length] = '\0';
-    msg.path.size = length + 1;
-    msg.size = mdata.file_size;
-    // ret = nfi_do_request(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, req);
-    ret = nfi_write_operation(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, true);
+    if (m_protocol == "file") {
+      static std::mutex m;
+      uint64_t actual_file_size = 0;
+      std::unique_lock lock(m);
+      fd = PROXY(open)(srv_path.c_str(), O_RDWR);
+      if (fd < 0){
+        if (errno == EISDIR){
+          // if is directory there are no metadata to write so return 0
+          ret = 0;
+          debug_info("[SERV_ID="<<m_server<<"] [XPN_SERVER_OPS] [nfi_local_write_mdata] nfi_local_write_mdata("<<srv_path<<")="<<ret);
+          return ret;
+        }
+        ret = fd;
+        debug_info("[SERV_ID="<<m_server<<"] [XPN_SERVER_OPS] [nfi_local_write_mdata] nfi_local_write_mdata("<<srv_path<<")="<<ret);
+        return ret;
+      }
+      ret = filesystem::pread(fd, &actual_file_size, sizeof(actual_file_size), offsetof(xpn_metadata::data, file_size));
 
-    // if (req.ret < 0){
-    //   errno = req.server_errno;
-    //   ret = req.ret;
-    // }
+      if (ret > 0 && actual_file_size < mdata.file_size){
+        ret = filesystem::pwrite(fd, &mdata.file_size, sizeof(mdata.file_size), offsetof(xpn_metadata::data, file_size));
+      }
+      
+      PROXY(close)(fd); //TODO: think if necesary check error in close
+    }else{
+      struct st_xpn_server_write_mdata_file_size msg;
+      uint64_t length = srv_path.copy(msg.path.path, srv_path.size());
+      msg.path.path[length] = '\0';
+      msg.path.size = length + 1;
+      msg.size = mdata.file_size;
+      ret = nfi_write_operation(xpn_server_ops::WRITE_MDATA_FILE_SIZE, msg, true);
+    }
   }else{
     fd = PROXY(open)(srv_path.c_str(), O_WRONLY | O_CREAT, S_IRWXU);
     if (fd < 0){
       if (errno == EISDIR){
-      // if is directory there are no metadata to write so return 0
-        return 0;
+        // if is directory there are no metadata to write so return 0
+        ret = 0;
+        debug_info("[SERV_ID="<<m_server<<"] [XPN_SERVER_OPS] [nfi_local_write_mdata] nfi_local_write_mdata("<<srv_path<<")="<<ret);
+        return ret;
       }
-      return -1;
+      ret = fd;
+      debug_info("[SERV_ID="<<m_server<<"] [XPN_SERVER_OPS] [nfi_local_write_mdata] nfi_local_write_mdata("<<srv_path<<")="<<ret<<" "<<strerror(errno));
+      return ret;
     }
 
     ret = filesystem::write(fd, &mdata, sizeof(mdata));
@@ -505,8 +527,8 @@ int nfi_local::nfi_write_mdata (const std::string &path, const xpn_metadata::dat
     PROXY(close)(fd); //TODO: think if necesary check error in close
   }
 
-  debug_info("[Server=%s] [XPN_SERVER_OPS] [nfi_local_write_mdata] nfi_local_write_mdata("<<srv_path<<")="<<ret);
-  debug_info("[Server=%s] [XPN_SERVER_OPS] [nfi_local_write_mdata] << End");
+  debug_info("[SERV_ID="<<m_server<<"] [XPN_SERVER_OPS] [nfi_local_write_mdata] nfi_local_write_mdata("<<srv_path<<")="<<ret);
+  debug_info("[SERV_ID="<<m_server<<"] [XPN_SERVER_OPS] [nfi_local_write_mdata] << End");
   return ret;
 }
 

@@ -54,10 +54,7 @@ namespace XPN
             std::string controler_url = XPN_CONF::DEFAULT_CONTROLER_URL;
             std::vector<std::string> server_urls;
 
-            partition() = default;
-            partition(const partition&) = default;
-
-            std::string to_string()
+            std::string to_string() const
             {
                 std::stringstream out;
                 out << XPN_CONF::TAG_PARTITION << std::endl;
