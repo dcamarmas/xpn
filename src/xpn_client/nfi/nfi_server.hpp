@@ -52,6 +52,7 @@ namespace XPN
     public:
         std::string m_protocol; // protocol of the server: mpi_server sck_server
         std::string m_server;   // server address
+        int m_server_port;      // server port
         std::string m_path;     // path of the server
 
         std::string m_connectionless_port = {}; // port for the connectionless socket

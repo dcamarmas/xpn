@@ -36,12 +36,13 @@ void xpn_server_params::show() {
 
     printf(" | * XPN server current configuration:\n");
 
+        printf(" |\t--port  %d\n", srv_control_port);
     // * server_type
-    if (server_type == XPN_SERVER_TYPE_MPI) {
+    if (srv_type == server_type::MPI) {
         printf(" |\t-s  <int>:\tmpi_server\n");
-    } else if (server_type == XPN_SERVER_TYPE_SCK) {
+    } else if (srv_type == server_type::SCK) {
         printf(" |\t-s  <int>:\tsck_server\n");
-    } else if (server_type == XPN_SERVER_TYPE_FABRIC) {
+    } else if (srv_type == server_type::FABRIC) {
         printf(" |\t-s  <int>:\tfabric_server\n");
     } else {
         printf(" |\t-s  <int>:\tError: unknown\n");
@@ -77,12 +78,13 @@ void xpn_server_params::show_usage() {
     debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin");
 
     printf("Usage:\n");
-    printf("\t-s  <server_type>:   mpi (for mpi server); sck (for sck server)\n");
-    printf("\t-t  <int>:           0 (without thread); 1 (thread pool); 2 (on demand)\n");
-    printf("\t-f  <path>:          file of servers to be shutdown\n");
-    printf("\t-h  <host>:          host server to be shutdown\n");
-    printf("\t-w                   await for servers to stop\n");
-    printf("\t-p                   activate proxy mode\n");
+    printf("\t--port  <port>           port that will use the contol socket (default: 3456)\n");
+    printf("\t-s      <server_type>    mpi (for mpi server); sck (for sck server)\n");
+    printf("\t-t      <int>            0 (without thread); 1 (thread pool); 2 (on demand)\n");
+    printf("\t-f      <path>           file of servers to be shutdown\n");
+    printf("\t-h      <host>           host server to be shutdown\n");
+    printf("\t-w                       await for servers to stop\n");
+    printf("\t-p                       activate proxy mode\n");
 
     debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End");
 }
@@ -97,13 +99,11 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
     rank = 0;
     thread_mode_connections = workers_mode::sequential;
     thread_mode_operations = workers_mode::sequential;
-    server_type = XPN_SERVER_TYPE_SCK;
-#ifdef ENABLE_MPI_SERVER
-    server_type = XPN_SERVER_TYPE_MPI;
-#endif
+    srv_type = server_type::SCK;
+
     fs_mode = filesystem_mode::disk;
     await_stop = 0;
-    port_name = "";
+    srv_control_port = DEFAULT_XPN_SERVER_CONTROL_PORT;
     srv_name = "";
 
     // update user requests
@@ -152,11 +152,11 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
                     case 's':
                         if ((i + 1) < argc) {
                             if (strcmp("mpi", argv[i + 1]) == 0) {
-                                server_type = XPN_SERVER_TYPE_MPI;
+                                srv_type = server_type::MPI;
                             } else if (strcmp("sck", argv[i + 1]) == 0) {
-                                server_type = XPN_SERVER_TYPE_SCK;
+                                srv_type = server_type::SCK;
                             } else if (strcmp("fabric", argv[i + 1]) == 0) {
-                                server_type = XPN_SERVER_TYPE_FABRIC;
+                                srv_type = server_type::FABRIC;
                             } else {
                                 printf("ERROR: unknown option %s\n", argv[i + 1]);
                                 show_usage();
@@ -174,6 +174,12 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
                     case 'p':
                         fs_mode = filesystem_mode::xpn;
                         break;
+                    case '-': {
+                        std::string_view sv_argv(argv[i]);
+                        if (sv_argv == "--port") {
+                            srv_control_port = atoi(argv[i + 1]);
+                        }
+                    } break;
 
                     default:
                         show_usage();
@@ -189,7 +195,7 @@ xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
 
     // In sck_server worker for operations has to be sequential because you don't want to have to make a socket per
     // operation. It can be done because it is not reentrant
-    if (server_type == XPN_SERVER_TYPE_SCK) {
+    if (srv_type == server_type::SCK) {
         thread_mode_operations = workers_mode::sequential;
     }
 

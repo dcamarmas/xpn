@@ -347,7 +347,7 @@ namespace XPN
         int status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
         if (status < 0) 
         {
-            debug_error("[SOCKET] [socket::client_connect] ERROR: socket connection failed to "<<srv_name<<" in port "<< xpn_env::get_instance().xpn_sck_port << " "<<errno<<" " << strerror(errno));
+            debug_error("[SOCKET] [socket::client_connect] ERROR: socket connection failed to "<<srv_name<<" in port "<<port<< " "<<errno<<" " <<strerror(errno));
             close(client_fd);
             return -1;
         }

@@ -17,6 +17,6 @@ foreach(TEST_NAME IN LISTS TESTS)
         COMMAND ${TEST_NAME} 
     )
     set_tests_properties(${TEST_NAME} PROPERTIES
-        ENVIRONMENT "PATH=${CMAKE_INSTALL_PREFIX}/bin:$ENV{PATH}"
+        ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/src/xpn_server:$ENV{PATH}"
     )
 endforeach()

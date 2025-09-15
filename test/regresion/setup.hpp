@@ -113,8 +113,8 @@ class setup {
         std::vector<XPN::subprocess::process> server_processes;
 
         for (auto&& srv_url : part.server_urls) {
-            std::string protocol, server;
-            std::tie(protocol, server, std::ignore) = XPN::xpn_parser::parse(srv_url);
+            std::string protocol, server, port;
+            std::tie(protocol, server, port, std::ignore) = XPN::xpn_parser::parse(srv_url);
             if (protocol.empty() || server.empty()) {
                 std::cerr << "Error: cannot parse server url: '" << srv_url << "'" << std::endl;
                 exit(EXIT_FAILURE);
@@ -128,9 +128,11 @@ class setup {
                 std::cerr << "Unsupported server ip to start a server in test " << server << std::endl;
                 exit(EXIT_FAILURE);
             }
-            print("Begin Execute server");
-            XPN::subprocess::process srv_process("xpn_server -t pool -s sck", false);
-            print("End Execute server");
+            std::string srv_commmand = "xpn_server -t pool -s sck";
+            if (!port.empty()) {
+                srv_commmand += " --port " + port;
+            }
+            XPN::subprocess::process srv_process(srv_commmand, false);
             srv_process.set_wait_on_destroy(false);
             server_processes.emplace_back(srv_process);
         }
@@ -138,9 +140,7 @@ class setup {
         return Defer([processes = std::move(server_processes)]() mutable {
             for (auto&& srv_p : processes) {
                 srv_p.kill(SIGKILL);
-                print("send kill");
                 srv_p.wait_status();
-                print("process killed");
             }
         });
     }

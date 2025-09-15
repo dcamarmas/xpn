@@ -36,7 +36,7 @@
 #endif
 #include <sys/file.h> /* flock(2) */
 
-static void *xmp_init(struct fuse_conn_info *conn, [[maybe_unused]] struct fuse_config *cfg) {
+static void *xmp_init([[maybe_unused]] struct fuse_conn_info *conn, [[maybe_unused]] struct fuse_config *cfg) {
     int res;
     debug_info("[FUSE-XPN] Init");
     debug_info("[FUSE-XPN] proto_major " << conn->proto_major);

@@ -237,7 +237,7 @@ void xpn_server::accept ( int connection_socket )
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Accept received");
 
-    if (m_params.server_type == XPN_SERVER_TYPE_FABRIC || m_params.server_type == XPN_SERVER_TYPE_SCK){
+    if (m_params.srv_type == server_type::FABRIC || m_params.srv_type == server_type::SCK){
         if (comm){
             delete comm;
         }
@@ -336,7 +336,7 @@ int xpn_server::run()
     #ifdef ENABLE_SCK_SERVER
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Comm connectionless initialization");
     xpn_server_params connectionless_params{m_params.argc, m_params.argv};
-    connectionless_params.server_type = XPN_SERVER_TYPE_SCK;
+    connectionless_params.srv_type = server_type::SCK;
     m_control_comm_connectionless = xpn_server_control_comm::Create(connectionless_params);
 
     m_workerConnectionLess = workers::Create(workers_mode::thread_on_demand);
@@ -351,7 +351,7 @@ int xpn_server::run()
     #endif
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Control socket initialization");
-    ret = socket::server_create(xpn_env::get_instance().xpn_sck_port, server_socket);
+    ret = socket::server_create(m_params.srv_control_port, server_socket);
     if (ret < 0) {
         debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Socket initialization fails");
         return -1;
@@ -540,7 +540,8 @@ int xpn_server::stop()
             if (m_params.await_stop == 1){
                 buffer = socket::xpn_server::FINISH_CODE_AWAIT;
             }
-            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
+            // TODO: rethink with diferents ports
+            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
             if (ret < 0) {
                 print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: socket connection " << name);
                 return ret;
@@ -615,7 +616,7 @@ int xpn_server::print_stats()
         int ret;
         int buffer = socket::xpn_server::STATS_CODE;
         xpn_stats stat_buff;
-        ret = socket::client_connect(name.data(), xpn_env::get_instance().xpn_sck_port, socket);
+        ret = socket::client_connect(name.data(), DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
         if (ret < 0) {
             print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);
             continue;

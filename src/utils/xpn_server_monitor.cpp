@@ -64,7 +64,8 @@ void monitor_stats(std::filesystem::path csv_path) {
             int ret;
             int buffer = socket::xpn_server::STATS_wINDOW_CODE;
             xpn_stats stat_buff;
-            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
+            // TODO: rethink to allow diferent ports
+            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
             if (ret < 0) {
                 debug_error("[TH_ID=" << std::this_thread::get_id()
                                 << "] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);

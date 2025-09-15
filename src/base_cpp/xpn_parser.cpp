@@ -36,7 +36,7 @@ xpn_parser::xpn_parser(const std::string& url) : m_url(url) {
     XPN_DEBUG_BEGIN;
     int res = 0;
 
-    std::tie(m_protocol, m_server, m_path) = parse(m_url);
+    std::tie(m_protocol, m_server, m_server_port, m_path) = parse(m_url);
 
     if (m_protocol.empty()) {
         std::cerr << "Error cannot parse protocol of url '" << m_url << "'" << std::endl;
@@ -53,12 +53,13 @@ xpn_parser::xpn_parser(const std::string& url) : m_url(url) {
     XPN_DEBUG_END;
 }
 
-std::tuple<std::string_view, std::string_view, std::string_view> xpn_parser::parse(const std::string& url) {
+std::tuple<std::string_view, std::string_view, std::string_view, std::string_view> xpn_parser::parse(const std::string& url) {
     XPN_DEBUG_BEGIN;
     int res = 0;
     std::string_view sv_url(url);
     std::string_view sv_protocol;
     std::string_view sv_server;
+    std::string_view sv_server_port;
     std::string_view sv_path;
     // Find the position of "://"
     uint64_t protocol_pos = sv_url.find("://");
@@ -71,21 +72,42 @@ std::tuple<std::string_view, std::string_view, std::string_view> xpn_parser::par
         // Extract the second part (after "://")
         std::string_view remainder = sv_url.substr(protocol_pos + 3);
 
-        // Find the position of the first '/'
-        uint64_t ip_pos = remainder.find('/');
-        if (ip_pos == std::string_view::npos) {
-            std::cerr << "Invalid format: '/' not found after IP '" << url << "'" << std::endl;
-        } else {
+        // Find the position of the first ':'
+        uint64_t port_pos = remainder.find_last_of(':');
+        if (port_pos == std::string_view::npos) {
+            sv_server_port = "";
+
+            // Find the position of the first '/'
+            uint64_t ip_pos = remainder.find('/');
+            if (ip_pos == std::string_view::npos) {
+                std::cerr << "Invalid format: '/' not found after IP '" << url << "'" << std::endl;
+            } else {
+                // Extract the IP address
+                sv_server = remainder.substr(0, ip_pos);
+                // Extract the path (after the first '/')
+                sv_path = remainder.substr(ip_pos);
+            }
+        }else{
             // Extract the IP address
-            sv_server = remainder.substr(0, ip_pos);
-            // Extract the path (after the first '/')
-            sv_path = remainder.substr(ip_pos);
+            sv_server = remainder.substr(0, port_pos);
+            remainder = remainder.substr(port_pos + 1);
+
+            // Find the position of the first '/'
+            uint64_t ip_pos = remainder.find('/');
+            if (ip_pos == std::string_view::npos) {
+                std::cerr << "Invalid format: '/' not found after IP '" << url << "'" << std::endl;
+            } else {
+                // Extract the IP address
+                sv_server_port = remainder.substr(0, ip_pos);
+                // Extract the path (after the first '/')
+                sv_path = remainder.substr(ip_pos);
+            }
         }
     }
 
-    XPN_DEBUG("Parse '" << sv_url << "' to protocol '" << sv_protocol << "' server '" << sv_server << "' path '" << sv_path << "'");
+    XPN_DEBUG("Parse '" << sv_url << "' to protocol '" << sv_protocol << "' server '" << sv_server << "' port '" << sv_server_port << "' path '" << sv_path << "'");
     XPN_DEBUG_END;
-    return {sv_protocol, sv_server, sv_path};
+    return {sv_protocol, sv_server, sv_server_port, sv_path};
 }
 
 std::string xpn_parser::create(const std::string_view& protocol, const std::string_view& server, const std::string_view& path) {

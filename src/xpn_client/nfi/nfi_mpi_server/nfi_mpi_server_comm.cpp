@@ -115,7 +115,7 @@ nfi_mpi_server_control_comm::~nfi_mpi_server_control_comm() {
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_destroy] << End");
 }
 
-nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv_name) {
+nfi_xpn_server_comm* nfi_mpi_server_control_comm::control_connect(const std::string &srv_name, int srv_port) {
     XPN_PROFILE_FUNCTION();
     int ret, err;
     int connection_socket;
@@ -135,7 +135,7 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     // Send connect intention
     if (m_rank == 0) {
         err = 0;
-        ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+        ret = socket::client_connect(srv_name, srv_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
         if (ret < 0) {
             debug_error("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] ERROR: socket connect");
             err = -1;

@@ -113,7 +113,17 @@ int main() {
         part.bsize = 1024 * 1024;
         auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
         auto cleanup_srvs = setup::start_srvs(part);
-        print("end start_srvs");
+        run_test();
+    }
+    {
+        part.server_urls = {
+            "sck_server://localhost:3456/" + tmp_dir + "/xpn1",
+            "sck_server://localhost:3457/" + tmp_dir + "/xpn2",
+            "sck_server://localhost:3458/" + tmp_dir + "/xpn3",
+        };
+        part.bsize = 1024 * 1024;
+        auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
+        auto cleanup_srvs = setup::start_srvs(part);
         run_test();
     }
 }

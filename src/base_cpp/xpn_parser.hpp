@@ -29,12 +29,13 @@ namespace XPN {
 class xpn_parser {
    public:
     xpn_parser(const std::string& url);
-    static std::tuple<std::string_view, std::string_view, std::string_view> parse(const std::string& url);
+    static std::tuple<std::string_view, std::string_view, std::string_view, std::string_view> parse(const std::string& url);
     static std::string create(const std::string_view& protocol, const std::string_view& server, const std::string_view& path);
 
     const std::string m_url;
     std::string_view m_protocol;
     std::string_view m_server;
+    std::string_view m_server_port;
     std::string_view m_path;
 };
 }  // namespace XPN

@@ -34,22 +34,22 @@
 
 namespace XPN {
 std::unique_ptr<xpn_server_control_comm> xpn_server_control_comm::Create(xpn_server_params &params) {
-    switch (params.server_type) {
+    switch (params.srv_type) {
 #ifdef ENABLE_MPI_SERVER
-        case XPN_SERVER_TYPE_MPI:
+        case server_type::MPI:
             return std::make_unique<mpi_server_control_comm>(params);
 #endif
 #ifdef ENABLE_SCK_SERVER
-        case XPN_SERVER_TYPE_SCK:
+        case server_type::SCK:
             return std::make_unique<sck_server_control_comm>();
 #endif
 #ifdef ENABLE_FABRIC_SERVER
-        case XPN_SERVER_TYPE_FABRIC:
+        case server_type::FABRIC:
             return std::make_unique<fabric_server_control_comm>();
 #endif
         default:
             fprintf(stderr, "[XPN_SERVER] [xpn_server_control_comm] server_type '%d' not recognized\n",
-                    params.server_type);
+                    static_cast<int>(params.srv_type));
     }
     return nullptr;
 }

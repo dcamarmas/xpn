@@ -43,6 +43,8 @@ void run_test() {
     XPN_scope xpn;
     int elems = 0;
     int elems_expected = 0;
+    int files_in_base = 12;
+    int files_in_sub = 10;
     std::string base_dir = "/xpn/test_dir";
     std::string sub_dir = base_dir + "/subdir";
 
@@ -57,7 +59,7 @@ void run_test() {
     }
 
     // 2. Create files in the main directory
-    for (size_t i = 0; i < 3; i++) {
+    for (int i = 0; i < files_in_base; i++) {
         std::string filename = base_dir + "/" + std::to_string(i) + ".txt";
         int file = xpn_creat(filename.c_str(), S_IRUSR | S_IWUSR);
         if (file < 0) {
@@ -78,7 +80,7 @@ void run_test() {
     }
 
     // 4. Create files in the subdirectory
-    for (size_t i = 0; i < 3; i++) {
+    for (int i = 0; i < files_in_sub; i++) {
         std::string filename = sub_dir + "/" + std::to_string(i) + ".txt";
         int file = xpn_creat(filename.c_str(), S_IRUSR | S_IWUSR);
         if (file < 0) {
@@ -89,7 +91,7 @@ void run_test() {
     }
 
     // 5. Check the creation of the files in the main directory
-    elems_expected = 4;
+    elems_expected = files_in_base + 1;
     elems = count_elems_in_dir(base_dir);
     if (elems != elems_expected) {
         std::cerr << "Error reading content '" << base_dir << "', expected " << elems_expected << " actual " << elems
@@ -98,7 +100,7 @@ void run_test() {
     }
 
     // 6. Check the creation of the files in the subdirectory
-    elems_expected = 3;
+    elems_expected = files_in_sub;
     elems = count_elems_in_dir(sub_dir);
     if (elems != elems_expected) {
         std::cerr << "Error reading content '" << sub_dir << "', expected " << elems_expected << " actual " << elems
@@ -107,7 +109,7 @@ void run_test() {
     }
 
     // 7. Remove the subdirectory files
-    for (size_t i = 0; i < 3; i++) {
+    for (int i = 0; i < files_in_sub; i++) {
         std::string filename = sub_dir + "/" + std::to_string(i) + ".txt";
         if (xpn_unlink(filename.c_str()) < 0) {
             perror("Error unlink file in base directory");
@@ -133,7 +135,7 @@ void run_test() {
     }
 
     // 10. Check content of the main directory
-    elems_expected = 3;
+    elems_expected = files_in_base;
     elems = count_elems_in_dir(base_dir);
     if (elems != elems_expected) {
         std::cerr << "Error reading content, expected " << elems_expected << " actual " << elems << std::endl;
@@ -141,7 +143,7 @@ void run_test() {
     }
 
     // 11. Remove the files in the main directory
-    for (size_t i = 0; i < 3; i++) {
+    for (int i = 0; i < files_in_base; i++) {
         std::string filename = base_dir + "/" + std::to_string(i) + ".txt";
         if (xpn_unlink(filename.c_str()) < 0) {
             perror("Error unlink file in base directory");
@@ -200,7 +202,17 @@ int main() {
         part.bsize = 1024 * 1024;
         auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
         auto cleanup_srvs = setup::start_srvs(part);
-        print("end start_srvs");
+        run_test();
+    }
+    {
+        part.server_urls = {
+            "sck_server://localhost:3456/" + tmp_dir + "/xpn1",
+            "sck_server://localhost:3457/" + tmp_dir + "/xpn2",
+            "sck_server://localhost:3458/" + tmp_dir + "/xpn3",
+        };
+        part.bsize = 1024 * 1024;
+        auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
+        auto cleanup_srvs = setup::start_srvs(part);
         run_test();
     }
 }

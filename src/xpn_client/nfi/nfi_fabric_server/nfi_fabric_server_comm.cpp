@@ -30,7 +30,7 @@
 
 namespace XPN {
 
-nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string &srv_name )
+nfi_xpn_server_comm* nfi_fabric_server_control_comm::control_connect ( const std::string &srv_name, int svr_port )
 {
   XPN_PROFILE_FUNCTION();
   int ret;
@@ -40,7 +40,7 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] >> Begin");
 
   // Lookup port name
-  ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+  ret = socket::client_connect(srv_name, svr_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
   if (ret < 0)
   {
     debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket connect\n");

@@ -33,17 +33,17 @@
 
 namespace XPN {
 
-nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &srv_name )
+nfi_xpn_server_comm* nfi_sck_server_control_comm::control_connect ( const std::string &srv_name, int srv_port )
 {
   int ret;
   int connection_socket;
   char port_name[MAX_PORT_NAME];
 
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] >> Begin");
-
+  
+  debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] srv_name '"<<srv_name<<"' srv_port '"<<srv_port<<"'");
   // Lookup port name
-  ret = socket::client_connect(srv_name,
-                          xpn_env::get_instance().xpn_sck_port,
+  ret = socket::client_connect(srv_name, srv_port,
                           xpn_env::get_instance().xpn_connect_timeout_ms,
                           connection_socket,
                           xpn_env::get_instance().xpn_connect_retry_time_ms);

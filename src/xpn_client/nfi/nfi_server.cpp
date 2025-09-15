@@ -53,6 +53,14 @@ namespace XPN
     {
         m_protocol = parser.m_protocol;
         m_server = parser.m_server;
+        if (parser.m_server_port.empty()) {
+            m_server_port = DEFAULT_XPN_SERVER_CONTROL_PORT;
+        }else{
+            m_server_port = atoi(std::string(parser.m_server_port).c_str());
+            if (m_server_port == 0){
+                m_server_port = DEFAULT_XPN_SERVER_CONTROL_PORT;
+            }
+        }
         m_path = parser.m_path;
     }
 
@@ -69,7 +77,7 @@ namespace XPN
         }
 
         // Connect to the server
-        m_comm = m_control_comm->connect(m_server);
+        m_comm = m_control_comm->control_connect(m_server, m_server_port);
         if(m_comm){
             XPN_DEBUG("Connected successfull to "<<m_server);
         }
@@ -85,7 +93,7 @@ namespace XPN
 
             int connection_socket = 0;
             char port_name[MAX_PORT_NAME] = {};
-            int ret = socket::client_connect(m_server, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+            int ret = socket::client_connect(m_server, m_server_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
             if (ret < 0) {
                 debug_error("[NFI_SERVER] [init_comm] ERROR: socket connect\n");
                 return -1;

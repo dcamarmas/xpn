@@ -161,7 +161,7 @@ class xpn_controller {
 
         for (auto& srv_url : out_servers) {
             std::string server;
-            std::tie(std::ignore, server, std::ignore) = xpn_parser::parse(srv_url);
+            std::tie(std::ignore, server, std::ignore, std::ignore) = xpn_parser::parse(srv_url);
             srv_url = server;
         }
 

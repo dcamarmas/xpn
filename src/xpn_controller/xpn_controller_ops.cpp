@@ -242,7 +242,7 @@ int xpn_controller::update_config(const std::vector<std::string_view>& new_hostl
     xpn_conf::partition part = conf.partitions[0];
 
     std::string protocol, path;
-    std::tie(protocol, std::ignore, path) = xpn_parser::parse(conf.partitions[0].server_urls[0]);
+    std::tie(protocol, std::ignore, std::ignore, path) = xpn_parser::parse(conf.partitions[0].server_urls[0]);
 
     part.server_urls.clear();
     part.server_urls.reserve(new_hostlist.size());
@@ -330,7 +330,7 @@ int xpn_controller::start_servers(bool await, int server_cores, bool debug) {
         args.emplace_back("xpn_server");
         args.emplace_back("-s");
         std::string protocol;
-        std::tie(protocol, std::ignore, std::ignore) = xpn_parser::parse(conf.partitions[0].server_urls[0]);
+        std::tie(protocol, std::ignore, std::ignore, std::ignore) = xpn_parser::parse(conf.partitions[0].server_urls[0]);
         uint64_t pos = protocol.find('_');
         args.emplace_back(protocol.substr(0, pos));
         args.emplace_back("-t");
@@ -385,7 +385,8 @@ int xpn_controller::stop_servers(bool await) {
             if (await) {
                 buffer = socket::xpn_server::FINISH_CODE_AWAIT;
             }
-            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
+            // TODO: rethink with different ports
+            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
             if (ret < 0) {
                 print("[XPN_CONTROLLER] ERROR: socket connection " << name);
                 return ret;
@@ -442,8 +443,8 @@ int xpn_controller::ping_servers() {
             int socket;
             int ret = -1;
             int buffer = socket::xpn_server::PING_CODE;
-
-            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, 5000, socket);
+            // TODO: rethink with different ports
+            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, 5000, socket);
             if (ret < 0) {
                 print("[XPN_CONTROLLER] ERROR: socket connection " << name);
                 return ret;
@@ -517,7 +518,7 @@ int xpn_controller::expand(const std::vector<std::string_view>& new_hostlist) {
             // Path of the servers
             // TODO: current restriction to have all the path the same
             std::string path;
-            std::tie(std::ignore, std::ignore, path) = xpn_parser::parse(old_hosts[0]);
+            std::tie(std::ignore, std::ignore, std::ignore, path) = xpn_parser::parse(old_hosts[0]);
             args.emplace_back(path);
             // Last size
             args.emplace_back(std::to_string(old_hosts.size()));
@@ -608,7 +609,7 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
             // Path of the servers
             // TODO: current restriction to have all the path the same
             std::string path;
-            std::tie(std::ignore, std::ignore, path) = xpn_parser::parse(old_hosts[0]);
+            std::tie(std::ignore, std::ignore, std::ignore, path) = xpn_parser::parse(old_hosts[0]);
             args.emplace_back(path);
             // The new list of servers
             std::stringstream new_servers_list;

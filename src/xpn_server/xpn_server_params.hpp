@@ -33,17 +33,20 @@
 
   /* ... Const / Const ................................................. */
 
-  #define XPN_SERVER_TYPE_MPI 0
-  #define XPN_SERVER_TYPE_SCK 1
-  #define XPN_SERVER_TYPE_FABRIC 2
-
 namespace XPN
 {
+  enum class server_type {
+    MPI,
+    SCK,
+    FABRIC,
+  };
+  
   constexpr const int KB = 1024;
   constexpr const int MB = (KB*KB);
   constexpr const int GB = (KB*MB);
   constexpr const int MAX_BUFFER_SIZE = (1*MB);
   constexpr const int MAX_PORT_NAME = 1024;
+  constexpr const int DEFAULT_XPN_SERVER_CONTROL_PORT = 3456;
 
   /* ... Data structures / Estructuras de datos ........................ */
 
@@ -54,14 +57,14 @@ namespace XPN
     int  size;
     int  rank;
 
-    std::string port_name;
+    int srv_control_port;
     std::string srv_name;
 
     // server configuration
     std::string shutdown_file;
-    workers_mode  thread_mode_connections;
-    workers_mode  thread_mode_operations;
-    int  server_type;  // it can be XPN_SERVER_TYPE_MPI, XPN_SERVER_TYPE_SCK
+    workers_mode thread_mode_connections;
+    workers_mode thread_mode_operations;
+    server_type srv_type; 
     filesystem_mode fs_mode;
 
     int await_stop;

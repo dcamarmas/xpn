@@ -50,7 +50,6 @@ class xpn_env {
     xpn_env() { read_env(); }
 
     void read_env() {
-        parse_env("XPN_SCK_PORT", xpn_sck_port);
         parse_env("XPN_CONTROLLER_SCK_PORT", xpn_controller_sck_port);
         xpn_conf = std::getenv("XPN_CONF");
         parse_env("XPN_DEBUG", xpn_debug);
@@ -76,7 +75,6 @@ class xpn_env {
     xpn_env(xpn_env&&) = delete;
     // Delete move assignment operator
     xpn_env& operator=(xpn_env&&) = delete;
-    int xpn_sck_port = 3456;
     int xpn_controller_sck_port = 34567;
     const char* xpn_conf = nullptr;
     int xpn_debug = 0;
