@@ -31,6 +31,7 @@
 
 #include "xpn_server/xpn_server_ops.hpp"
 #include "nfi_xpn_server_comm.hpp"
+#include "nfi_sck_server/nfi_sck_server_comm.hpp"
 #include "base_cpp/debug.hpp"
 #include "base_cpp/xpn_parser.hpp"
 
@@ -89,7 +90,7 @@ namespace XPN
     protected:
     
         template<typename msg_struct>
-        int nfi_write_operation( xpn_server_ops op, msg_struct &msg, bool withoutRequest = false )
+        int nfi_write_operation( xpn_server_ops op, msg_struct &msg, bool haveResponse = true )
         {
             int ret;
 
@@ -102,16 +103,23 @@ namespace XPN
             message.msg_size = msg.get_size();
             std::memcpy(message.msg_buffer, &msg, msg.get_size());
 
-            if (withoutRequest && !xpn_env::get_instance().xpn_connect && m_comm == nullptr){
-                m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
+            std::unique_ptr<std::unique_lock<std::mutex>> lock = nullptr;
+            if (!haveResponse) {
+                if (!xpn_env::get_instance().xpn_connect && m_comm == nullptr) {
+                    m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
+                } else if (m_comm && m_comm->m_type == server_type::SCK) {
+                    // Necessary lock, because the nfi sck comm is not reentrant in the communication part 
+                    auto sck_comm = static_cast<nfi_sck_server_comm*>(m_comm);
+                    lock = std::make_unique<std::unique_lock<std::mutex>>(sck_comm->m_mutex);
+                    debug_info("lock sck comm mutex");
+                }
             }
             ret = m_comm->write_operation(message);
-            if (ret < 0)
-            {
+            if (ret < 0){
                 printf("[NFI_XPN] [nfi_write_operation] ERROR: nfi_write_operation fails");
                 return -1;
             }
-            if (withoutRequest && !xpn_env::get_instance().xpn_connect){
+            if (!haveResponse && !xpn_env::get_instance().xpn_connect) {
                 m_control_comm_connectionless->disconnect(m_comm);
                 m_comm = nullptr;
             }
@@ -129,8 +137,14 @@ namespace XPN
             int64_t ret;
             debug_info("[NFI_XPN] [nfi_server_do_request] >> Begin");
 
+            std::unique_ptr<std::unique_lock<std::mutex>> lock = nullptr;
             if (!xpn_env::get_instance().xpn_connect && m_comm == nullptr){
                 m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
+            } else if (m_comm->m_type == server_type::SCK) {
+                    // Necessary lock, because the nfi sck comm is not reentrant in the communication part 
+                auto sck_comm = static_cast<nfi_sck_server_comm*>(m_comm);
+                lock = std::make_unique<std::unique_lock<std::mutex>>(sck_comm->m_mutex);
+                debug_info("lock sck comm mutex");
             }
 
             // send request...

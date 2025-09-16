@@ -26,11 +26,9 @@ std::string generate_random_string(size_t length) {
     return result;
 }
 
-void run_test() {
-    XPN_scope xpn;
-
+void run_test(int thread = 0) {
     size_t data_size_mb = 1;
-    const std::string filename = "/xpn/mega_data_test.bin";
+    const std::string filename = "/xpn/mega_data_test" + std::to_string(thread) + ".bin";
     size_t total_bytes = data_size_mb * 1024 * 1024;
     std::string original_data = generate_random_string(total_bytes);
     std::cout << "Generated data of " << data_size_mb << " MB." << std::endl;
@@ -94,6 +92,7 @@ int main() {
         };
         part.bsize = 1024;
         auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
+        XPN_scope xpn;
         run_test();
     }
     {
@@ -103,9 +102,10 @@ int main() {
         };
         part.bsize = 1024 * 1024;
         auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
+        XPN_scope xpn;
         run_test();
     }
-    setup::env({{"XPN_LOCALITY", "0"}, {"XPN_CONNECT_RETRY_TIME_MS", "0"}});
+    setup::env({{"XPN_LOCALITY", "0"}, {"XPN_CONNECT_RETRY_TIME_MS", "10"}});
     {
         part.server_urls = {
             "sck_server://localhost/" + tmp_dir + "/xpn1",
@@ -113,6 +113,7 @@ int main() {
         part.bsize = 1024 * 1024;
         auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
         auto cleanup_srvs = setup::start_srvs(part);
+        XPN_scope xpn;
         run_test();
     }
     {
@@ -124,6 +125,25 @@ int main() {
         part.bsize = 1024 * 1024;
         auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
         auto cleanup_srvs = setup::start_srvs(part);
+        XPN_scope xpn;
         run_test();
+    }
+    {
+        part.server_urls = {
+            "sck_server://localhost:3456/" + tmp_dir + "/xpn1",
+            "sck_server://localhost:3457/" + tmp_dir + "/xpn2",
+            "sck_server://localhost:3458/" + tmp_dir + "/xpn3",
+        };
+        part.bsize = 1024 * 1024;
+        auto cleanup_conf = setup::create_xpn_conf(tmp_dir + "/xpn.conf", part);
+        auto cleanup_srvs = setup::start_srvs(part);
+        XPN_scope xpn;
+        std::vector<std::thread> threads;
+        for (size_t i = 0; i < 12; i++) {
+            threads.emplace_back(std::thread([i]() { run_test(i); }));
+        }
+        for (auto &&t : threads) {
+            t.join();
+        }
     }
 }

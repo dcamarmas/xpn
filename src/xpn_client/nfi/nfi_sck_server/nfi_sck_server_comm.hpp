@@ -32,7 +32,9 @@ namespace XPN
   class nfi_sck_server_comm : public nfi_xpn_server_comm
   {
   public:
-    nfi_sck_server_comm(int socket, void *mqtt) : m_socket(socket), m_mqtt(mqtt) {}
+    nfi_sck_server_comm(int socket, void *mqtt) : m_socket(socket), m_mqtt(mqtt) {
+      m_type = server_type::SCK;
+    }
 
     int64_t write_operation(xpn_server_msg& msg) override;
     int64_t read_data(void *data, int64_t size) override;
@@ -40,6 +42,7 @@ namespace XPN
   public:
     int m_socket;
     void *m_mqtt;
+    std::mutex m_mutex = {};
   };
   
   class nfi_sck_server_control_comm : public nfi_xpn_server_control_comm

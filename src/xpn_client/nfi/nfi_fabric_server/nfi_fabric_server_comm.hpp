@@ -32,7 +32,9 @@ namespace XPN
   class nfi_fabric_server_comm : public nfi_xpn_server_comm
   {
   public:
-    nfi_fabric_server_comm(int& comm) : m_comm(comm) {}
+    nfi_fabric_server_comm(int& comm) : m_comm(comm) {
+      m_type = server_type::FABRIC;
+    }
 
     int64_t write_operation(xpn_server_msg& msg) override;
     int64_t read_data(void *data, int64_t size) override;

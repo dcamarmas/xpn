@@ -32,7 +32,9 @@ namespace XPN
   class nfi_mpi_server_comm : public nfi_xpn_server_comm
   {
   public:
-    nfi_mpi_server_comm(MPI_Comm &comm, int rank, int size) : m_comm(comm), m_rank(rank), m_size(size) {}
+    nfi_mpi_server_comm(MPI_Comm &comm, int rank, int size) : m_comm(comm), m_rank(rank), m_size(size) {
+      m_type = server_type::MPI;
+    }
 
     int64_t write_operation(xpn_server_msg& msg) override;
     int64_t read_data(void *data, int64_t size) override;

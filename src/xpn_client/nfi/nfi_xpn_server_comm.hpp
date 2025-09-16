@@ -42,6 +42,8 @@ namespace XPN
         virtual int64_t write_operation(xpn_server_msg& msg) = 0;
         virtual int64_t read_data(void *data, int64_t size) = 0;
         virtual int64_t write_data(const void *data, int64_t size) = 0;
+
+        server_type m_type;
     };
     class nfi_xpn_server_control_comm 
     {

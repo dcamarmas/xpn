@@ -71,10 +71,6 @@ namespace XPN
         // Init the comunication
         m_control_comm = nfi_xpn_server_control_comm::Create(m_protocol);
         m_control_comm_connectionless = nfi_xpn_server_control_comm::Create(server_protocols::sck_server);
-        if (!xpn_env::get_instance().xpn_connect && !m_control_comm_connectionless) {
-            print("Error: to use without XPN_SESSION_CONNECT xpn needs to be build with SCK_SERVER support");
-            std::raise(SIGTERM);
-        }
 
         // Connect to the server
         m_comm = m_control_comm->control_connect(m_server, m_server_port);

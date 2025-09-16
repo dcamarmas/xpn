@@ -98,8 +98,9 @@ namespace XPN
             if (!fut.valid()) continue;
             aux_res = fut.get();
             if (aux_res < 0){
+                res = aux_res;
                 XPN_DEBUG_END_CUSTOM(file->m_path<<", "<<buffer<<", "<<size);
-                return aux_res;
+                return res;
             }
             sum += aux_res;
         }

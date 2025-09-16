@@ -174,7 +174,6 @@ struct st_xpn_server_rw {
 
 struct st_xpn_server_rw_req {
     int64_t size;
-    char last;
     struct st_xpn_server_status status;
 
     uint64_t get_size() { return sizeof(*this); }
