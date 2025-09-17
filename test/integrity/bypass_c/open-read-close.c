@@ -1,10 +1,14 @@
 
-#include "all_system.h"
 #include <sys/time.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 
 #define KB  (1024)
-
+#define MB  (KB*1024)
 #define BUFF_SIZE (1*MB)
 char buffer[BUFF_SIZE] ;
 
@@ -12,9 +16,8 @@ char buffer[BUFF_SIZE] ;
 double get_time(void)
 {
     struct timeval tp;
-    struct timezone tzp;
 
-    gettimeofday(&tp,&tzp);
+    gettimeofday(&tp,NULL);
     return((double) tp.tv_sec + .000001 * (double) tp.tv_usec);
 }
 
@@ -44,7 +47,7 @@ int main ( int argc, char *argv[] )
 
 	fd1 = open(argv[1], O_RDWR);
 	if (fd1 < 0) {
-	    printf("%d = open('%s', %o)\n", ret, argv[1], 00777) ;
+	    printf("%d = open('%s', %o)\n", fd1, argv[1], 00777) ;
 	    return -1 ;
 	}
 
@@ -55,6 +58,9 @@ int main ( int argc, char *argv[] )
 	for (int i = 0; i < mb; i++)
 	{
 	     ret = read(fd1, buffer, BUFF_SIZE);
+		 if (ret < 0) {
+			perror("read");
+		 }
 	  // printf("%d = read_%d(%d, %p, %lu)\n", ret, i, fd1, buffer, (unsigned long)BUFF_SIZE);
 	}
 	

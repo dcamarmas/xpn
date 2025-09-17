@@ -1,5 +1,6 @@
 #!/bin/bash
-#set -x
+# set -x
+set -e
 
 #
 #  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
@@ -24,23 +25,29 @@
 function usage {
     echo ""
     echo " Usage:"
-    echo " $0  -m <mpicc path>  -i <Install path> -s <Source path>"
+    echo " $0  -m <mpicc path> -l <libfabric path> -i <Install path> -s <Source path> -d <dmtcp path>"
     echo " Where:"
     echo " * <mpicc   path> = full path where the mpicc is installed."
+    echo " * <libfabric   path> = full path where the libfabric is installed."
     echo " * <Install path> = full path where XPN is going to be installed."
     echo " * <Source  path> = full path to the source code XPN."
+    echo " * <dmtcp  path> = full path to the source code of DMTCP."
     echo ""
 }
 
-
+LIBFABRIC_PATH=""
 ## get arguments
-while getopts "m:i:s:" opt; do
+while getopts "m:f:i:s:d:" opt; do
     case "${opt}" in
-          m) MPICC_PATH=${OPTARG}
+          m) MPICC_PATH="-D ENABLE_MPI_SERVER=${OPTARG}"
+             ;;
+          f) LIBFABRIC_PATH=${OPTARG}
              ;;
           i) INSTALL_PATH=${OPTARG}
              ;;
           s) SRC_PATH=${OPTARG}
+             ;;
+          d) DMTCP_PATH="-D DMTCP_PATH=${OPTARG}"
              ;;
           *) echo " Error:"
              echo " * Unknown option: ${opt}"
@@ -78,17 +85,28 @@ fi
 
 ## XPN
 echo " * XPN: preparing directories..."
-  rm -fr "${INSTALL_PATH}/xpn"
-mkdir -p "${INSTALL_PATH}/xpn/lib64"
-ln    -s "${INSTALL_PATH}/xpn/lib64"   "${INSTALL_PATH}/xpn/lib"
+
+rm -fr "${INSTALL_PATH}/xpn"
 
 echo " * XPN: compiling and installing..."
+echo " * XPN mpi: $MPICC_PATH"
+echo " * XPN libfabric: $LIBFABRIC_PATH"
 pushd .
 cd "$SRC_PATH"
-ACLOCAL_FLAGS="-I /usr/share/aclocal/" autoreconf -v -i -s -W all
-./configure --prefix="${INSTALL_PATH}/xpn" --enable-sck_server --enable-mpi_server="${MPICC_PATH}" 
-make clean
-make -j 8
-#doxygen doc/doxygen-XPN.cfg
-make install
+# rm -r build
+mkdir -p build
+cd build
+
+GENERATOR="Unix Makefiles"
+if command -v ninja &> /dev/null
+then
+   GENERATOR="Ninja"
+fi
+
+cmake -S .. -B . -D BUILD_TESTS=ON -D CMAKE_INSTALL_PREFIX="${INSTALL_PATH}/xpn" $MPICC_PATH -D ENABLE_FABRIC_SERVER="${LIBFABRIC_PATH}" -G "${GENERATOR}" $DMTCP_PATH
+
+cmake --build . -j "$(nproc)"
+
+cmake --install .
+
 popd

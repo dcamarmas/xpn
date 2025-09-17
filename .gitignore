@@ -43,3 +43,6 @@ src/xpn_server/Makefile
 src/.vscode
 .vscode/settings.json
 test/integrity/xpn/circs
+.vscode
+build
+install

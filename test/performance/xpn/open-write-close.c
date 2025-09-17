@@ -1,11 +1,14 @@
 
-#include "all_system.h"
 #include "xpn.h"
 #include <sys/time.h>
+#include <string.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <errno.h>
 
 
 #define KB  (1024)
-
+#define MB  (KB*1024)
 #define BUFF_SIZE (1*MB)
 char buffer[BUFF_SIZE] ;
 
@@ -31,7 +34,7 @@ int main ( int argc, char *argv[] )
 	    printf(" Usage: %s <full path> <megabytes to write>\n", argv[0]) ;
 	    printf("\n") ;
 	    printf(" Example:") ;
-	    printf(" env XPN_CONF=./xpn.conf  %s /P1/test_1 2\n", argv[0]);
+	    printf(" env XPN_CONF=./xpn.conf XPN_DNS=/shared/tcp_server.dns %s /P1/test_1 2\n", argv[0]);
 	    printf("\n") ;
 	    return -1 ;
 	}	
@@ -51,7 +54,7 @@ int main ( int argc, char *argv[] )
 
 	fd1 = xpn_creat(argv[1], 00777);
 	if (fd1 < 0) {
-	    printf("%d = xpn_creat('%s', %o)\n", ret, argv[1], 00777) ;
+	    printf("Error: xpn_creat('%s', %o) = %d %s\n", argv[1], 00777, fd1, strerror(errno)) ;
 	    return -1 ;
 	}
 

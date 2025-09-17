@@ -120,9 +120,10 @@ check_opts() {
 
 mk_conf_file_from_args() {
    echo "[partition]"    > ${CONFNAME}
-   echo "bsize = ${XPN_PARTITION_BSIZE}"                      >> ${CONFNAME}
-   echo "replication_level = ${XPN_REPLICATION_LEVEL}"        >> ${CONFNAME}
-   echo "partition_name = ${XPN_PARTITION_NAME}"              >> ${CONFNAME}
+   echo "bsize = ${XPN_PARTITION_BSIZE}"                                        >> ${CONFNAME}
+   echo "replication_level = ${XPN_REPLICATION_LEVEL}"                                        >> ${CONFNAME}
+   echo "partition_name = ${XPN_PARTITION_NAME}"                                        >> ${CONFNAME}
+   echo "controler_url = $(hostname)"                                                   >> ${CONFNAME}
 
    ITER=1
    while read line

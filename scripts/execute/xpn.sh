@@ -97,7 +97,7 @@ start_xpn_servers() {
   if command -v srun &> /dev/null
   then
     # Create dir
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           mkdir -p ${XPN_STORAGE_PATH}
 
@@ -105,7 +105,7 @@ start_xpn_servers() {
       srun  -n "${NODE_NUM}" -N "${NODE_NUM}"\
             -w "${HOSTFILE}" \
             --export=ALL \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} -t 1 "${ARGS}" &
+            "${BASE_DIR_BUILD}"/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &
     elif [[ ${SERVER_TYPE} == "mq" ]]; then
       srun  -n "${NODE_NUM}" -N "${NODE_NUM}"\
             -w "${HOSTFILE}" \
@@ -115,12 +115,12 @@ start_xpn_servers() {
       srun  -n "${NODE_NUM}" -N "${NODE_NUM}"\
             -w "${HOSTFILE}" \
             --export=ALL \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_server -m 0 -t pool -s "sck" "${ARGS}" &
+            "${BASE_DIR_BUILD}"/xpn_server/xpn_server -m 0 -t pool -s "sck" "${ARGS}" &
     else
-      srun  -n "${NODE_NUM}" -N "${NODE_NUM}" --mpi=none \
+      srun -n "${NODE_NUM}" -N "${NODE_NUM}" --mpi=none \
             -w "${HOSTFILE}" \
             --export=ALL \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} "${ARGS}" &
+            "${BASE_DIR_BUILD}"/xpn_server/xpn_server -s ${SERVER_TYPE} "${ARGS}" &
     fi
 
   else
@@ -129,10 +129,10 @@ start_xpn_servers() {
             -hostfile "${HOSTFILE}" \
             mkdir -p ${XPN_STORAGE_PATH}
 
-    if [[ ${SERVER_TYPE} == "sck" ]]; then
+    if [[ ${SERVER_TYPE} == "sck" || ${SERVER_TYPE} == "fabric" ]]; then
       mpiexec -np       "${NODE_NUM}" \
               -hostfile "${HOSTFILE}" \
-              "${BASE_DIR}"/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &
+              "${BASE_DIR_BUILD}"/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool "${ARGS}" &
     elif [[ ${SERVER_TYPE} == "mq" ]]; then
       mpiexec -np       "${NODE_NUM}" \
               -hostfile "${HOSTFILE}" \
@@ -140,14 +140,14 @@ start_xpn_servers() {
       sleep 2
       mpiexec -np       "${NODE_NUM}" \
               -hostfile "${HOSTFILE}" \
-              "${BASE_DIR}"/../../src/xpn_server/xpn_server -m 0 -t 1 -s "sck" "${ARGS}" &
+              "${BASE_DIR_BUILD}"/xpn_server/xpn_server -m 0 -t 1 -s "sck" "${ARGS}" &
     else
       for ((i=1; i<=$NODE_NUM; i++))
       do
           line=$(head -n $i "$HOSTFILE" | tail -n 1)
           mpiexec -np       1 \
                   -host "${line}" \
-                  ${BASE_DIR}/../../src/xpn_server/xpn_server -s ${SERVER_TYPE} ${ARGS} &
+                  "${BASE_DIR_BUILD}"/xpn_server/xpn_server -s ${SERVER_TYPE} -t pool ${ARGS} &
       done
     fi
   fi
@@ -179,10 +179,10 @@ stop_xpn_servers() {
   if command -v srun &> /dev/null
   then
     srun -n 1 -N 1 \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE}
+            "${BASE_DIR_BUILD}"/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE}
   else
     mpiexec -np 1 \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE}
+            "${BASE_DIR_BUILD}"/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE}
   fi
 }
 
@@ -196,10 +196,10 @@ await_stop_xpn_servers() {
   if command -v srun &> /dev/null
   then
     srun -n 1 -N 1 \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE} -w
+            "${BASE_DIR_BUILD}"/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE} -w
   else
     mpiexec -np 1 \
-            "${BASE_DIR}"/../../src/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE} -w
+            "${BASE_DIR_BUILD}"/xpn_server/xpn_stop_server -s ${SERVER_TYPE} -f ${DEATH_FILE} -w
   fi
 }
 
@@ -232,11 +232,11 @@ rebuild_xpn_servers() {
   if command -v srun &> /dev/null
   then
     # Create dir
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           mkdir -p ${XPN_STORAGE_PATH}
     hosts=$(cat ${DEATH_FILE} ${REBUILD_FILE} | sort | paste -sd "," -)
-    srun  -n "${NODE_NUM_SUM}" \
+    srun -n "${NODE_NUM_SUM}" \
           -w "${hosts}" \
           "${BASE_DIR}"/../../src/utils/xpn_rebuild_active_writer "${XPN_STORAGE_PATH}" "${DEATH_FILE}" "${REBUILD_FILE}" 524288 "${XPN_REPLICATION_LEVEL}" 
   else
@@ -262,7 +262,7 @@ preload_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR}"/../../src/utils/xpn_preload "${SOURCE_PATH}" "${XPN_STORAGE_PATH}" 524288 "${XPN_REPLICATION_LEVEL}"
   else
@@ -282,7 +282,7 @@ flush_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR}"/../../src/utils/xpn_flush "${XPN_STORAGE_PATH}" "${DEST_PATH}" 524288 "${XPN_REPLICATION_LEVEL}"
   else
@@ -304,7 +304,7 @@ expand_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR}"/../../src/utils/xpn_expand "${XPN_STORAGE_PATH}" "${NODE_NUM_REST}"
   else
@@ -334,7 +334,7 @@ shrink_xpn() {
   # 1. Copy
   if command -v srun &> /dev/null
   then
-    srun  -n "${NODE_NUM}" -N "${NODE_NUM}" \
+    srun -n "${NODE_NUM}" -N "${NODE_NUM}" \
           -w "${HOSTFILE}" \
           "${BASE_DIR}"/../../src/utils/xpn_shrink "${XPN_STORAGE_PATH}" "${hostlist}"
   else
@@ -375,7 +375,7 @@ usage_details() {
   echo ""
   echo " optional arguments:"
   echo "     -h, --help                          Shows this help message and exits"
-  echo "     -e, --execute <arguments>           Server type: mpi, sck or tcp."
+  echo "     -S, --server_type <arguments>           Server type: mpi, sck or tcp."
   echo "     -a, --args <arguments>              Add various additional daemon arguments."
   echo "     -f, --foreground                    Starts the script in the foreground. Daemons are stopped by pressing 'q'."
   echo "     -c, --config   <path>               Path to configuration file."
@@ -398,14 +398,14 @@ usage_details() {
 get_opts() {
    # Taken the general idea from https://stackoverflow.com/questions/70951038/how-to-use-getopt-long-option-in-bash-script
    mkconf_name=$(basename "$0")
-   mkconf_short_opt=e:r:w:s:t:x:d:k:p:n:a:c:m:l:o:q:b:fvh
-   mkconf_long_opt=execute:,rootdir:,workdir:,source_path:,destination_path:,xpn_storage_path:,numnodes:,args:,config:,deployment_file:,foreground_file,hostfile:,deathfile:,rebuildfile:,host:,replication_level:,block_size:,mqtt_conf_file:,verbose,help
+   mkconf_short_opt=S:r:w:s:t:x:d:k:p:n:a:c:m:l:o:q:b:fvh
+   mkconf_long_opt=server_type:,rootdir:,workdir:,source_path:,destination_path:,xpn_storage_path:,numnodes:,args:,config:,deployment_file:,foreground_file,hostfile:,deathfile:,rebuildfile:,host:,replication_level:,block_size:,mqtt_conf_file:,verbose,help
    TEMP=$(getopt -o $mkconf_short_opt --long $mkconf_long_opt --name "$mkconf_name" -- "$@")
    eval set -- "${TEMP}"
 
    while :; do
       case "${1}" in
-         -e | --execute          ) SERVER_TYPE=$2;              shift 2 ;;
+         -S | --server_type      ) SERVER_TYPE=$2;              shift 2 ;;
          -r | --rootdir          ) DIR_ROOT=$2;                 shift 2 ;;
          -w | --workdir          ) WORKDIR=$2;                  shift 2 ;;
          -s | --source_path      ) SOURCE_PATH=$2;              shift 2 ;;

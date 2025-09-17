@@ -20,50 +20,57 @@
  */
 
 
-/* ... Include / Inclusion ........................................... */
+  /* ... Include / Inclusion ........................................... */
 
-#include <dirent.h>
-#include <fcntl.h>
-#include <linux/limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+     #include <dirent.h>
+     #include <fcntl.h>
+     #include <linux/limits.h>
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <string.h>
+     #include <sys/stat.h>
+     #include <sys/types.h>
+     #include <unistd.h>
 
-#include "mpi.h"
-#include "ns.h"
-#include "xpn/xpn_simple/xpn_policy_rw.h"
+     #if defined (HAVE_MPI_H)
+     #include "mpi.h"
+     #endif
 
-
-/* ... Const / Const ................................................. */
-
-#ifndef _LARGEFILE_SOURCE
-#define _LARGEFILE_SOURCE
-#endif
-
-#ifndef _FILE_OFFSET_BITS
-#define _FILE_OFFSET_BITS 64
-#endif
-
-#define HEADER_SIZE 8192
-
-int *rank_actual_to_new = NULL;
-int *rank_actual_to_old = NULL;
-int *rank_new_to_actual = NULL;
-int *rank_old_to_actual = NULL;
-int old_size, new_size;
-struct mpi_msg_info {
-    int rank_send;
-    int rank_recv;
-    ssize_t read_size;
-    off64_t offset;
-};
+     #include "ns.h"
+     #include "xpn/xpn_simple/xpn_policy_rw.h"
 
 
-/* ... Functions / Funciones ......................................... */
+  /* ... Const / Const ................................................. */
 
+     #ifndef _LARGEFILE_SOURCE
+     #define _LARGEFILE_SOURCE
+     #endif
+
+     #ifndef _FILE_OFFSET_BITS
+     #define _FILE_OFFSET_BITS 64
+     #endif
+
+     #define HEADER_SIZE 8192
+
+
+  /* ... Global variables / Variables globales ......................... */
+
+     int *rank_actual_to_new = NULL;
+     int *rank_actual_to_old = NULL;
+     int *rank_new_to_actual = NULL;
+     int *rank_old_to_actual = NULL;
+     int old_size, new_size;
+     struct mpi_msg_info {
+         int rank_send;
+         int rank_recv;
+         ssize_t read_size;
+         off64_t offset;
+     };
+
+
+  /* ... Functions / Funciones ......................................... */
+
+#if defined (HAVE_MPI_H)
 int copy(char *entry, int is_file, int blocksize, int replication_level, int rank, int size)
 {
     struct stat st;
@@ -419,7 +426,8 @@ int list(char *dir_name, int blocksize, int replication_level, int rank, int siz
 void calculate_ranks_sizes(char *path_old_hosts, char *path_new_hosts, int *old_rank, int *new_rank)
 {
     // Get ip and hostname
-    char *hostip = ns_get_host_ip();
+    char hostip[HOST_NAME_MAX];
+    ns_get_host_ip(hostip, HOST_NAME_MAX);
     char hostname[HOST_NAME_MAX];
     ns_get_hostname(hostname);
     // Open host files
@@ -465,7 +473,10 @@ cleanup_calculate_ranks_sizes:
         fclose(file_new);
     }
 }
+#endif
 
+
+#if defined (HAVE_MPI_H)
 // TODO: think if MPI_Abort is the desired error handler
 int main(int argc, char *argv[])
 {
@@ -474,6 +485,7 @@ int main(int argc, char *argv[])
     int blocksize = 524288;
     double start_time;
     int res = 0;
+
     //
     // Check arguments...
     //
@@ -565,6 +577,13 @@ int main(int argc, char *argv[])
     MPI_Finalize();
     return res;
 }
+#else
+  int main ( int argc, char *argv[] )
+  {
+      printf("ERROR: this utility must to be compiled with MPI support\n") ;
+      return -1 ;
+  }
+#endif
 
 
 /* ................................................................... */
