@@ -27,8 +27,8 @@
 #include <fcntl.h>
 
 #include "../nfi_sck_server/nfi_sck_server_comm.hpp"
-#ifdef ENABLE_MQ_SERVER
-#include "../nfi_mq_server/nfi_mq_server_comm.hpp"
+#ifdef ENABLE_MQTT_SERVER
+#include "../nfi_mqtt_server/nfi_mqtt_server_comm.hpp"
 #endif
 
 namespace XPN
@@ -229,8 +229,8 @@ int64_t nfi_xpn_server::nfi_write (const xpn_fh &fh, const char *buffer, int64_t
   if (m_comm->m_type == server_type::SCK) {
     auto sck_comm = static_cast<nfi_sck_server_comm*>(m_comm);
     if (sck_comm->m_mqtt){
-      #if defined(ENABLE_MQ_SERVER)
-      return nfi_mq_server::publish(static_cast<mosquitto*>(sck_comm->m_mqtt), fh.path.c_str(), buffer, offset, size);
+      #if defined(ENABLE_MQTT_SERVER)
+      return nfi_mqtt_server::publish(static_cast<mosquitto*>(sck_comm->m_mqtt), fh.path.c_str(), buffer, offset, size);
       #endif
     }
   }

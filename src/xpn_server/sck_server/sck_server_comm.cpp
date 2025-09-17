@@ -26,8 +26,8 @@
 #include "base_cpp/socket.hpp"
 #include <csignal>
 
-#ifdef ENABLE_MQ_SERVER
-#include "../mq_server/mq_server_comm.hpp"
+#ifdef ENABLE_MQTT_SERVER
+#include "../mqtt_server/mqtt_server_comm.hpp"
 #endif
 #include <sys/epoll.h>
 
@@ -61,9 +61,9 @@ sck_server_control_comm::sck_server_control_comm (xpn_server_params &params, int
   m_port_name = std::to_string(ret);
 
   if (params.srv_type == server_type::MQTT) {
-    #ifdef ENABLE_MQ_SERVER
+    #ifdef ENABLE_MQTT_SERVER
     mosquitto* mqtt;
-    mq_server_comm::mq_server_mqtt_init(&mqtt);
+    mqtt_server_comm::mqtt_server_mqtt_init(&mqtt);
     m_mqtt = mqtt;
     #endif
   }
@@ -84,8 +84,8 @@ sck_server_control_comm::~sck_server_control_comm()
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_comm_destroy] >> End");
   if (m_mqtt) {
-    #ifdef ENABLE_MQ_SERVER
-    mq_server_comm::mq_server_mqtt_destroy(static_cast<mosquitto*>(m_mqtt));
+    #ifdef ENABLE_MQTT_SERVER
+    mqtt_server_comm::mqtt_server_mqtt_destroy(static_cast<mosquitto*>(m_mqtt));
     #endif
   }
   [[maybe_unused]] int ret = socket::close(m_socket);

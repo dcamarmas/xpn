@@ -22,7 +22,7 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include "nfi_mq_server_comm.hpp"
+#include "nfi_mqtt_server_comm.hpp"
 
 #include "base_cpp/debug.hpp"
 #include "base_cpp/xpn_env.hpp"
@@ -31,10 +31,10 @@
 /* ... Functions / Funciones ......................................... */
 
 namespace XPN {
-void nfi_mq_server::init(mosquitto **mqtt, const std::string &srv_name) {
+void nfi_mqtt_server::init(mosquitto **mqtt, const std::string &srv_name) {
     /*INIT MOSQUITTO CLIENT SIDE */
     int rc = 0;
-    debug_info("BEGIN INIT MOSQUITTO NFI_MQ_SERVER");
+    debug_info("BEGIN INIT MOSQUITTO NFI_MQTT_SERVER");
 
     // MQTT initialization
     mosquitto_lib_init();
@@ -63,18 +63,18 @@ void nfi_mq_server::init(mosquitto **mqtt, const std::string &srv_name) {
         fprintf(stderr, "Error: %s\n", mosquitto_strerror(rc));
         return;
     }
-    debug_info("END INIT MOSQUITTO NFI_MQ_SERVER");
+    debug_info("END INIT MOSQUITTO NFI_MQTT_SERVER");
 }
 
-void nfi_mq_server::destroy(mosquitto *mqtt) {
-    debug_info("BEGIN DESTROY MOSQUITTO NFI_MQ_SERVER");
+void nfi_mqtt_server::destroy(mosquitto *mqtt) {
+    debug_info("BEGIN DESTROY MOSQUITTO NFI_MQTT_SERVER");
     mosquitto_disconnect(mqtt);
     mosquitto_destroy(mqtt);
     mosquitto_lib_cleanup();
-    debug_info("END DESTROY MOSQUITTO NFI_MQ_SERVER");
+    debug_info("END DESTROY MOSQUITTO NFI_MQTT_SERVER");
 }
 
-int64_t nfi_mq_server::publish(mosquitto *mqtt, const char *path, const char *buffer, int64_t offset, uint64_t size) {
+int64_t nfi_mqtt_server::publish(mosquitto *mqtt, const char *path, const char *buffer, int64_t offset, uint64_t size) {
     int ret, diff, cont;
 
     ret = -1;
@@ -114,7 +114,7 @@ int64_t nfi_mq_server::publish(mosquitto *mqtt, const char *path, const char *bu
         // printf("PUBLISH --------------- topic: %s\n", topic);
 
         if (ret < 0) {
-            fprintf(stderr, "(2)ERROR: nfi_mq_server_write: Error on write operation\n");
+            fprintf(stderr, "(2)ERROR: nfi_mqtt_server_write: Error on write operation\n");
             return -1;
         }
 

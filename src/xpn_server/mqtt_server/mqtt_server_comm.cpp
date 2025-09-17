@@ -22,7 +22,7 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include "mq_server_comm.hpp"
+#include "mqtt_server_comm.hpp"
 
 #include <fcntl.h>
 #include <limits.h>
@@ -34,14 +34,14 @@
 #include "../xpn_server_params.hpp"
 #include "base_cpp/debug.hpp"
 #include "base_cpp/filesystem.hpp"
-#include "mq_server_utils.hpp"
+#include "mqtt_server_utils.hpp"
 
 namespace XPN {
 // MOSQUITTO FILE
 
 void *process_message([[maybe_unused]] void *arg) {
     while (1) {
-        ThreadData *thread_data = mq_server_utils::dequeue_mq();
+        ThreadData *thread_data = mqtt_server_utils::dequeue_mq();
         // struct ThreadData * thread_data = (struct ThreadData *) data;
 
         // Copiar el mensaje en una variable local para manipularla
@@ -125,7 +125,7 @@ void *process_message([[maybe_unused]] void *arg) {
     pthread_exit(NULL);
 }
 
-void mq_server_comm::on_message([[maybe_unused]] struct mosquitto *mqtt, void *obj,
+void mqtt_server_comm::on_message([[maybe_unused]] struct mosquitto *mqtt, void *obj,
                                 const struct mosquitto_message *msg) {
     if (NULL == obj) {
         debug_info("ERROR: obj is NULL :-( \n");
@@ -139,11 +139,11 @@ void mq_server_comm::on_message([[maybe_unused]] struct mosquitto *mqtt, void *o
     memcpy(thread_data->msg, msg->payload, msg->payloadlen);
     thread_data->msg[msg->payloadlen] = '\0';
 
-    mq_server_utils::enqueue_mq(thread_data);
+    mqtt_server_utils::enqueue_mq(thread_data);
 }
 
-int mq_server_comm::mq_server_mqtt_init(struct mosquitto **mqtt) {
-    debug_info("BEGIN INIT MOSQUITTO MQ_SERVER\n");
+int mqtt_server_comm::mqtt_server_mqtt_init(struct mosquitto **mqtt) {
+    debug_info("BEGIN INIT MOSQUITTO MQTT_SERVER\n");
 
     mosquitto_lib_init();
 
@@ -161,7 +161,7 @@ int mq_server_comm::mq_server_mqtt_init(struct mosquitto **mqtt) {
     int rc = mosquitto_connect((*mqtt), "localhost", 1883, 0);
     if (rc != MOSQ_ERR_SUCCESS) {
         mosquitto_destroy((*mqtt));
-        debug_error("ERROR INIT MOSQUITTO MQ_SERVER: " << mosquitto_strerror(rc));
+        debug_error("ERROR INIT MOSQUITTO MQTT_SERVER: " << mosquitto_strerror(rc));
         return 1;
     }
 
@@ -174,12 +174,12 @@ int mq_server_comm::mq_server_mqtt_init(struct mosquitto **mqtt) {
     }
 
     // mosquitto_loop_forever(params -> mqtt, -1, 1);
-    debug_info("END INIT MOSQUITTO MQ_SERVER\n");
+    debug_info("END INIT MOSQUITTO MQTT_SERVER\n");
 
     // Mosquitto pool thread
     int nthreads_mq = 128;
     pthread_t threads_mq[nthreads_mq];
-    mq_server_utils::queue_mq_init();
+    mqtt_server_utils::queue_mq_init();
 
     // Crear el grupo de hilos (thread pool)
     for (int i = 0; i < nthreads_mq; i++) {
@@ -189,11 +189,11 @@ int mq_server_comm::mq_server_mqtt_init(struct mosquitto **mqtt) {
     return 0;  // OK: 0, ERROR: 1
 }
 
-int mq_server_comm::mq_server_mqtt_destroy(struct mosquitto *mqtt) {
-    debug_info("BEGIN DESTROY MOSQUITTO MQ_SERVER\n");
+int mqtt_server_comm::mqtt_server_mqtt_destroy(struct mosquitto *mqtt) {
+    debug_info("BEGIN DESTROY MOSQUITTO MQTT_SERVER\n");
     mosquitto_lib_cleanup();
     mosquitto_loop_stop(mqtt, true);
-    debug_info("END DESTROY MOSQUITTO MQ_SERVER\n");
+    debug_info("END DESTROY MOSQUITTO MQTT_SERVER\n");
     return 0;  // OK: 0, ERROR: 1
 }
 

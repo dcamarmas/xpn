@@ -20,7 +20,7 @@ target_include_directories(xpn_server PRIVATE
 
 add_subdirectory(fabric_server)
 add_subdirectory(mpi_server)
-add_subdirectory(mq_server)
+add_subdirectory(mqtt_server)
 add_subdirectory(sck_server)
 
 add_custom_command(

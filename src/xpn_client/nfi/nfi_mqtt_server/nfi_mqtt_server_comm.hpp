@@ -26,7 +26,7 @@
 
 namespace XPN {
 
-class nfi_mq_server {
+class nfi_mqtt_server {
    public:
     static void init(mosquitto **mqtt, const std::string &srv_name);
     static void destroy(mosquitto *mqtt);

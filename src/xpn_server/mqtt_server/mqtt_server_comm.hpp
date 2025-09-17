@@ -24,42 +24,19 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include <pthread.h>
 #include <sys/time.h>
 
-/* ... Const / Constantes ............................................ */
+#include "mosquitto.h"
 
 namespace XPN {
-#define QUEUE_MQ_SIZE 1000000
-
-/* ... Data Types / Tipo de datos .................................... */
-
-struct ThreadData {
-    char* topic;
-    char* msg;
-};
-
-struct CircularQueueMQ {
-    ThreadData* queue[QUEUE_MQ_SIZE];
-    int front;
-    int rear;
-    int count;
-    pthread_mutex_t mutex;
-    pthread_cond_t not_empty;
-    pthread_cond_t not_full;
-};
-
+struct xpn_server_param_st;
 /* ... Functions / Funciones ......................................... */
-class mq_server_utils {
+class mqtt_server_comm {
    public:
-    static CircularQueueMQ queue_mq;
+    static void on_message(struct mosquitto* mqtt, void* obj, const struct mosquitto_message* msg);
 
-    static double get_time(void);
-    static double get_time_ops(void);
-
-    static void queue_mq_init(void);
-    static void enqueue_mq(ThreadData* client);
-    static ThreadData* dequeue_mq(void);
+    static int mqtt_server_mqtt_init(struct mosquitto** mqtt);
+    static int mqtt_server_mqtt_destroy(struct mosquitto* mqtt);
 };
 
 /* ................................................................... */

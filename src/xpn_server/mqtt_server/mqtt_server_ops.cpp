@@ -22,7 +22,7 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include "mq_server_ops.hpp"
+#include "mqtt_server_ops.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,14 +33,14 @@
 namespace XPN {
 /* ... Functions / Funciones ......................................... */
 
-void mq_server_ops::subscribe(struct mosquitto *mqtt, int mosquitto_qos, const char *path) {
+void mqtt_server_ops::subscribe(struct mosquitto *mqtt, int mosquitto_qos, const char *path) {
     // char * s;
     const char *extra = "/#";
     char *sm = (char *)malloc(strlen(path) + strlen(extra) + 1);
     strcpy(sm, path);
     strcat(sm, extra);
 
-    debug_info("BEGIN OPEN MOSQUITTO MQ_SERVER WS - " << sm);
+    debug_info("BEGIN OPEN MOSQUITTO MQTT_SERVER WS - " << sm);
 
     debug_info("mosquitto_subscribe(" << mqtt << ", " << (void *)NULL << ", " << sm << ", " << mosquitto_qos << ")");
     int rc = mosquitto_subscribe(mqtt, NULL, sm, mosquitto_qos);
@@ -49,23 +49,23 @@ void mq_server_ops::subscribe(struct mosquitto *mqtt, int mosquitto_qos, const c
         mosquitto_disconnect(mqtt);
     }
 
-    debug_info("END OPEN MOSQUITTO MQ_SERVER WS - " << sm);
+    debug_info("END OPEN MOSQUITTO MQTT_SERVER WS - " << sm);
 }
 
-void mq_server_ops::unsubscribe(struct mosquitto *mqtt, const char *path) {
+void mqtt_server_ops::unsubscribe(struct mosquitto *mqtt, const char *path) {
     const char *extra = "/#";
     char *sm = (char *)malloc(strlen(path) + strlen(extra) + 1);
     strcpy(sm, path);
     strcat(sm, extra);
 
-    debug_info("BEGIN CLOSE MOSQUITTO MQ_SERVER - WS ");
+    debug_info("BEGIN CLOSE MOSQUITTO MQTT_SERVER - WS ");
 
     debug_info("mosquitto_unsubscribe(" << mqtt << ", " << (void *)NULL << ", " << sm << ")");
     mosquitto_unsubscribe(mqtt, NULL, sm);
     debug_info("mosquitto_unsubscribe(" << mqtt << ", " << (void *)NULL << ", " << path << ")");
     mosquitto_unsubscribe(mqtt, NULL, path);
 
-    debug_info("END CLOSE MOSQUITTO MQ_SERVER - WS " << sm);
+    debug_info("END CLOSE MOSQUITTO MQTT_SERVER - WS " << sm);
 }
 
 /* ................................................................... */

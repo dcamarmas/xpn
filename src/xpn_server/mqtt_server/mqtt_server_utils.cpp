@@ -22,18 +22,18 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include "mq_server_utils.hpp"
+#include "mqtt_server_utils.hpp"
 
 /* ... Globals / Globales ............................................ */
 
 namespace XPN {
 
-CircularQueueMQ mq_server_utils::queue_mq = {};
+CircularQueueMQ mqtt_server_utils::queue_mq = {};
 
 /* ... Functions / Funciones ......................................... */
 
 // get time...
-double mq_server_utils::get_time_ops(void) {
+double mqtt_server_utils::get_time_ops(void) {
     struct timeval tp;
     // struct timezone tzp;
 
@@ -41,7 +41,7 @@ double mq_server_utils::get_time_ops(void) {
     return ((double)tp.tv_sec + .000001 * (double)tp.tv_usec);
 }
 
-double mq_server_utils::get_time(void) {
+double mqtt_server_utils::get_time(void) {
     struct timeval tp;
     // struct timezone tzp;
 
@@ -50,7 +50,7 @@ double mq_server_utils::get_time(void) {
 }
 
 // CircularQueue
-void mq_server_utils::queue_mq_init(void) {
+void mqtt_server_utils::queue_mq_init(void) {
     queue_mq.front = 0;
     queue_mq.rear = -1;
     queue_mq.count = 0;
@@ -60,7 +60,7 @@ void mq_server_utils::queue_mq_init(void) {
     pthread_cond_init(&queue_mq.not_full, NULL);
 }
 
-void mq_server_utils::enqueue_mq(ThreadData* client) {
+void mqtt_server_utils::enqueue_mq(ThreadData* client) {
     pthread_mutex_lock(&queue_mq.mutex);
     while (queue_mq.count >= QUEUE_MQ_SIZE) {
         pthread_cond_wait(&queue_mq.not_full, &queue_mq.mutex);
@@ -74,7 +74,7 @@ void mq_server_utils::enqueue_mq(ThreadData* client) {
     pthread_mutex_unlock(&queue_mq.mutex);
 }
 
-ThreadData* mq_server_utils::dequeue_mq(void) {
+ThreadData* mqtt_server_utils::dequeue_mq(void) {
     pthread_mutex_lock(&queue_mq.mutex);
     while (queue_mq.count <= 0) {
         pthread_cond_wait(&queue_mq.not_empty, &queue_mq.mutex);

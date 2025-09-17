@@ -27,8 +27,8 @@
 #include <csignal>
 #include <xpn_server/xpn_server_ops.hpp>
 
-#ifdef ENABLE_MQ_SERVER
-#include "../nfi_mq_server/nfi_mq_server_comm.hpp"
+#ifdef ENABLE_MQTT_SERVER
+#include "../nfi_mqtt_server/nfi_mqtt_server_comm.hpp"
 #endif
 
 namespace XPN {
@@ -93,9 +93,9 @@ nfi_xpn_server_comm* nfi_sck_server_control_comm::connect(const std::string &srv
 
   void* res_mqtt = nullptr;
   if (m_is_mqtt) {
-    #ifdef ENABLE_MQ_SERVER
+    #ifdef ENABLE_MQTT_SERVER
     mosquitto * mqtt = nullptr;
-    nfi_mq_server::init(&mqtt, srv_name);
+    nfi_mqtt_server::init(&mqtt, srv_name);
     res_mqtt = mqtt;
     #endif
   }
@@ -132,8 +132,8 @@ void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm, bool nee
   }
   
   if (m_is_mqtt && in_comm->m_mqtt) {
-    #ifdef ENABLE_MQ_SERVER
-    nfi_mq_server::destroy(static_cast<mosquitto*>(in_comm->m_mqtt));
+    #ifdef ENABLE_MQTT_SERVER
+    nfi_mqtt_server::destroy(static_cast<mosquitto*>(in_comm->m_mqtt));
     #endif
   }
 

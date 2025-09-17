@@ -30,8 +30,8 @@
 #include <cstdlib>
 #include <thread>
 
-#ifdef ENABLE_MQ_SERVER
-#include "mq_server/mq_server_ops.hpp"
+#ifdef ENABLE_MQTT_SERVER
+#include "mqtt_server/mqtt_server_ops.hpp"
 #endif
 #include "sck_server/sck_server_comm.hpp"
 
@@ -116,9 +116,9 @@ void xpn_server::op_open ( xpn_server_comm &comm, const st_xpn_server_path_flags
 
     if (m_params.srv_type == server_type::MQTT){
       if (m_control_comm->m_type == server_type::SCK){
-        #if defined(ENABLE_MQ_SERVER)
+        #if defined(ENABLE_MQTT_SERVER)
         auto sck_comm = static_cast<sck_server_control_comm*>(m_control_comm.get());
-        mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), m_params.mqtt_qos, head.path.path);
+        mqtt_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), m_params.mqtt_qos, head.path.path);
         #endif
       }
     }
@@ -149,9 +149,9 @@ void xpn_server::op_creat ( xpn_server_comm &comm, const st_xpn_server_path_flag
 
     if (m_params.srv_type == server_type::MQTT){
       if (m_control_comm->m_type == server_type::SCK){
-        #if defined(ENABLE_MQ_SERVER)
+        #if defined(ENABLE_MQTT_SERVER)
         auto sck_comm = static_cast<sck_server_control_comm*>(m_control_comm.get());
-        mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), m_params.mqtt_qos, head.path.path);
+        mqtt_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), m_params.mqtt_qos, head.path.path);
         #endif
       }
     }
@@ -352,9 +352,9 @@ void xpn_server::op_close ( xpn_server_comm &comm, const st_xpn_server_close &he
 
   if (m_params.srv_type == server_type::MQTT) {
     if (m_control_comm->m_type == server_type::SCK) {
-      #if defined(ENABLE_MQ_SERVER)
+      #if defined(ENABLE_MQTT_SERVER)
       auto sck_comm = static_cast<sck_server_control_comm*>(m_control_comm.get());
-      mq_server_ops::unsubscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), head.path.path);
+      mqtt_server_ops::unsubscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), head.path.path);
       #endif
     }
   }

@@ -22,4 +22,4 @@ target_include_directories(xpn_nfi PRIVATE
 add_subdirectory(nfi_sck_server)
 add_subdirectory(nfi_mpi_server)
 add_subdirectory(nfi_fabric_server)
-add_subdirectory(nfi_mq_server)
+add_subdirectory(nfi_mqtt_server)

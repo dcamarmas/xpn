@@ -18,10 +18,11 @@ cmake -S .. -B . \
     -D CMAKE_INSTALL_PREFIX=$2 \
     -D CMAKE_C_COMPILER=gcc \
     -D CMAKE_CXX_COMPILER=g++ \
-    -D ENABLE_MPI_SERVER=off \
-    -D ENABLE_FABRIC_SERVER=off \
-    -D ENABLE_FUSE=off \
-    -D ENABLE_MQ_SERVER=off
+    -D ENABLE_MPI_SERVER=on \
+    -D MPI_INCLUDE_DIR=/usr/include/x86_64-linux-gnu/mpich \
+    -D ENABLE_FABRIC_SERVER=on \
+    -D ENABLE_FUSE=on \
+    -D ENABLE_MQTT_SERVER=on
 
 # cmake -S .. -B . \
 #     -D BUILD_TESTS=true \

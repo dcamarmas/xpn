@@ -24,19 +24,15 @@
 
 /* ... Include / Inclusion ........................................... */
 
-#include <sys/time.h>
-
 #include "mosquitto.h"
 
-namespace XPN {
-struct xpn_server_param_st;
 /* ... Functions / Funciones ......................................... */
-class mq_server_comm {
-   public:
-    static void on_message(struct mosquitto* mqtt, void* obj, const struct mosquitto_message* msg);
 
-    static int mq_server_mqtt_init(struct mosquitto** mqtt);
-    static int mq_server_mqtt_destroy(struct mosquitto* mqtt);
+namespace XPN {
+class mqtt_server_ops {
+   public:
+    static void subscribe(struct mosquitto *mqtt, int mosquitto_qos, const char *path);
+    static void unsubscribe(struct mosquitto *mqtt, const char *path);
 };
 
 /* ................................................................... */
