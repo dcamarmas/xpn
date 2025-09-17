@@ -35,7 +35,7 @@ class mq_server_comm {
    public:
     static void on_message(struct mosquitto* mqtt, void* obj, const struct mosquitto_message* msg);
 
-    static int mq_server_mqtt_init(struct mosquitto* mqtt);
+    static int mq_server_mqtt_init(struct mosquitto** mqtt);
     static int mq_server_mqtt_destroy(struct mosquitto* mqtt);
 };
 

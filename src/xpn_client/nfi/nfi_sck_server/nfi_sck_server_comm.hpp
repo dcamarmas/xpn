@@ -48,7 +48,7 @@ namespace XPN
   class nfi_sck_server_control_comm : public nfi_xpn_server_control_comm
   {
   public:
-    nfi_sck_server_control_comm() = default;
+    nfi_sck_server_control_comm(bool is_mqtt) : m_is_mqtt(is_mqtt) {};
     ~nfi_sck_server_control_comm() = default;
     
     nfi_xpn_server_comm* control_connect(const std::string &srv_name, int srv_port) override;
@@ -56,6 +56,7 @@ namespace XPN
     void disconnect(nfi_xpn_server_comm* comm, bool needSendCode = true) override;
 
   private:
+    bool m_is_mqtt;
   };
 
 } // namespace XPN

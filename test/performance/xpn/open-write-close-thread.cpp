@@ -31,7 +31,7 @@ int run_test() {
     // xpn-creat
     t_bc = get_time();
 
-    fd1 = xpn_open(path, O_RDWR);
+	fd1 = xpn_creat(path, 00777);
     if (fd1 < 0) {
         printf("Error: xpn_open('%s', %o) = %d %s\n", path, 00777, fd1, strerror(errno));
         return -1;

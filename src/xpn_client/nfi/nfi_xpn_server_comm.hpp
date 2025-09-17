@@ -32,6 +32,7 @@ namespace XPN
     {
         constexpr const char * mpi_server = "mpi_server";
         constexpr const char * sck_server = "sck_server";
+        constexpr const char * mqtt_server = "mqtt_server";
         constexpr const char * fabric_server = "fabric_server";
         constexpr const char * file = "file";
     }

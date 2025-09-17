@@ -38,7 +38,8 @@ std::unique_ptr<xpn_server_control_comm> xpn_server_control_comm::Create(xpn_ser
             return std::make_unique<mpi_server_control_comm>(params);
 #endif
         case server_type::SCK:
-            return std::make_unique<sck_server_control_comm>(params.srv_comm_port);
+        case server_type::MQTT:
+            return std::make_unique<sck_server_control_comm>(params, params.srv_comm_port);
 #ifdef ENABLE_FABRIC_SERVER
         case server_type::FABRIC:
             return std::make_unique<fabric_server_control_comm>();

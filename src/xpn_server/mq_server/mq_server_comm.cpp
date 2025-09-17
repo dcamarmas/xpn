@@ -31,10 +31,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../xpn_server_params.hpp"
 #include "base_cpp/debug.hpp"
 #include "base_cpp/filesystem.hpp"
 #include "mq_server_utils.hpp"
-#include "../xpn_server_params.hpp"
 
 namespace XPN {
 // MOSQUITTO FILE
@@ -52,6 +52,7 @@ void *process_message([[maybe_unused]] void *arg) {
         int to_write1, offset;
 
         strncpy(topic, thread_data->topic, PATH_MAX - 1);
+        debug_info("process_message from topic " << topic);
         // Encontrar la posición del último y el penúltimo slash
         int last_slash = -1;
         int penultimate_slash = -1;
@@ -129,7 +130,7 @@ void mq_server_comm::on_message([[maybe_unused]] struct mosquitto *mqtt, void *o
     if (NULL == obj) {
         debug_info("ERROR: obj is NULL :-( \n");
     }
-
+    debug_info("receive " << msg->topic);
     ThreadData *thread_data = (ThreadData *)malloc(sizeof(ThreadData));
 
     thread_data->topic = strdup(msg->topic);
@@ -141,33 +142,33 @@ void mq_server_comm::on_message([[maybe_unused]] struct mosquitto *mqtt, void *o
     mq_server_utils::enqueue_mq(thread_data);
 }
 
-int mq_server_comm::mq_server_mqtt_init(struct mosquitto *mqtt) {
+int mq_server_comm::mq_server_mqtt_init(struct mosquitto **mqtt) {
     debug_info("BEGIN INIT MOSQUITTO MQ_SERVER\n");
 
     mosquitto_lib_init();
 
-    mqtt = mosquitto_new(NULL, true, NULL);
-    if (mqtt == NULL) {
+    (*mqtt) = mosquitto_new(NULL, true, NULL);
+    if ((*mqtt) == NULL) {
         debug_error("Error: Out of memory.");
         return 1;
     }
 
-    // mosquitto_connect_callback_set(params -> mqtt, on_connect);
-    // mosquitto_subscribe_callback_set(params -> mqtt, on_subscribe);
-    mosquitto_message_callback_set(mqtt, on_message);
-    mosquitto_int_option(mqtt, mosq_opt_t::MOSQ_OPT_TCP_NODELAY, 1);
+    // mosquitto_connect_callback_set(params -> (*mqtt), on_connect);
+    // mosquitto_subscribe_callback_set(params -> (*mqtt), on_subscribe);
+    mosquitto_message_callback_set((*mqtt), on_message);
+    mosquitto_int_option((*mqtt), mosq_opt_t::MOSQ_OPT_TCP_NODELAY, 1);
 
-    int rc = mosquitto_connect(mqtt, "localhost", 1883, 0);
+    int rc = mosquitto_connect((*mqtt), "localhost", 1883, 0);
     if (rc != MOSQ_ERR_SUCCESS) {
-        mosquitto_destroy(mqtt);
+        mosquitto_destroy((*mqtt));
         debug_error("ERROR INIT MOSQUITTO MQ_SERVER: " << mosquitto_strerror(rc));
         return 1;
     }
 
     /* Run the network loop in a background thread, this call returns quickly. */
-    rc = mosquitto_loop_start(mqtt);
+    rc = mosquitto_loop_start((*mqtt));
     if (rc != MOSQ_ERR_SUCCESS) {
-        mosquitto_destroy(mqtt);
+        mosquitto_destroy((*mqtt));
         debug_error("Error: " << mosquitto_strerror(rc));
         return 1;
     }

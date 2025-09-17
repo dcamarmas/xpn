@@ -38,6 +38,7 @@ namespace XPN
   enum class server_type {
     MPI,
     SCK,
+    MQTT,
     FABRIC,
   };
   
@@ -50,6 +51,7 @@ namespace XPN
   // 0 is for dynamic assigment
   constexpr const int DEFAULT_XPN_SERVER_COMM_PORT = 0;
   constexpr const int DEFAULT_XPN_SERVER_CONNECTIONLESS_PORT = 0;
+  constexpr const int DEFAULT_XPN_SERVER_MQTT_QOS = 0;
 
   /* ... Data structures / Estructuras de datos ........................ */
 
@@ -66,11 +68,12 @@ namespace XPN
 
     // server configuration
     std::string shutdown_file;
-    workers_mode thread_mode_connections;
-    workers_mode thread_mode_operations;
+    std::string shutdown_hostlist;
+    workers_mode thread_mode;
     server_type srv_type; 
     filesystem_mode fs_mode;
 
+    int mqtt_qos;
     int await_stop;
 
     // server arguments
@@ -92,7 +95,7 @@ namespace XPN
 
     void show_usage();
     void show();
-    bool have_threads() { return (static_cast<int>(thread_mode_connections) + static_cast<int>(thread_mode_operations)) > 0; }
+    bool have_threads() { return static_cast<int>(thread_mode) > 0; }
     int get_argc() { return argc; }
     char** get_argv() { return argv; }
   };

@@ -42,6 +42,7 @@ void mq_server_ops::subscribe(struct mosquitto *mqtt, int mosquitto_qos, const c
 
     debug_info("BEGIN OPEN MOSQUITTO MQ_SERVER WS - " << sm);
 
+    debug_info("mosquitto_subscribe(" << mqtt << ", " << (void *)NULL << ", " << sm << ", " << mosquitto_qos << ")");
     int rc = mosquitto_subscribe(mqtt, NULL, sm, mosquitto_qos);
     if (rc != MOSQ_ERR_SUCCESS) {
         debug_error("Error subscribing open: " << mosquitto_strerror(rc));
@@ -59,7 +60,9 @@ void mq_server_ops::unsubscribe(struct mosquitto *mqtt, const char *path) {
 
     debug_info("BEGIN CLOSE MOSQUITTO MQ_SERVER - WS ");
 
+    debug_info("mosquitto_unsubscribe(" << mqtt << ", " << (void *)NULL << ", " << sm << ")");
     mosquitto_unsubscribe(mqtt, NULL, sm);
+    debug_info("mosquitto_unsubscribe(" << mqtt << ", " << (void *)NULL << ", " << path << ")");
     mosquitto_unsubscribe(mqtt, NULL, path);
 
     debug_info("END CLOSE MOSQUITTO MQ_SERVER - WS " << sm);

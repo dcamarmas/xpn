@@ -78,7 +78,14 @@ int nfi_xpn_server::nfi_create (const std::string &path, mode_t mode, xpn_fh &fh
 
 int nfi_xpn_server::nfi_close (const xpn_fh &fh)
 {
-  if (xpn_env::get_instance().xpn_session_file == 1 || xpn_env::get_instance().xpn_mqtt){
+  bool is_mqtt = false;
+  if (m_comm->m_type == server_type::SCK) {
+      auto sck_comm = static_cast<nfi_sck_server_comm*>(m_comm);
+      if (sck_comm->m_mqtt) {
+        is_mqtt = true;
+      }
+  }
+  if (xpn_env::get_instance().xpn_session_file == 1 || is_mqtt){
     st_xpn_server_close msg;
     st_xpn_server_status status;
 
@@ -87,8 +94,9 @@ int nfi_xpn_server::nfi_close (const xpn_fh &fh)
     debug_info("[SERV_ID="<<m_server<<"] [NFI_XPN] [nfi_xpn_server_close] nfi_xpn_server_close("<<fh.fd<<")");
 
     msg.fd = fh.fd;
+    msg.xpn_session = xpn_env::get_instance().xpn_session_file;
     // Only pass the path in mqtt
-    if (xpn_env::get_instance().xpn_mqtt) {
+    if (is_mqtt) {
       uint64_t length = fh.path.copy(msg.path.path, fh.path.size());
       msg.path.path[length] = '\0';
       msg.path.size = length + 1;
@@ -218,13 +226,14 @@ int64_t nfi_xpn_server::nfi_write (const xpn_fh &fh, const char *buffer, int64_t
 
   debug_info("[SERV_ID="<<m_server<<"] [NFI_XPN] [nfi_xpn_server_write] >> Begin");
 
-#if defined(ENABLE_MQ_SERVER)
-  if (xpn_env::get_instance().xpn_mqtt){
-    if (auto sck_comm = dynamic_cast<nfi_sck_server_comm*>(m_comm)){
-      nfi_mq_server::publish(static_cast<mosquitto*>(sck_comm->m_mqtt), fh.path.c_str(), buffer, offset, size);
+  if (m_comm->m_type == server_type::SCK) {
+    auto sck_comm = static_cast<nfi_sck_server_comm*>(m_comm);
+    if (sck_comm->m_mqtt){
+      #if defined(ENABLE_MQ_SERVER)
+      return nfi_mq_server::publish(static_cast<mosquitto*>(sck_comm->m_mqtt), fh.path.c_str(), buffer, offset, size);
+      #endif
     }
   }
-#endif
 
   // Check arguments...
   if (size == 0) {

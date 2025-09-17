@@ -43,7 +43,7 @@ namespace XPN
 
         ret = filesystem::write(socket, buffer, size);
         if (ret < 0){
-            debug_error("[SOCKET] [socket::recv] ERROR: socket read buffer size "<<size<<"Failed");
+            debug_error("[SOCKET] [socket::recv] ERROR: socket write buffer size "<<size<<" "<<strerror(errno));
         }
         
         return size;
@@ -55,7 +55,7 @@ namespace XPN
 
         ret = filesystem::read(socket, buffer, size);
         if (ret < 0){
-            debug_error("[SOCKET] [socket::recv] ERROR: socket read buffer size "<<size<<"Failed");
+            debug_error("[SOCKET] [socket::recv] ERROR: socket read buffer size "<<size<<" "<<strerror(errno));
         }
 
         return size;
@@ -382,9 +382,14 @@ namespace XPN
     {
         int ret;
 
+        ret = ::shutdown(socket, SHUT_RDWR);
+        if (ret < 0) {
+            debug_error("[SOCKET] [socket::socket_close] ERROR: socket shutdown "<<strerror(errno));
+            return -1;
+        }
         ret = ::close(socket);
         if (ret < 0) {
-            debug_error("[SOCKET] [socket::socket_close] ERROR: socket close Failed");
+            debug_error("[SOCKET] [socket::socket_close] ERROR: socket close  "<<strerror(errno));
             return -1;
         }
 

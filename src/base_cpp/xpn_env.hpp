@@ -64,7 +64,6 @@ class xpn_env {
         parse_env("XPN_STATS", xpn_stats);
         xpn_stats_dir = std::getenv("XPN_STATS_DIR");
         xpn_profiler_file = std::getenv("XPN_PROFILER_FILE");
-        parse_env("XPN_MQTT", xpn_mqtt);
         parse_env("XPN_MQTT_QOS", xpn_mqtt_qos);
     }
     // Delete copy constructor
@@ -89,7 +88,6 @@ class xpn_env {
     int xpn_stats = 0;
     const char* xpn_stats_dir = nullptr;
     const char* xpn_profiler_file = nullptr;
-    int xpn_mqtt = 0;
     int xpn_mqtt_qos = 0;
 
    public:

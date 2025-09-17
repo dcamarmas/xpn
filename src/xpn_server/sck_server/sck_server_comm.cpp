@@ -33,9 +33,10 @@
 
 namespace XPN
 {
-sck_server_control_comm::sck_server_control_comm (int port)
+sck_server_control_comm::sck_server_control_comm (xpn_server_params &params, int port)
 {
   int ret;
+  m_type = server_type::SCK;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] >> Begin");
 
@@ -59,11 +60,13 @@ sck_server_control_comm::sck_server_control_comm (int port)
   }
   m_port_name = std::to_string(ret);
 
-#ifdef ENABLE_MQ_SERVER
-  if (xpn_env::get_instance().xpn_mqtt) {
-    mq_server_comm::mq_server_mqtt_init(static_cast<mosquitto*>(mqtt));
+  if (params.srv_type == server_type::MQTT) {
+    #ifdef ENABLE_MQ_SERVER
+    mosquitto* mqtt;
+    mq_server_comm::mq_server_mqtt_init(&mqtt);
+    m_mqtt = mqtt;
+    #endif
   }
-#endif
 
   m_epoll = epoll_create1(0);
   if (m_epoll == -1) {
@@ -79,12 +82,15 @@ sck_server_control_comm::sck_server_control_comm (int port)
 
 sck_server_control_comm::~sck_server_control_comm()
 {
-#ifdef ENABLE_MQ_SERVER
-  if (xpn_env::get_instance().xpn_mqtt) {
-    mq_server_comm::mq_server_mqtt_destroy(static_cast<mosquitto*>(mqtt));
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_comm_destroy] >> End");
+  if (m_mqtt) {
+    #ifdef ENABLE_MQ_SERVER
+    mq_server_comm::mq_server_mqtt_destroy(static_cast<mosquitto*>(m_mqtt));
+    #endif
   }
-#endif
-  socket::close(m_socket);
+  [[maybe_unused]] int ret = socket::close(m_socket);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_comm_destroy] close("<<m_socket<<") = "<<ret);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_comm_destroy] >> End");
 }
 
 xpn_server_comm* sck_server_control_comm::accept ( int socket, bool sendData )
@@ -97,23 +103,23 @@ xpn_server_comm* sck_server_control_comm::accept ( int socket, bool sendData )
   if (sendData) {
     debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] send port");
     ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
-    if (ret < 0){
+    if (ret < 0) {
       print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: socket send port fails");
       return nullptr;
     }
   }
 
   // Accept
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Accept");
-
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Accept("<<m_socket<<")");
   sc = ::accept(m_socket, (struct sockaddr *)&client_addr, &size);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Accept("<<m_socket<<") = "<<sc);
   if (sc < 0)
   {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] ERROR: accept fails");
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: accept fails");
     return nullptr;
   }
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] desp. accept conection from "<<sc);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] desp. accept conection from "<<sc);
   // tcp_nodelay
   flag = 1;
   ret = ::setsockopt(sc, IPPROTO_TCP, TCP_NODELAY, & flag, sizeof(flag));
@@ -145,7 +151,7 @@ xpn_server_comm* sck_server_control_comm::accept ( int socket, bool sendData )
   event.data.fd = sc;
 
   if (epoll_ctl(m_epoll, EPOLL_CTL_ADD, sc, &event) == -1) {
-    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] Error: epoll_ctl fails "<<strerror(errno));
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Error: epoll_ctl fails "<<strerror(errno));
     return nullptr;
   }
 

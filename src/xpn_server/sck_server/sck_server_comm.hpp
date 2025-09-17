@@ -45,7 +45,7 @@ namespace XPN
   class sck_server_control_comm : public xpn_server_control_comm
   {
   public:
-    sck_server_control_comm(int port);
+    sck_server_control_comm(xpn_server_params &params, int port);
     ~sck_server_control_comm() override;
     
     xpn_server_comm* accept(int socket, bool sendData = true) override;
@@ -60,7 +60,7 @@ namespace XPN
     int m_epoll;
 
   public:
-    void* mqtt;
+    void* m_mqtt = nullptr;
   };
 
 } // namespace XPN

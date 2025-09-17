@@ -35,6 +35,7 @@ fabric_server_control_comm::fabric_server_control_comm ()
 {
   XPN_PROFILE_FUNCTION();
   debug_info("[Server="<<ns::get_host_name()<<"] [FABRIC_SERVER_COMM] [fabric_server_control_comm] >> Begin");
+  m_type = server_type::FABRIC;
   
   int port = 0;
   m_server_comm = lfi_server_create(NULL, &port);

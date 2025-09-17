@@ -24,6 +24,7 @@
 
 #include "nfi_mq_server_comm.hpp"
 
+#include "base_cpp/debug.hpp"
 #include "base_cpp/xpn_env.hpp"
 #include "xpn_server/xpn_server_params.hpp"
 
@@ -33,42 +34,44 @@ namespace XPN {
 void nfi_mq_server::init(mosquitto **mqtt, const std::string &srv_name) {
     /*INIT MOSQUITTO CLIENT SIDE */
     int rc = 0;
+    debug_info("BEGIN INIT MOSQUITTO NFI_MQ_SERVER");
 
     // MQTT initialization
-    if (xpn_env::get_instance().xpn_mqtt) {
-        mosquitto_lib_init();
+    mosquitto_lib_init();
 
-        *mqtt = mosquitto_new(NULL, true, NULL);
-        if (*mqtt == NULL) {
-            fprintf(stderr, "Error: Out of memory.\n");
-            return;
-        }
-
-        mosquitto_int_option(*mqtt, mosq_opt_t::MOSQ_OPT_TCP_NODELAY, 1);
-        mosquitto_int_option(*mqtt, mosq_opt_t::MOSQ_OPT_SEND_MAXIMUM, 65535);
-
-        // printf("%s\n", server_aux->srv_name);
-        rc = mosquitto_connect(*mqtt, srv_name.c_str(), 1883, 0);
-        if (rc != MOSQ_ERR_SUCCESS) {
-            mosquitto_destroy(*mqtt);
-            fprintf(stderr, "Error: %s\n", mosquitto_strerror(rc));
-            return;
-        }
-
-        /* Run the network loop in a background thread, this call returns quickly. */
-        rc = mosquitto_loop_start(*mqtt);
-        if (rc != MOSQ_ERR_SUCCESS) {
-            mosquitto_destroy(*mqtt);
-            fprintf(stderr, "Error: %s\n", mosquitto_strerror(rc));
-            return;
-        }
+    *mqtt = mosquitto_new(NULL, true, NULL);
+    if (*mqtt == NULL) {
+        fprintf(stderr, "Error: Out of memory.\n");
+        return;
     }
+
+    mosquitto_int_option(*mqtt, mosq_opt_t::MOSQ_OPT_TCP_NODELAY, 1);
+    mosquitto_int_option(*mqtt, mosq_opt_t::MOSQ_OPT_SEND_MAXIMUM, 65535);
+
+    // printf("%s\n", server_aux->srv_name);
+    rc = mosquitto_connect(*mqtt, srv_name.c_str(), 1883, 0);
+    if (rc != MOSQ_ERR_SUCCESS) {
+        mosquitto_destroy(*mqtt);
+        fprintf(stderr, "Error: %s\n", mosquitto_strerror(rc));
+        return;
+    }
+
+    /* Run the network loop in a background thread, this call returns quickly. */
+    rc = mosquitto_loop_start(*mqtt);
+    if (rc != MOSQ_ERR_SUCCESS) {
+        mosquitto_destroy(*mqtt);
+        fprintf(stderr, "Error: %s\n", mosquitto_strerror(rc));
+        return;
+    }
+    debug_info("END INIT MOSQUITTO NFI_MQ_SERVER");
 }
 
 void nfi_mq_server::destroy(mosquitto *mqtt) {
+    debug_info("BEGIN DESTROY MOSQUITTO NFI_MQ_SERVER");
     mosquitto_disconnect(mqtt);
     mosquitto_destroy(mqtt);
     mosquitto_lib_cleanup();
+    debug_info("END DESTROY MOSQUITTO NFI_MQ_SERVER");
 }
 
 int64_t nfi_mq_server::publish(mosquitto *mqtt, const char *path, const char *buffer, int64_t offset, uint64_t size) {
@@ -97,6 +100,9 @@ int64_t nfi_mq_server::publish(mosquitto *mqtt, const char *path, const char *bu
 
         sprintf(topic, "%s/%d/%ld", path, bytes_to_write, offset);
 
+        debug_info("mosquitto_publish(" << mqtt << ", " << (void *)NULL << ", " << topic << ", " << bytes_to_write
+                                        << ", " << (void *)(buffer + cont) << ", " << xpn_env::get_instance().xpn_mqtt_qos
+                                        << ", " << false << ")");
         ret = mosquitto_publish(mqtt, NULL, topic, bytes_to_write, (char *)buffer + cont,
                                 xpn_env::get_instance().xpn_mqtt_qos, false);
         if (ret != MOSQ_ERR_SUCCESS) {

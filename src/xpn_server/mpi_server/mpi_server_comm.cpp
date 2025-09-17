@@ -30,6 +30,7 @@ mpi_server_control_comm::mpi_server_control_comm(xpn_server_params &params) : m_
 {
   XPN_PROFILE_FUNCTION();
   int ret, provided, claimed;
+  m_type = server_type::MPI;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [MPI_SERVER_CONTROL_COMM] [mpi_server_control_comm_init] >> Begin");
 

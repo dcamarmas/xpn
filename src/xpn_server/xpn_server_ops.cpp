@@ -114,13 +114,14 @@ void xpn_server::op_open ( xpn_server_comm &comm, const st_xpn_server_path_flags
     }
     status.server_errno = errno;
 
-#if defined(ENABLE_MQ_SERVER)
-  if (xpn_env::get_instance().xpn_mqtt){
-    if (auto sck_comm = dynamic_cast<sck_server_control_comm*>(m_control_comm.get())){
-      mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->mqtt), xpn_env::get_instance().xpn_mqtt_qos, head.path.path);
+    if (m_params.srv_type == server_type::MQTT){
+      if (m_control_comm->m_type == server_type::SCK){
+        #if defined(ENABLE_MQ_SERVER)
+        auto sck_comm = static_cast<sck_server_control_comm*>(m_control_comm.get());
+        mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), m_params.mqtt_qos, head.path.path);
+        #endif
+      }
     }
-  }
-#endif
 
     comm.write_data((char *)&status, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
   }
@@ -146,13 +147,14 @@ void xpn_server::op_creat ( xpn_server_comm &comm, const st_xpn_server_path_flag
     status.ret = m_filesystem->close(status.ret);
     status.server_errno = errno;
 
-#if defined(ENABLE_MQ_SERVER)
-  if (xpn_env::get_instance().xpn_mqtt){
-    if (auto sck_comm = dynamic_cast<sck_server_control_comm*>(m_control_comm.get())){
-      mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->mqtt), xpn_env::get_instance().xpn_mqtt_qos, head.path.path);
+    if (m_params.srv_type == server_type::MQTT){
+      if (m_control_comm->m_type == server_type::SCK){
+        #if defined(ENABLE_MQ_SERVER)
+        auto sck_comm = static_cast<sck_server_control_comm*>(m_control_comm.get());
+        mq_server_ops::subscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), m_params.mqtt_qos, head.path.path);
+        #endif
+      }
     }
-  }
-#endif
 
     comm.write_data((char *)&status, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
   }
@@ -338,21 +340,24 @@ cleanup_xpn_server_op_write:
 void xpn_server::op_close ( xpn_server_comm &comm, const st_xpn_server_close &head, int rank_client_id, int tag_client_id )
 {
   XPN_PROFILE_FUNCTION();
-  struct st_xpn_server_status status;
+  struct st_xpn_server_status status = {};
 
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_close] >> Begin");
   debug_info("[Server="<<serv_name<<"] [XPN_SERVER_OPS] [xpn_server_op_close] close("<<head.fd<<")");
 
-  status.ret = m_filesystem->close(head.fd);
-  status.server_errno = errno;
+  if (head.xpn_session) {
+    status.ret = m_filesystem->close(head.fd);
+    status.server_errno = errno;
+  }
 
-#if defined(ENABLE_MQ_SERVER)
-  if (xpn_env::get_instance().xpn_mqtt){
-    if (auto sck_comm = dynamic_cast<sck_server_control_comm*>(m_control_comm.get())){
-      mq_server_ops::unsubscribe(static_cast<mosquitto*>(sck_comm->mqtt), head.path.path);
+  if (m_params.srv_type == server_type::MQTT) {
+    if (m_control_comm->m_type == server_type::SCK) {
+      #if defined(ENABLE_MQ_SERVER)
+      auto sck_comm = static_cast<sck_server_control_comm*>(m_control_comm.get());
+      mq_server_ops::unsubscribe(static_cast<mosquitto*>(sck_comm->m_mqtt), head.path.path);
+      #endif
     }
   }
-#endif
 
   comm.write_data((char *)&status, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
 

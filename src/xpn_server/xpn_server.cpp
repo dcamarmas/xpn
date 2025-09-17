@@ -175,7 +175,6 @@ void xpn_server::connectionless_dispatcher () {
 
     while (!m_disconnect)
     {
-
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] Waiting for operation");
         msg = msg_pool.acquire();
         if (msg == nullptr) {
@@ -185,6 +184,7 @@ void xpn_server::connectionless_dispatcher () {
 
         auto comm = m_control_comm_connectionless->accept(-1, false);
         if (m_disconnect) {
+            debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] disconnect");
             return;
         }
         if (!comm) {
@@ -196,7 +196,7 @@ void xpn_server::connectionless_dispatcher () {
         ret = comm->read_operation(*msg, rank_client_id, tag_client_id);
         if (ret < 0) {
             debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_connectionless_dispatcher] ERROR: read operation fail");
-            return;
+            continue;
         }
 
         type_op = static_cast<xpn_server_ops>(msg->op);
@@ -232,6 +232,7 @@ void xpn_server::accept ( int connection_socket )
     {
         std::unique_lock l(m_clients_mutex);
         m_clients++;
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] notify new client "<<m_clients);
         m_clients_cv.notify_all();
     }
 
@@ -261,23 +262,24 @@ void xpn_server::accept ( int connection_socket )
 void xpn_server::finish ( void )
 {
     // Wait and finalize for all current workers
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Workers destroy");
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_finish] Workers destroy");
     
     {
         std::unique_lock l(m_clients_mutex);
         m_disconnect = true;
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_finish] notify disconnect");
         m_clients_cv.notify_all();
     }
 
     m_control_comm_connectionless.reset();
-
+    m_control_comm.reset();
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_finish] comms destroy");
+    
     m_worker1.reset();
     m_worker2.reset();
     m_workerConnectionLess.reset();
-
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] mpi_comm destroy");
-
-    m_control_comm.reset();
+    
+    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_finish] workers destroy");
 }
 
 /* ... Functions / Funciones ......................................... */
@@ -321,13 +323,13 @@ int xpn_server::run()
     // * Workers initialization
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] Workers initialization");
 
-    m_worker1 = workers::Create(m_params.thread_mode_connections, false);
+    m_worker1 = workers::Create(workers_mode::thread_on_demand, false);
     if (m_worker1 == nullptr) {
         debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Workers initialization fails");
         return -1;
     }
 
-    m_worker2 = workers::Create(m_params.thread_mode_operations);
+    m_worker2 = workers::Create(m_params.thread_mode);
     if (m_worker2 == nullptr) {
         debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] ERROR: Workers initialization fails");
         return -1;
@@ -434,26 +436,38 @@ int xpn_server::stop()
 
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] >> Begin");
 
-    // Open host file
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] Open host file "<< m_params.shutdown_file);
+    std::vector<std::string> srv_names;
+    if (!m_params.shutdown_file.empty()) {
 
-    file = fopen(m_params.shutdown_file.c_str(), "r");
-    if (file == NULL) {
-        debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: invalid file "<< m_params.shutdown_file);
+        // Open host file
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] Open host file "<< m_params.shutdown_file);
+
+        file = fopen(m_params.shutdown_file.c_str(), "r");
+        if (file == NULL) {
+            debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: invalid file "<< m_params.shutdown_file);
+            return -1;
+        }
+
+        while (fscanf(file, "%[^\n] ", srv_name) != EOF) {
+            srv_names.push_back(srv_name);
+        }
+        
+        // Close host file
+        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] Close host file");
+        
+        fclose(file);
+    } else if (!m_params.shutdown_hostlist.empty()) {
+        std::stringstream ss(m_params.shutdown_hostlist);
+        std::string token;
+
+        while (std::getline(ss, token, ',')) {
+            srv_names.push_back(token);
+        }
+    } else {
+        std::cerr << "It is necesary to provide --shutdown_hosts or --shutdown_file" << std::endl;
         return -1;
     }
-
-    std::vector<std::string> srv_names;
-    while (fscanf(file, "%[^\n] ", srv_name) != EOF)
-    {
-        srv_names.push_back(srv_name);
-    }
-
-    // Close host file
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] Close host file");
-
-    fclose(file);
-
+    
     std::unique_ptr<workers> worker = workers::Create(workers_mode::thread_on_demand);
     std::vector<std::future<int>> v_res(srv_names.size());
     int index = 0;
@@ -468,8 +482,18 @@ int xpn_server::stop()
             if (m_params.await_stop == 1){
                 buffer = socket::xpn_server::FINISH_CODE_AWAIT;
             }
-            // TODO: rethink with diferents ports
-            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
+            std::string srv_name;
+            int srv_port;
+            auto port_pos = name.find_last_of(":");
+            if (port_pos != std::string::npos){
+                srv_name = name.substr(0, port_pos);
+                auto aux_port = name.substr(port_pos + 1, name.size() - (port_pos + 1));
+                srv_port = stoi(aux_port);
+            }else{
+                srv_name = name;
+                srv_port = DEFAULT_XPN_SERVER_CONTROL_PORT;
+            }
+            ret = socket::client_connect(srv_name, srv_port, socket);
             if (ret < 0) {
                 print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: socket connection " << name);
                 return ret;
@@ -508,104 +532,6 @@ int xpn_server::stop()
 
     return res;
 }
-
-// Stats servers
-int xpn_server::print_stats()
-{
-    char srv_name[1024];
-    FILE *file;
-
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] >> Begin");
-
-    // Open host file
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] Open host file "<< m_params.shutdown_file);
-
-    file = fopen(m_params.shutdown_file.c_str(), "r");
-    if (file == NULL) {
-        debug_error("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: invalid file "<< m_params.shutdown_file);
-        return -1;
-    }
-
-    std::vector<std::string> srv_names;
-    while (fscanf(file, "%[^\n] ", srv_name) != EOF)
-    {
-        srv_names.push_back(srv_name);
-    }
-
-    // Close host file
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] Close host file");
-
-    fclose(file);
-
-    std::cout << std::endl;
-    for (auto &name : srv_names)
-    {
-        int socket;
-        int ret;
-        int buffer = socket::xpn_server::STATS_CODE;
-        xpn_stats stat_buff;
-        ret = socket::client_connect(name.data(), DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
-        if (ret < 0) {
-            print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);
-            continue;
-        }
-
-        ret = socket::send(socket, &buffer, sizeof(buffer));
-        if (ret < 0) {
-            print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket send " << name);
-            continue;
-        }
-        
-        ret = socket::recv(socket, &stat_buff, sizeof(stat_buff));
-        if (ret < 0) {
-            print("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket recv " << name);
-            continue;
-        }
-        socket::close(socket);
-
-        std::cout << "Server " << name << ":" << std::endl;
-        std::cout << "Bandwidth :" << std::endl;
-        std::cout << stat_buff.to_string_bandwidth() << std::endl;
-        std::cout << "Ops :" << std::endl;
-        std::cout << stat_buff.to_string_ops() << std::endl;
-        std::cout << std::endl;
-    }
-
-    debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_up] >> End");
-
-    return 0;
-}
-// int xpn_server_terminate ( void )
-// {
-//     int ret;
-//     int buffer = SOCKET_FINISH_CODE;
-//     int connection_socket;
-
-//     printf(" * Stopping server (%s)\n", params.srv_name);
-//     /*
-//     printf("\n");
-//     printf(" ----------------\n");
-//     printf(" Stopping server (%s)\n", params.srv_name);
-//     printf(" ----------------\n");
-//     printf("\n");
-//     */
-
-//     ret = socket_client_connect(params.srv_name, &connection_socket);
-//     if (ret < 0) {
-//         printf("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: socket connection %s", params.srv_name);
-//         return -1 ;
-//     }
-
-//     ret = socket_send(connection_socket, &buffer, sizeof(buffer));
-//     if (ret < 0) {
-//         printf("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [xpn_server_down] ERROR: socket send %s", params.srv_name);
-//         return -1 ;
-//     }
-
-//     close(connection_socket);
-//     return 0;
-// }
-
 } // namespace XPN
 // Main
 int main ( int argc, char *argv[] )
@@ -620,11 +546,6 @@ int main ( int argc, char *argv[] )
     // Get arguments..
     debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [main] Get server params");
 
-    // ret = xpn_server_params_get(&params, argc, argv);
-    // if (ret < 0) {
-        // xpn_server_params_show_usage();
-        // return -1;
-    // }
     XPN::xpn_server server(argc, argv);
 
     exec_name = basename(argv[0]);
@@ -639,33 +560,12 @@ int main ( int argc, char *argv[] )
     printf(" | * action=%s\n", exec_name);
     printf(" | * host=%s\n", server.serv_name);
     server.m_params.show();
-    // xpn_server_params_show(&params);
-
 
     // Do associate action...
-    if (strcasecmp(exec_name, "xpn_server_spawn") == 0)
-    {
-        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [main] Spawn server");
-        // ret = xpn_is_server_spawned(); //TODO: check if si posible with mpi ofi
-    }
-    else if (strcasecmp(exec_name, "xpn_stop_server") == 0)
-    {
+    if (strcasecmp(exec_name, "xpn_stop_server") == 0) {
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [main] Down servers");
         ret = server.stop();
-        // ret = xpn_server_down();
-    }
-    else if (strcasecmp(exec_name, "xpn_terminate_server") == 0)
-    {
-        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [main] Terminate server");
-        // ret = xpn_server_terminate();
-    }
-    else if (strcasecmp(exec_name, "xpn_server_stats") == 0)
-    {
-        debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [main] Terminate server");
-        ret = server.print_stats();
-    }
-    else
-    {
+    } else {
         debug_info("[TH_ID="<<std::this_thread::get_id()<<"] [XPN_SERVER] [main] Up servers");
         ret = server.run();
     }

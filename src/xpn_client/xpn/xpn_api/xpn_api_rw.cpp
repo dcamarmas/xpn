@@ -198,7 +198,7 @@ namespace XPN
                 v_res[index++] = m_worker->launch([i, &file, &op](){
                     XPN_DEBUG("Serv "<<i<<" off: "<<op.offset_serv+xpn_metadata::HEADER_SIZE<<" size: "<<op.get_size());
                     auto ret = file->m_part.m_data_serv[i]->nfi_write(file->m_data_vfh[i], op.get_buffer(), op.offset_serv+xpn_metadata::HEADER_SIZE, op.get_size());
-                    XPN_DEBUG("nfi_read "<<ret);
+                    XPN_DEBUG("nfi_write "<<ret);
                     return ret;
                 });
             }

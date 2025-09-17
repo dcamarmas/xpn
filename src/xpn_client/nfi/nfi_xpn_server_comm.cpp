@@ -39,8 +39,9 @@ std::unique_ptr<nfi_xpn_server_control_comm> nfi_xpn_server_control_comm::Create
 #ifdef ENABLE_MPI_SERVER
         return std::make_unique<nfi_mpi_server_control_comm>();
 #endif
-    } else if (server_protocol == server_protocols::sck_server) {
-        return std::make_unique<nfi_sck_server_control_comm>();
+    } else if (server_protocol == server_protocols::sck_server || server_protocol == server_protocols::mqtt_server) {
+        bool is_mqtt = server_protocol == server_protocols::mqtt_server;
+        return std::make_unique<nfi_sck_server_control_comm>(is_mqtt);
     } else if (server_protocol == server_protocols::fabric_server) {
 #ifdef ENABLE_FABRIC_SERVER
         return std::make_unique<nfi_fabric_server_control_comm>();
