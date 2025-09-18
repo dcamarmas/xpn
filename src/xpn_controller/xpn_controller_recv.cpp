@@ -28,8 +28,8 @@
 
 #include "base_cpp/subprocess.hpp"
 #include "base_cpp/workers.hpp"
+#include "base_cpp/xpn_conf.hpp"
 #include "nfi/nfi_server.hpp"
-#include "xpn/xpn_conf.hpp"
 #include "xpn_controller.hpp"
 
 namespace XPN {
@@ -94,6 +94,8 @@ int xpn_controller::recv_stop(int socket) {
     debug_info("[XPN_CONTROLLER] >> Start");
     // Stop the servers to stop the controler
     int ret = recv_stop_servers(socket);
+    
+    end_profiler();
     debug_info("[XPN_CONTROLLER] >> End");
     return ret;
 }
@@ -168,7 +170,7 @@ int xpn_controller::recv_mk_config(int socket) {
         }
         while (std::getline(file, line)) {
             if (!line.empty()) {
-                line = nfi_parser::create(server_type + "_server", line, storage_path);
+                line = xpn_parser::create(server_type + "_server", line, storage_path);
                 part.server_urls.emplace_back(line);
             }
             line.clear();
@@ -191,7 +193,7 @@ int xpn_controller::recv_mk_config(int socket) {
 }
 
 int xpn_controller::recv_start_servers(int socket) {
-    bool await;
+    bool await, debug;
     int ret;
     debug_info("[XPN_CONTROLLER] >> Start");
     ret = socket::recv(socket, &await, sizeof(await));
@@ -205,7 +207,12 @@ int xpn_controller::recv_start_servers(int socket) {
         print_error("recv server_cores");
         return -1;
     }
-    ret = start_servers(await, server_cores);
+    ret = socket::recv(socket, &debug, sizeof(debug));
+    if (ret != sizeof(debug)) {
+        print_error("recv debug");
+        return -1;
+    }
+    ret = start_servers(await, server_cores, debug);
     debug_info("[XPN_CONTROLLER] >> End");
     return ret;
 }
@@ -309,7 +316,7 @@ int xpn_controller::recv_expand_new(int socket) {
     auto it = std::remove_if(new_servers.begin(), new_servers.end(), [&old_servers](const std::string_view &srv) {
         return std::find(old_servers.begin(), old_servers.end(), srv) != old_servers.end();
     });
-    size_t num_erased = new_servers.end() - it;
+    uint64_t num_erased = new_servers.end() - it;
     new_servers.erase(it, new_servers.end());
 
     if (num_erased != old_servers.size()) {
@@ -415,7 +422,7 @@ int xpn_controller::recv_shrink_change(int socket) {
     auto it = std::remove_if(servers.begin(), servers.end(), [&to_remove_servers](const std::string_view &srv) {
         return std::find(to_remove_servers.begin(), to_remove_servers.end(), srv) != to_remove_servers.end();
     });
-    size_t num_erased = servers.end() - it;
+    uint64_t num_erased = servers.end() - it;
     servers.erase(it, servers.end());
 
     if (num_erased != to_remove_servers.size()) {
@@ -432,5 +439,38 @@ int xpn_controller::recv_shrink_change(int socket) {
 
     debug_info("[XPN_CONTROLLER] >> End");
     return res;
+}
+
+int xpn_controller::recv_profiler(int socket) {
+    std::string data;
+    int64_t ret;
+    debug_info("[XPN_CONTROLLER] >> Start");
+    ret = socket::recv_str(socket, data);
+    if (ret < 0) {
+        print_error("recv_str data");
+        return ret;
+    }
+
+    int code = -1;
+    auto profiler_file = xpn_env::get_instance().xpn_profiler_file;
+    if (profiler_file) {
+        std::ofstream file(profiler_file, std::ios::app);
+        if (file.is_open()) {
+            debug_info("[XPN_CONTROLLER] writing " << data.size() << " to profile file " << profiler_file);
+            file << data;
+            code = 0;
+        } else {
+            print("Error: opening file " << profiler_file);
+        }
+    }
+
+    ret = socket::send(socket, &code, sizeof(code));
+    if (ret != sizeof(code)) {
+        print_error("sending code to the profiler");
+        return -1;
+    }
+
+    debug_info("[XPN_CONTROLLER] >> End");
+    return 0;
 }
 }  // namespace XPN

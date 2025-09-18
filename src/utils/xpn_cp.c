@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos
  *
  *  This file is part of Expand.
  *
@@ -34,8 +34,12 @@
 
 /* ... Const / Const ................................................. */
 
-  #define BUFFER_SIZE (8192*1024)
-  char buf[BUFFER_SIZE];
+   #define BUFFER_SIZE (8192*1024)
+   char buf[BUFFER_SIZE];
+
+   #ifndef PATH_MAX
+   #define PATH_MAX 1024
+   #endif
 
 
 /* ... Functions / Funciones ......................................... */
@@ -178,14 +182,14 @@
 
     if (argc < 3)
     {
-      printf("[ERROR]: too few arguments\n");
-      printf("\n");
+        printf("[ERROR]: too few arguments\n");
+        printf("\n");
 
-      printf("  Usage:\n");
-      printf("  %s <src_path> <dest_path>\n", argv[0]) ;
-      printf("\n");
+        printf("  Usage:\n");
+        printf("  %s <src_path> <dest_path>\n", argv[0]) ;
+        printf("\n");
 
-      return -1;
+        return -1;
     }
 
     printf("Copying... \n");

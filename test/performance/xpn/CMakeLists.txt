@@ -11,3 +11,15 @@ foreach (test ${TEST_LIST})
     target_link_libraries(${test} xpn)
     install(TARGETS ${test} RUNTIME DESTINATION test/performance/xpn)
 endforeach (test)
+
+set(TEST_LIST 
+	open-read-close-thread
+	open-write-close-thread
+)
+
+# add the executables
+foreach (test ${TEST_LIST})
+    add_executable(${test} ${test}.cpp)
+    target_link_libraries(${test} xpn)
+    install(TARGETS ${test} RUNTIME DESTINATION test/performance/xpn)
+endforeach (test)

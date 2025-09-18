@@ -34,7 +34,7 @@ namespace XPN
     class nfi_local : public nfi_server
     {
     public:
-        nfi_local(const nfi_parser &parser) : nfi_server(parser) {}
+        nfi_local(const xpn_parser &parser) : nfi_server(parser) {}
     public:
         // Operations 
         int nfi_open        (const std::string &path, int flags, mode_t mode, xpn_fh &fho) override;
@@ -53,6 +53,6 @@ namespace XPN
         int nfi_rmdir       (const std::string &path, bool is_async) override;
         int nfi_statvfs     (const std::string &path, struct ::statvfs &inf) override;
         int nfi_read_mdata  (const std::string &path, xpn_metadata &mdata) override;
-        int nfi_write_mdata (const std::string &path, const xpn_metadata &mdata, bool only_file_size) override;
+        int nfi_write_mdata (const std::string &path, const xpn_metadata::data &mdata, bool only_file_size) override;
     };
 } // namespace XPN

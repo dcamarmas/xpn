@@ -24,168 +24,180 @@
 #include "xpn_server_params.hpp"
 
 #include "base_cpp/debug.hpp"
-#include "base_cpp/workers.hpp"
 #include "base_cpp/ns.hpp"
+#include "base_cpp/workers.hpp"
 
 namespace XPN {
 
 /* ... Functions / Funciones ......................................... */
 
 void xpn_server_params::show() {
-    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show] >> Begin");
+    debug_info("[Server=" << ns::get_host_name() << "] [XPN_SERVER_PARAMS] [xpn_server_params_show] >> Begin");
 
     printf(" | * XPN server current configuration:\n");
 
+    printf(" |\tcontrol port: \t%d\n", srv_control_port);
+    if (srv_comm_port != DEFAULT_XPN_SERVER_COMM_PORT) {
+        printf(" |\tcomm port: \t%d\n", srv_comm_port);
+    }
+    if (srv_connectionless_port != DEFAULT_XPN_SERVER_CONNECTIONLESS_PORT) {
+        printf(" |\tconnectionless port: \t%d\n", srv_connectionless_port);
+    }
     // * server_type
-    if (server_type == XPN_SERVER_TYPE_MPI) {
-        printf(" |\t-s  <int>:\tmpi_server\n");
-    } else if (server_type == XPN_SERVER_TYPE_SCK) {
-        printf(" |\t-s  <int>:\tsck_server\n");
-    } else if (server_type == XPN_SERVER_TYPE_FABRIC) {
-        printf(" |\t-s  <int>:\tfabric_server\n");
+    if (srv_type == server_type::MPI) {
+        printf(" |\tserver type: \tmpi_server\n");
+    } else if (srv_type == server_type::SCK) {
+        printf(" |\tserver type: \tsck_server\n");
+    } else if (srv_type == server_type::MQTT) {
+        printf(" |\tserver type: \tmqtt_server\n");
+    } else if (srv_type == server_type::FABRIC) {
+        printf(" |\tserver type: \tfabric_server\n");
     } else {
-        printf(" |\t-s  <int>:\tError: unknown\n");
+        printf(" |\tserver type: \tError: unknown\n");
     }
 
     // * threads
-    if (thread_mode_connections == workers_mode::sequential) {
-        printf(" |\t-t  <int>:\tWithout threads\n");
-    } else if (thread_mode_connections == workers_mode::thread_pool) {
-        printf(" |\t-t  <int>:\tThread Pool Activated\n");
-    } else if (thread_mode_connections == workers_mode::thread_on_demand) {
-        printf(" |\t-t  <int>:\tThread on demand\n");
+    if (thread_mode == workers_mode::sequential) {
+        printf(" |\tthread mode: \tWithout threads\n");
+    } else if (thread_mode == workers_mode::thread_pool) {
+        printf(" |\tthread mode: \tThread Pool Activated\n");
+    } else if (thread_mode == workers_mode::thread_on_demand) {
+        printf(" |\tthread mode: \tThread on demand\n");
     } else {
-        printf(" |\t-t  <int>:\tError: unknown\n");
+        printf(" |\tthread mode: \tError: unknown\n");
     }
 
     // * shutdown_file
-    printf(" |\t-f  <path>:\t'%s'\n", shutdown_file.c_str());
-    // * host
-    printf(" |\t-h  <host>:\t'%s'\n", srv_name.c_str());
+    if (!shutdown_file.empty()) {
+        printf(" |\tshutdown_file: \t'%s'\n", shutdown_file.c_str());
+    }
     // * await
     if (await_stop == 1) {
-        printf(" |\t-w  await true\n");
+        printf(" |\tawait: \ttrue\n");
+    }
+    if (fs_mode == filesystem_mode::xpn) {
+        printf(" |\tproxy mode: \ton\n");
+    }
+    if (mqtt_qos != DEFAULT_XPN_SERVER_MQTT_QOS || srv_type == server_type::MQTT) {
+        printf(" |\tmqtt qos: \t%d\n", mqtt_qos);
     }
 
-    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show] << End");
+    debug_info("[Server=" << ns::get_host_name() << "] [XPN_SERVER_PARAMS] [xpn_server_params_show] << End");
 }
 
 void xpn_server_params::show_usage() {
-    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin");
+    debug_info("[Server=" << ns::get_host_name() << "] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] >> Begin");
 
     printf("Usage:\n");
-    printf("\t-s  <server_type>:   mpi (for mpi server); sck (for sck server)\n");
-    printf("\t-t  <int>:           0 (without thread); 1 (thread pool); 2 (on demand)\n");
-    printf("\t-f  <path>:          file of servers to be shutdown\n");
-    printf("\t-h  <host>:          host server to be shutdown\n");
-    printf("\t-w                   await for servers to stop\n");
+    printf("\t-p, --port            <port>        port used by the contol socket (default: 3456)\n");
+    printf("\t-s, --server_type     <server_type> mpi, sck, fabric (default: sck)\n");
+    printf("\t-t, --thread_mode     <int>         0 (without); 1 (pool); 2 (on_demand) (default: without)\n");
+    printf("\t-f, --shutdown_file   <path>        file of servers to be shutdown\n");
+    printf("\t-d, --shutdown_hosts  <list>        comma separated list of hosts to be shutdown\n");
+    printf("\t-m, --mqtt_qos        <qos>         enable mqtt with that qos\n");
+    printf("\t--connectionless_port <port>        port used by the connectionless socket (default: 0)\n");
+    printf("\t--comm_port           <port>        port used by the communcation socket (default: 0)\n");
+    printf("\t-w, --await                         await for servers to stop\n");
+    printf("\t-x, --proxy                         activate proxy mode\n");
+    printf("\t-h, --help                          print this usage information\n");
 
-    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End");
+    debug_info("[Server=" << ns::get_host_name() << "] [XPN_SERVER_PARAMS] [xpn_server_params_show_usage] << End");
 }
 
 xpn_server_params::xpn_server_params(int _argc, char *_argv[]) {
-    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_get] >> Begin");
+    debug_info("[Server=" << ns::get_host_name() << "] [XPN_SERVER_PARAMS] [xpn_server_params_get] >> Begin");
 
     // set default values
     argc = _argc;
     argv = _argv;
     size = 0;
     rank = 0;
-    thread_mode_connections = workers_mode::sequential;
-    thread_mode_operations = workers_mode::sequential;
-    server_type = XPN_SERVER_TYPE_SCK;
-#ifdef ENABLE_MPI_SERVER
-    server_type = XPN_SERVER_TYPE_MPI;
-#endif
+    thread_mode = workers_mode::sequential;
+    srv_type = server_type::SCK;
+
+    fs_mode = filesystem_mode::disk;
     await_stop = 0;
-    port_name = "";
-    srv_name = "";
+    mqtt_qos = DEFAULT_XPN_SERVER_MQTT_QOS;
+    srv_control_port = DEFAULT_XPN_SERVER_CONTROL_PORT;
+    srv_comm_port = DEFAULT_XPN_SERVER_COMM_PORT;
+    srv_connectionless_port = DEFAULT_XPN_SERVER_CONNECTIONLESS_PORT;
 
     // update user requests
-    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_get] Get user configuration");
+    debug_info("[Server=" << ns::get_host_name()
+                          << "] [XPN_SERVER_PARAMS] [xpn_server_params_get] Get user configuration");
+    int idx = 1;
+    while (idx < argc) {
+        std::string_view arg = argv[idx];
+        if (arg == "-h" || arg == "--help") {
+            show_usage();
+            exit(EXIT_SUCCESS);
+        } else if (arg == "-f" || arg == "--shutdown_file") {
+            shutdown_file = ++idx >= argc ? "" : argv[idx];
+        } else if (arg == "-d" || arg == "--shutdown_hosts") {
+            shutdown_hostlist = ++idx >= argc ? "" : argv[idx];
+        } else if (arg == "-w" || arg == "--await") {
+            await_stop = 1;
+        } else if (arg == "-x" || arg == "--proxy") {
+            fs_mode = filesystem_mode::xpn;
+        } else if (arg == "-p" || arg == "--port") {
+            srv_control_port = ++idx >= argc ? DEFAULT_XPN_SERVER_CONTROL_PORT : atoi(argv[idx]);
+        } else if (arg == "-m" || arg == "--mqtt_qos") {
+            mqtt_qos = ++idx >= argc ? DEFAULT_XPN_SERVER_MQTT_QOS : atoi(argv[idx]);
+        } else if (arg == "--connectionless_port") {
+            srv_connectionless_port = ++idx >= argc ? DEFAULT_XPN_SERVER_CONNECTIONLESS_PORT : atoi(argv[idx]);
+        } else if (arg == "--comm_port") {
+            srv_comm_port = ++idx >= argc ? DEFAULT_XPN_SERVER_COMM_PORT : atoi(argv[idx]);
+        } else if (arg == "-t" || arg == "--thread_mode") {
+            if (++idx < argc) {
+                if (isdigit(argv[idx][0])) {
+                    int thread_mode_aux = atoi(argv[idx]);
 
-    for (int i = 0; i < argc; i++) {
-        switch (argv[i][0]) {
-            case '-':
-                switch (argv[i][1]) {
-                    case 'f':
-                        shutdown_file = argv[i + 1];
-                        i++;
-                        break;
-
-                    case 't':
-                        if ((i + 1) < argc) {
-                            if (isdigit(argv[i + 1][0])) {
-                                int thread_mode_aux = atoi(argv[i + 1]);
-
-                                if (thread_mode_aux >= static_cast<int>(workers_mode::sequential) && thread_mode_aux <= static_cast<int>(workers_mode::sequential)) {
-                                    thread_mode_connections = static_cast<workers_mode>(thread_mode_aux);
-                                    thread_mode_operations = static_cast<workers_mode>(thread_mode_aux);
-                                } else {
-                                    printf("ERROR: unknown option %s\n", argv[i + 1]);
-                                    show_usage();
-                                }
-                            } else {
-                                if (strcmp("without", argv[i + 1]) == 0) {
-                                    thread_mode_connections = workers_mode::sequential;
-                                    thread_mode_operations = workers_mode::sequential;
-                                } else if (strcmp("pool", argv[i + 1]) == 0) {
-                                    thread_mode_connections = workers_mode::thread_pool;
-                                    thread_mode_operations = workers_mode::thread_pool;
-                                } else if (strcmp("on_demand", argv[i + 1]) == 0) {
-                                    thread_mode_connections = workers_mode::thread_on_demand;
-                                    thread_mode_operations = workers_mode::thread_on_demand;
-                                } else {
-                                    printf("ERROR: unknown option %s\n", argv[i + 1]);
-                                    show_usage();
-                                }
-                            }
-                        }
-                        i++;
-                        break;
-
-                    case 's':
-                        if ((i + 1) < argc) {
-                            if (strcmp("mpi", argv[i + 1]) == 0) {
-                                server_type = XPN_SERVER_TYPE_MPI;
-                            } else if (strcmp("sck", argv[i + 1]) == 0) {
-                                server_type = XPN_SERVER_TYPE_SCK;
-                            } else if (strcmp("fabric", argv[i + 1]) == 0) {
-                                server_type = XPN_SERVER_TYPE_FABRIC;
-                            } else {
-                                printf("ERROR: unknown option %s\n", argv[i + 1]);
-                                show_usage();
-                            }
-                        }
-                        i++;
-                        break;
-
-                    case 'h':
-                        srv_name = argv[i + 1];
-                        break;
-                    case 'w':
-                        await_stop = 1;
-                        break;
-
-                    default:
+                    if (thread_mode_aux >= static_cast<int>(workers_mode::sequential) &&
+                        thread_mode_aux <= static_cast<int>(workers_mode::thread_on_demand)) {
+                        thread_mode = static_cast<workers_mode>(thread_mode_aux);
+                    } else {
+                        printf("ERROR: unknown option %s\n", argv[idx]);
                         show_usage();
-                        exit(EXIT_FAILURE);
-                        break;
+                    }
+                } else {
+                    if (strcmp("without", argv[idx]) == 0) {
+                        thread_mode = workers_mode::sequential;
+                    } else if (strcmp("pool", argv[idx]) == 0) {
+                        thread_mode = workers_mode::thread_pool;
+                    } else if (strcmp("on_demand", argv[idx]) == 0) {
+                        thread_mode = workers_mode::thread_on_demand;
+                    } else {
+                        printf("ERROR: unknown option %s\n", argv[idx]);
+                        show_usage();
+                    }
                 }
-                break;
-
-            default:
-                break;
+            }
+        } else if (arg == "-s" || arg == "--server_type") {
+            if (++idx < argc) {
+                if (strcmp("mpi", argv[idx]) == 0) {
+                    srv_type = server_type::MPI;
+                } else if (strcmp("sck", argv[idx]) == 0) {
+                    srv_type = server_type::SCK;
+                } else if (strcmp("mqtt", argv[idx]) == 0) {
+                    srv_type = server_type::MQTT;
+                } else if (strcmp("fabric", argv[idx]) == 0) {
+                    srv_type = server_type::FABRIC;
+                } else {
+                    printf("ERROR: unknown option %s\n", argv[idx]);
+                    show_usage();
+                }
+            }
+        } else {
+            std::cout << "unexpected option '" << arg << "'\n";
+            show_usage();
+            exit(EXIT_FAILURE);
+            break;
         }
+
+        ++idx;
     }
 
-    // In sck_server worker for operations has to be sequential because you don't want to have to make a socket per
-    // operation. It can be done because it is not reentrant
-    if (server_type == XPN_SERVER_TYPE_SCK) {
-        thread_mode_operations = workers_mode::sequential;
-    }
-
-    debug_info("[Server="<<ns::get_host_name()<<"] [XPN_SERVER_PARAMS] [xpn_server_params_get] << End");
+    debug_info("[Server=" << ns::get_host_name() << "] [XPN_SERVER_PARAMS] [xpn_server_params_get] << End");
 }
 
 /* ................................................................... */

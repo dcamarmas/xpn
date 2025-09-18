@@ -24,36 +24,35 @@
 #include <string>
 #include <vector>
 
+#include "base_cpp/xpn_conf.hpp"
 #include "nfi/nfi_server.hpp"
-#include "xpn/xpn_conf.hpp"
 
-namespace XPN
-{
-    // Fordward declaration
-    class nfi_server;
+namespace XPN {
+// Fordward declaration
+class nfi_server;
 
-    class xpn_partition
-    {
-    public:
-        xpn_partition(const std::string &name, int replication_level, uint64_t block_size);
-        // Delete default constructors
-        xpn_partition() = delete;
-        // Delete copy constructor
-        xpn_partition(const xpn_partition&) = delete;
-        // Delete copy assignment operator
-        xpn_partition& operator=(const xpn_partition&) = delete;
-        // Delete move constructor
-        xpn_partition(xpn_partition&&) = delete;
-        // Delete move assignment operator
-        xpn_partition& operator=(xpn_partition&&) = delete;
-        int init_server(const std::string &url);
-    public:
-        std::string m_name;                                             // name of partition 
-        int m_replication_level = XPN_CONF::DEFAULT_REPLICATION_LEVEL;  // replication_level of files :0, 1, 2,... 
-        uint64_t m_block_size = XPN_CONF::DEFAULT_BLOCKSIZE;            // size of distribution used 
+class xpn_partition {
+   public:
+    xpn_partition(const std::string& name, int replication_level, uint64_t block_size);
+    // Delete default constructors
+    xpn_partition() = delete;
+    // Delete copy constructor
+    xpn_partition(const xpn_partition&) = delete;
+    // Delete copy assignment operator
+    xpn_partition& operator=(const xpn_partition&) = delete;
+    // Delete move constructor
+    xpn_partition(xpn_partition&&) = delete;
+    // Delete move assignment operator
+    xpn_partition& operator=(xpn_partition&&) = delete;
+    int init_server(const std::string& url);
 
-        std::vector<std::unique_ptr<nfi_server>> m_data_serv;           // list of data servers in the partition 
+   public:
+    std::string m_name;                                             // name of partition
+    int m_replication_level = XPN_CONF::DEFAULT_REPLICATION_LEVEL;  // replication_level of files :0, 1, 2,...
+    uint64_t m_block_size = XPN_CONF::DEFAULT_BLOCKSIZE;            // size of distribution used
 
-        int m_local_serv = -1;                                          // server with locality
-    };
-} // namespace XPN
+    std::vector<std::unique_ptr<nfi_server>> m_data_serv;           // list of data servers in the partition
+
+    int m_local_serv = -1;                                          // server with locality
+};
+}  // namespace XPN

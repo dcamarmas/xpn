@@ -60,6 +60,36 @@ int xpn_destroy ( void )
   return ret;
 }
 
+int xpn_print_partitions ( void )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_print_partitions] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().print_partitions();
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_print_partitions] >> End");
+
+  return ret;
+}
+
+int xpn_clean_connections ( void )
+{
+  int ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_clean_connections] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().clean_connections();
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_clean_connections] >> End");
+
+  return ret;
+}
+
 int xpn_mark_error_server ( int index )
 {
   int ret = -1;
@@ -171,6 +201,21 @@ ssize_t xpn_read  ( int fd, void *buffer, size_t size )
   return ret;
 }
 
+ssize_t xpn_pread ( int fd, void *buffer, size_t size, off_t offset )
+{
+  ssize_t ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_pread] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().pread(fd, buffer, size, offset);
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_pread] >> End");
+
+  return ret;
+}
+
 ssize_t xpn_write ( int fd, const void *buffer, size_t size )
 {
   ssize_t ret = -1;
@@ -182,6 +227,21 @@ ssize_t xpn_write ( int fd, const void *buffer, size_t size )
   XPN_API_UNLOCK();
 
   debug_info("[XPN_UNISTD] [xpn_write] >> End");
+
+  return ret;
+}
+
+ssize_t xpn_pwrite ( int fd, const void *buffer, size_t size, off_t offset )
+{
+  ssize_t ret = -1;
+
+  debug_info("[XPN_UNISTD] [xpn_pwrite] >> Begin");
+
+  XPN_API_LOCK();
+  ret = XPN::xpn_api::get_instance().pwrite(fd, buffer, size, offset);
+  XPN_API_UNLOCK();
+
+  debug_info("[XPN_UNISTD] [xpn_pwrite] >> End");
 
   return ret;
 }

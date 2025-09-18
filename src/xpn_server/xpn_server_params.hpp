@@ -29,29 +29,29 @@
   #include <stdio.h>
   #include <ctype.h>
   #include "base_cpp/workers.hpp"
-
-  #if defined(ENABLE_MPI_SERVER)
-  #include "mpi.h"
-  #endif
+  #include "filesystem/xpn_server_filesystem.hpp"
 
   /* ... Const / Const ................................................. */
 
-  #define XPN_SERVER_TYPE_MPI 0
-  #define XPN_SERVER_TYPE_SCK 1
-  #define XPN_SERVER_TYPE_FABRIC 2
-
 namespace XPN
 {
+  enum class server_type {
+    MPI,
+    SCK,
+    MQTT,
+    FABRIC,
+  };
+  
   constexpr const int KB = 1024;
   constexpr const int MB = (KB*KB);
   constexpr const int GB = (KB*MB);
   constexpr const int MAX_BUFFER_SIZE = (1*MB);
-
-  #ifdef MPI_MAX_PORT_NAME
-    constexpr const int MAX_PORT_NAME = MPI_MAX_PORT_NAME;
-  #else
-    constexpr const int MAX_PORT_NAME = 1024;
-  #endif
+  constexpr const int MAX_PORT_NAME = 1024;
+  constexpr const int DEFAULT_XPN_SERVER_CONTROL_PORT = 3456;
+  // 0 is for dynamic assigment
+  constexpr const int DEFAULT_XPN_SERVER_COMM_PORT = 0;
+  constexpr const int DEFAULT_XPN_SERVER_CONNECTIONLESS_PORT = 0;
+  constexpr const int DEFAULT_XPN_SERVER_MQTT_QOS = 0;
 
   /* ... Data structures / Estructuras de datos ........................ */
 
@@ -62,19 +62,18 @@ namespace XPN
     int  size;
     int  rank;
 
-    std::string port_name;
-    std::string srv_name;
+    int srv_control_port;
+    int srv_comm_port;
+    int srv_connectionless_port;
 
     // server configuration
     std::string shutdown_file;
-    workers_mode  thread_mode_connections;
-    workers_mode  thread_mode_operations;
-    int  server_type;  // it can be XPN_SERVER_TYPE_MPI, XPN_SERVER_TYPE_SCK
+    std::string shutdown_hostlist;
+    workers_mode thread_mode;
+    server_type srv_type; 
+    filesystem_mode fs_mode;
 
-    #ifdef ENABLE_SCK_SERVER
-    int server_socket; // For sck_server
-    #endif
-
+    int mqtt_qos;
     int await_stop;
 
     // server arguments
@@ -96,7 +95,7 @@ namespace XPN
 
     void show_usage();
     void show();
-    bool have_threads() { return (static_cast<int>(thread_mode_connections) + static_cast<int>(thread_mode_operations)) > 0; }
+    bool have_threads() { return static_cast<int>(thread_mode) > 0; }
     int get_argc() { return argc; }
     char** get_argv() { return argv; }
   };

@@ -117,7 +117,7 @@ namespace XPN
         return res;
     }
 
-    int xpn_api::truncate([[maybe_unused]] const char *path, [[maybe_unused]] off_t length)
+    int xpn_api::truncate([[maybe_unused]] const char *path, [[maybe_unused]] int64_t length)
     {
         XPN_DEBUG_BEGIN;
         int res = 0;
@@ -126,7 +126,7 @@ namespace XPN
         return res;
     }
 
-    int xpn_api::ftruncate([[maybe_unused]] int fd, [[maybe_unused]] off_t length)
+    int xpn_api::ftruncate([[maybe_unused]] int fd, [[maybe_unused]] int64_t length)
     {
         XPN_DEBUG_BEGIN;
         int res = 0;
@@ -165,7 +165,7 @@ namespace XPN
 
         std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
         std::mutex buff_mutex;
-        for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+        for (uint64_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             if (static_cast<int>(i) == file.m_mdata.master_file()) continue;
             v_res[i] = m_worker->launch([i, &file, &buf, &buff_mutex](){

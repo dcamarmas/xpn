@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <errno.h>
 
 
 #define KB  (1024)
@@ -53,7 +54,7 @@ int main ( int argc, char *argv[] )
 
 	fd1 = xpn_creat(argv[1], 00777);
 	if (fd1 < 0) {
-	    printf("%d = xpn_creat('%s', %o)\n", ret, argv[1], 00777) ;
+	    printf("Error: xpn_creat('%s', %o) = %d %s\n", argv[1], 00777, fd1, strerror(errno)) ;
 	    return -1 ;
 	}
 

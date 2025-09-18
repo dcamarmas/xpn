@@ -54,6 +54,6 @@ namespace XPN
         bool m_stop = false;
         int m_wait = 0;
 
-        size_t m_num_threads = 0;
+        uint64_t m_num_threads = 0;
     };
 } // namespace XPN

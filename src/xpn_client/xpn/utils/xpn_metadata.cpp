@@ -31,7 +31,9 @@ namespace XPN
 {
     
     void xpn_metadata::data::fill(const xpn_metadata& mdata){
-        magic_number        = {MAGIC_NUMBER[0], MAGIC_NUMBER[1], MAGIC_NUMBER[2]};
+        magic_number[0]     = MAGIC_NUMBER[0];
+        magic_number[1]     = MAGIC_NUMBER[1];
+        magic_number[2]     = MAGIC_NUMBER[2];
         data_nserv[0]       = static_cast<int>(mdata.m_file.m_part.m_data_serv.size());
         version             = VERSION;
         type                = 0;
@@ -65,7 +67,7 @@ namespace XPN
 
     std::string xpn_metadata::to_string_blocks(int blocks)
     {
-        off_t offset, local_offset;
+        int64_t offset, local_offset;
         int serv;
         int check_sum_1 = 0, check_sum_2 = 0;
         
@@ -81,7 +83,7 @@ namespace XPN
                 local_offset /= m_data.block_size;
                 auto &vec = queues[serv];
                 // Resize in case it does not fit
-                if (vec.size() <= static_cast<size_t>(local_offset)) vec.resize(local_offset+1, -1);
+                if (vec.size() <= static_cast<uint64_t>(local_offset)) vec.resize(local_offset+1, -1);
                 vec[local_offset] = i;
             }
         }	
@@ -104,8 +106,8 @@ namespace XPN
 
 
         // Body
-        size_t max_ops = 1000;
-        size_t count = 0;
+        uint64_t max_ops = 1000;
+        uint64_t count = 0;
         bool finish = false;
         while(count < max_ops && !finish){
             finish = true;

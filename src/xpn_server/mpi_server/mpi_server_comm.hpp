@@ -35,7 +35,7 @@ namespace XPN
     mpi_server_comm(MPI_Comm &comm) : m_comm(comm) {}
     ~mpi_server_comm() override {}
 
-    int64_t read_operation(xpn_server_ops &op, int &rank_client_id, int &tag_client_id) override;
+    int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) override;
     int64_t read_data(void *data, int64_t size, int rank_client_id, int tag_client_id) override;
     int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
   public:
@@ -48,9 +48,13 @@ namespace XPN
     mpi_server_control_comm(xpn_server_params &params);
     ~mpi_server_control_comm() override;
     
-    xpn_server_comm* accept(int socket) override;
+    xpn_server_comm* accept(int socket, bool sendData = true) override;
     void disconnect(xpn_server_comm *comm) override;
 
+    xpn_server_comm* create(int rank_client_id) override;
+    int rearm(int rank_client_id) override;
+    void disconnect(int rank_client_id) override;
+    int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) override;
   private:
     int m_rank, m_size;
     bool m_thread_mode;

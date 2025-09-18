@@ -23,6 +23,7 @@
 
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "xpn_file.hpp"
 
@@ -42,9 +43,13 @@ namespace XPN
         // Delete move assignment operator
         xpn_file_table& operator=(xpn_file_table&&) = delete;
     public:        
-        bool has(int fd) {return m_files.find(fd) != m_files.end();}
+        bool has(int fd) {
+            std::unique_lock lock(m_mutex);
+            return m_files.find(fd) != m_files.end();
+        }
 
         std::shared_ptr<xpn_file> get(int fd) {
+            std::unique_lock lock(m_mutex);
             auto it = m_files.find(fd);
             if (it == m_files.end()){
                 return nullptr;
@@ -61,10 +66,13 @@ namespace XPN
         std::string to_string();
 
         void clean();
+        void init_vfhs(const std::unordered_map<std::string, xpn_partition>& partitions);
+        void clean_vfhs();
 
     private:
         std::unordered_map<int, std::shared_ptr<xpn_file>> m_files;
-        std::queue<int> m_free_keys;
+        std::unordered_set<int> m_free_keys;
         int secuencial_key = 1;
+        std::recursive_mutex m_mutex = {};
     };
 } // namespace XPN

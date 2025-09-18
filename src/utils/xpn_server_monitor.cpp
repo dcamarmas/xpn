@@ -31,7 +31,7 @@
 #include "base_cpp/timer.hpp"
 #include "base_cpp/workers.hpp"
 #include "nfi/nfi_server.hpp"
-#include "xpn/xpn_conf.hpp"
+#include "base_cpp/xpn_conf.hpp"
 #include "xpn/xpn_stats.hpp"
 
 using namespace XPN;
@@ -56,15 +56,16 @@ void monitor_stats(std::filesystem::path csv_path) {
     std::mutex comb_stats_mutex;
 
     for (auto& url : conf.partitions[0].server_urls) {
-        nfi_parser parser(url);
-        auto& name = parser.m_server;
+        xpn_parser parser(url);
+        auto name = std::string(parser.m_server);
 
         worker->launch_no_future([name, &comb_stats_mutex, &comb_stats]() {
             int socket;
             int ret;
             int buffer = socket::xpn_server::STATS_wINDOW_CODE;
             xpn_stats stat_buff;
-            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
+            // TODO: rethink to allow diferent ports
+            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
             if (ret < 0) {
                 debug_error("[TH_ID=" << std::this_thread::get_id()
                                 << "] [XPN_SERVER] [xpn_server_print_stats] ERROR: socket connection " << name);
@@ -86,6 +87,7 @@ void monitor_stats(std::filesystem::path csv_path) {
             }
             socket::close(socket);
 
+            debug_info("[TH_ID=" << std::this_thread::get_id() << "] [XPN_SERVER] [xpn_server_print_stats] Recv stats from " << name);
             std::unique_lock<std::mutex> lock(comb_stats_mutex);
             comb_stats = comb_stats + stat_buff;
         });

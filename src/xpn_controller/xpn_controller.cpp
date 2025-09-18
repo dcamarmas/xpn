@@ -55,14 +55,14 @@ int xpn_controller::start() {
 }  // namespace XPN
 
 int main(int argc, char* argv[]) {
-    XPN::xpn_controller controler(argc, argv);
+    XPN::xpn_controller controller(argc, argv);
 
-    if (controler.m_args.parse() < 0) {
+    if (controller.m_args.parse() < 0) {
         exit(EXIT_FAILURE);
     }
 
-    if (controler.start() < 0) {
-        controler.m_args.help();
+    if (controller.start() < 0) {
+        controller.m_args.help();
         exit(EXIT_FAILURE);
     }
 

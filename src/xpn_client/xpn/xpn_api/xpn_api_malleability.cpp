@@ -27,10 +27,7 @@ int xpn_api::start_malleability(const char* host_list, int rank, malleability_ty
     int res = 0;
     XPN_DEBUG_BEGIN_CUSTOM(host_list << ", " << rank);
 
-    // Clean file table
-    m_file_table.clean();
-
-    res = destroy();
+    res = clean_connections();
     if (res < 0) {
         return res;
     }

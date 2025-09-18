@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -193,7 +193,7 @@
         }
         actual_last_block++;
         int replication = 0;
-        off_t local_offset;
+        int64_t local_offset;
         int aux_serv;
         int counter = 0;
         for (int j = 0; j < prev_nserv*2; j++)
@@ -295,7 +295,7 @@
       int ret;
       char *buf;    
       int has_remaining_blocks = 1;
-      off_t offset;
+      int64_t offset;
       int buf_size;
       MPI_Status status;
       int fd;
@@ -360,9 +360,9 @@
         perror("open reader :");
         MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
       }
-      off_t offset_dest = -new_file.m_mdata.m_data.block_size; 
-      off_t offset_src;
-      off_t local_offset;
+      int64_t offset_dest = -new_file.m_mdata.m_data.block_size; 
+      int64_t offset_src;
+      int64_t local_offset;
       int replication = 0;
       int read_size = 0;
       int aux_serv;
@@ -379,7 +379,7 @@
               goto exit_search;
             }
           }
-        }while(offset_dest < static_cast<off_t>(old_file.m_mdata.m_data.file_size));
+        }while(offset_dest < static_cast<int64_t>(old_file.m_mdata.m_data.file_size));
         exit_search:
         if (rank != aux_serv){
           continue;

@@ -32,6 +32,7 @@ namespace XPN
     {
         constexpr const char * mpi_server = "mpi_server";
         constexpr const char * sck_server = "sck_server";
+        constexpr const char * mqtt_server = "mqtt_server";
         constexpr const char * fabric_server = "fabric_server";
         constexpr const char * file = "file";
     }
@@ -39,17 +40,20 @@ namespace XPN
     {
     public:
         virtual ~nfi_xpn_server_comm() = default;
-        virtual int64_t write_operation(xpn_server_ops op) = 0;
+        virtual int64_t write_operation(xpn_server_msg& msg) = 0;
         virtual int64_t read_data(void *data, int64_t size) = 0;
         virtual int64_t write_data(const void *data, int64_t size) = 0;
+
+        server_type m_type;
     };
     class nfi_xpn_server_control_comm 
     {
     public:
         virtual ~nfi_xpn_server_control_comm() = default;
 
-        virtual nfi_xpn_server_comm* connect(const std::string &srv_name) = 0;
-        virtual void disconnect(nfi_xpn_server_comm *comm) = 0;
+        virtual nfi_xpn_server_comm* control_connect(const std::string &srv_name, int srv_port) = 0;
+        virtual nfi_xpn_server_comm* connect(const std::string &srv_name, const std::string &port_name) = 0;
+        virtual void disconnect(nfi_xpn_server_comm *comm, bool needSendCode = true) = 0;
 
         static std::unique_ptr<nfi_xpn_server_control_comm> Create(const std::string& server_protocol);
     };

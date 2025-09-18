@@ -34,10 +34,11 @@ namespace XPN
     {
         std::string path;           // url in the server   
         long telldir = 0;           // telldir of directory in the server when XPN_SESSION_DIR is not set
-        DIR *dir = nullptr;         // pointer to directory in the server when XPN_SESSION_DIR set
+        int64_t dir = 0;            // pointer to directory in the server when XPN_SESSION_DIR set
         int fd = -1;                // file_descriptor in the server when XPN_SESSION_FILE set
 
         bool is_initialized() {return !path.empty();}
+        void reset() {*this = {};}
     };
 
     enum class file_type
@@ -50,23 +51,23 @@ namespace XPN
     class xpn_file
     {
     public:
-        xpn_file(std::string &path, xpn_partition &part) : m_path(path), m_part(part), m_mdata(*this) 
+        xpn_file(std::string &path, const xpn_partition &part) : m_path(path), m_part(part), m_mdata(*this) 
         {
             m_data_vfh.resize(m_part.m_data_serv.size());
         }
-        xpn_file(const xpn_file& file) : 
-            m_path(file.m_path), 
-            m_type(file.m_type),
-            m_links(file.m_links),
-            m_flags(file.m_flags),
-            m_mode(file.m_mode),
-            m_part(file.m_part), 
-            m_mdata(*this, file.m_mdata.m_data),
-            m_offset(file.m_offset),
-            m_data_vfh(file.m_data_vfh)
-        {}
+        static std::shared_ptr<xpn_file> change_part(std::shared_ptr<xpn_file>& file, const xpn_partition &new_part) {
+            auto new_file = std::make_shared<xpn_file>(file->m_path, new_part);
+            new_file->m_type = file->m_type;
+            new_file->m_links = file->m_links;
+            new_file->m_flags = file->m_flags;
+            new_file->m_mode = file->m_mode;
+            new_file->m_offset = file->m_offset;
+            return new_file;
+        }
         // Delete default constructors
         xpn_file() = delete;
+        // Delete copy constructor
+        xpn_file(const xpn_file&) = delete;
         // Delete copy assignment operator
         xpn_file& operator=(const xpn_file&) = delete;
         // Delete move constructor
@@ -87,9 +88,9 @@ namespace XPN
         int m_links = 0;                    // number of links that this file has
         int m_flags = 0;                    // O_RDONLY, O_WRONLY,....    
         mode_t m_mode = 0;                  // S_IRUSR , S_IWUSR ,....  
-        xpn_partition &m_part;              // partition
+        const xpn_partition &m_part;              // partition
         xpn_metadata m_mdata;               // metadata
-        off_t m_offset = 0;                 // offset of the open file
+        int64_t m_offset = 0;                 // offset of the open file
         std::vector<xpn_fh> m_data_vfh;     // virtual FH
 
     };

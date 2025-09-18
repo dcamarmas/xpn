@@ -36,8 +36,8 @@ namespace XPN
         void fix_ops_reads();
         void calculate_writes();
 
-        size_t num_ops();
-        size_t size();
+        uint64_t num_ops();
+        uint64_t size();
 
         std::string to_string();
         

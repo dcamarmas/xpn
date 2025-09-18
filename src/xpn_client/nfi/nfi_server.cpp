@@ -21,6 +21,7 @@
 
 #include "base_cpp/debug.hpp"
 #include "base_cpp/ns.hpp"
+#include "base_cpp/socket.hpp"
 #include "nfi_server.hpp"
 #include "xpn/xpn_api.hpp"
 #include "nfi/nfi_xpn_server/nfi_xpn_server.hpp"
@@ -31,78 +32,16 @@
 
 namespace XPN
 {
-    nfi_parser::nfi_parser(const std::string &url) : m_url(url)
-    {
-        XPN_DEBUG_BEGIN;
-        int res = 0;
-
-        std::tie(m_protocol, m_server, m_path) = parse(m_url);
-
-        if (m_protocol.empty()){
-            std::cerr << "Error cannot parse protocol of url '" << m_url << "'" << std::endl;
-            std::raise(SIGTERM);
-        }
-        if (m_server.empty()){
-            std::cerr << "Error cannot parse server of url '" << m_url << "'" << std::endl;
-            std::raise(SIGTERM);
-        }
-        if (m_path.empty()){
-            std::cerr << "Error cannot parse path of url '" << m_url << "'" << std::endl;
-            std::raise(SIGTERM);
-        }
-        XPN_DEBUG_END;
-    }
-
-    std::tuple<std::string, std::string, std::string> nfi_parser::parse(const std::string& url){
-        XPN_DEBUG_BEGIN;
-        int res = 0;
-        std::string protocol;
-        std::string server;
-        std::string path;
-        // Find the position of "://"
-        size_t protocol_pos = url.find("://");
-        if (protocol_pos == std::string::npos) {
-            std::cerr << "Invalid format of server_url: '://' not found '" << url << "'" << std::endl;
-        }else{
-            // Extract the first part (before "://")
-            protocol = url.substr(0, protocol_pos);
-
-            // Extract the second part (after "://")
-            std::string remainder = url.substr(protocol_pos + 3);
-
-            // Find the position of the first '/'
-            size_t ip_pos = remainder.find('/');
-            if (ip_pos == std::string::npos) {
-                std::cerr << "Invalid format: '/' not found after IP '" << url << "'" << std::endl;
-            }else{
-                // Extract the IP address
-                server = remainder.substr(0, ip_pos);
-                // Extract the path (after the first '/')
-                path = remainder.substr(ip_pos);
-            }
-        }
-
-        XPN_DEBUG("Parse '"<<url<<"' to protocol '"
-        << protocol <<"' server '"
-        << server << "' path '"
-        << path << "'");
-        XPN_DEBUG_END;
-        return {protocol, server, path};
-    }
-
-    std::string nfi_parser::create(const std::string& protocol, const std::string& server, const std::string& path) {
-        return protocol + "://" + server + "/" + path;
-    }
-
     std::unique_ptr<nfi_server> nfi_server::Create(const std::string &url)
     {
-        nfi_parser parser(url);
+        xpn_parser parser(url);
         if (url.find(server_protocols::file) == 0 ||
             (xpn_env::get_instance().xpn_locality == 1 && is_local_server(parser.m_server))){
                 return std::make_unique<nfi_local>(parser);
             }
         if (url.find(server_protocols::mpi_server) == 0 ||
             url.find(server_protocols::sck_server) == 0 ||
+            url.find(server_protocols::mqtt_server)  == 0 ||
             url.find(server_protocols::fabric_server) == 0 ){
                 return std::make_unique<nfi_xpn_server>(parser);
             }
@@ -111,10 +50,18 @@ namespace XPN
         return nullptr;
     }
 
-    nfi_server::nfi_server(const nfi_parser &parser) : m_url(parser.m_url)
+    nfi_server::nfi_server(const xpn_parser &parser) : m_url(parser.m_url)
     {
         m_protocol = parser.m_protocol;
         m_server = parser.m_server;
+        if (parser.m_server_port.empty()) {
+            m_server_port = DEFAULT_XPN_SERVER_CONTROL_PORT;
+        }else{
+            m_server_port = atoi(std::string(parser.m_server_port).c_str());
+            if (m_server_port == 0){
+                m_server_port = DEFAULT_XPN_SERVER_CONTROL_PORT;
+            }
+        }
         m_path = parser.m_path;
     }
 
@@ -124,9 +71,10 @@ namespace XPN
         int res = 0;
         // Init the comunication
         m_control_comm = nfi_xpn_server_control_comm::Create(m_protocol);
+        m_control_comm_connectionless = nfi_xpn_server_control_comm::Create(server_protocols::sck_server);
 
         // Connect to the server
-        m_comm = m_control_comm->connect(m_server);
+        m_comm = m_control_comm->control_connect(m_server, m_server_port);
         if(m_comm){
             XPN_DEBUG("Connected successfull to "<<m_server);
         }
@@ -136,9 +84,41 @@ namespace XPN
             res = -1;
         }
 
-        if (!xpn_env::get_instance().xpn_session_connect){
+        if (!xpn_env::get_instance().xpn_connect){
             m_control_comm->disconnect(m_comm);
             m_comm = nullptr;
+
+            int connection_socket = 0;
+            char port_name[MAX_PORT_NAME] = {};
+            int ret = socket::client_connect(m_server, m_server_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+            if (ret < 0) {
+                debug_error("[NFI_SERVER] [init_comm] ERROR: socket connect\n");
+                return -1;
+            }
+            int buffer = socket::xpn_server::CONNECTIONLESS_PORT_CODE;
+            ret = socket::send(connection_socket, &buffer, sizeof(buffer));
+            if (ret < 0)
+            {
+                debug_error("[NFI_SERVER] [init_comm] ERROR: socket send\n");
+                socket::close(connection_socket);
+                return -1;
+            }
+            ret = socket::recv(connection_socket, port_name, MAX_PORT_NAME);
+            if (ret < 0)
+            {
+                debug_error("[NFI_SERVER] [init_comm] ERROR: socket read\n");
+                socket::close(connection_socket);
+                return -1;
+            }
+            socket::close(connection_socket);
+
+            m_connectionless_port = port_name;
+            debug_info("[NFI_SERVER] [init_comm] connection less port "<<m_connectionless_port);
+
+            if (m_connectionless_port.empty()) {
+                print("Error: to use without XPN_SESSION_CONNECT xpn_server needs to be build with SCK_SERVER support")
+                std::raise(SIGTERM);
+            }
         }
 
         XPN_DEBUG_END;
@@ -159,9 +139,10 @@ namespace XPN
         return res;
     }
 
-    bool nfi_server::is_local_server(const std::string &server)
+    bool nfi_server::is_local_server(const std::string_view &server)
     {
         return (server == ns::get_host_name() ||
-                server == ns::get_host_ip());
+                server == ns::get_host_ip() ||
+                server == "localhost");
     }
 } // namespace XPN

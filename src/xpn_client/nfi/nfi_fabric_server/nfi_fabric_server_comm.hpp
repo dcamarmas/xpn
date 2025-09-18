@@ -32,9 +32,11 @@ namespace XPN
   class nfi_fabric_server_comm : public nfi_xpn_server_comm
   {
   public:
-    nfi_fabric_server_comm(int& comm) : m_comm(comm) {}
+    nfi_fabric_server_comm(int& comm) : m_comm(comm) {
+      m_type = server_type::FABRIC;
+    }
 
-    int64_t write_operation(xpn_server_ops op) override;
+    int64_t write_operation(xpn_server_msg& msg) override;
     int64_t read_data(void *data, int64_t size) override;
     int64_t write_data(const void *data, int64_t size) override;
   public:
@@ -47,8 +49,9 @@ namespace XPN
     nfi_fabric_server_control_comm() = default;
     ~nfi_fabric_server_control_comm() = default;
     
-    nfi_xpn_server_comm* connect(const std::string &srv_name) override;
-    void disconnect(nfi_xpn_server_comm* comm) override;
+    nfi_xpn_server_comm* control_connect(const std::string &srv_name, int srv_port) override;
+    nfi_xpn_server_comm* connect(const std::string &srv_name, const std::string &port_name) override;
+    void disconnect(nfi_xpn_server_comm* comm, bool needSendCode = true) override;
 
   private:
   };

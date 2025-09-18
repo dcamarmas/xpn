@@ -22,14 +22,16 @@
 #pragma once
 
 #include <unistd.h>
-#include <base_cpp/proxy.hpp>
+
 #include <base_cpp/debug.hpp>
+#include <base_cpp/proxy.hpp>
 
 namespace XPN {
 
 class filesystem {
    public:
-    static ssize_t write(int fd, const void* data, size_t len) {
+    static int64_t write(int fd, const void* data, uint64_t len) {
+        int64_t ret = 0;
         int r;
         int l = len;
         const char* buffer = static_cast<const char*>(data);
@@ -37,17 +39,49 @@ class filesystem {
 
         do {
             r = PROXY(write)(fd, buffer, l);
-            if (r < 0) return r; /* fail */
+            if (r <= 0) { /* fail */
+                if (ret == 0) ret = r;
+                break;
+            }
 
             l = l - r;
             buffer = buffer + r;
+            ret = ret + r;
 
         } while ((l > 0) && (r >= 0));
 
-        debug_info(">> End = " << len);
-        return len;
+        debug_info(">> End = " << ret);
+        return ret;
     }
-    static ssize_t read(int fd, void* data, size_t len) {
+
+    static int64_t pwrite(int fd, const void* data, uint64_t len, int64_t offset) {
+        int64_t ret = 0;
+        int r;
+        int l = len;
+        int64_t off = offset;
+        const char* buffer = static_cast<const char*>(data);
+        debug_info(">> Begin pwrite(" << fd << ", " << len << ", " << offset << ")");
+
+        do {
+            r = PROXY(pwrite)(fd, buffer, l, off);
+            if (r <= 0) { /* fail */
+                if (ret == 0) ret = r;
+                break;
+            }
+
+            l = l - r;
+            buffer = buffer + r;
+            off = off + r;
+            ret = ret + r;
+
+        } while ((l > 0) && (r >= 0));
+
+        debug_info(">> End pwrite(" << fd << ", " << len << ", " << offset << ") = " << ret);
+        return ret;
+    }
+
+    static int64_t read(int fd, void* data, uint64_t len) {
+        int64_t ret = 0;
         int r;
         int l = len;
         debug_info(">> Begin");
@@ -55,15 +89,45 @@ class filesystem {
 
         do {
             r = PROXY(read)(fd, buffer, l);
-            if (r < 0) return r; /* fail */
+            if (r <= 0) { /* fail */
+                if (ret == 0) ret = r;
+                break;
+            }
 
             l = l - r;
             buffer = buffer + r;
+            ret = ret + r;
 
         } while ((l > 0) && (r >= 0));
 
-        debug_info(">> End = " << len);
-        return len;
+        debug_info(">> End = " << ret);
+        return ret;
+    }
+
+    static int64_t pread(int fd, void* data, uint64_t len, int64_t offset) {
+        int64_t ret = 0;
+        int r;
+        int l = len;
+        int64_t off = offset;
+        debug_info(">> Begin pread(" << fd << ", " << len << ", " << offset << ")");
+        char* buffer = static_cast<char*>(data);
+
+        do {
+            r = PROXY(pread)(fd, buffer, l, off);
+            if (r <= 0) { /* fail */
+                if (ret == 0) ret = r;
+                break;
+            }
+
+            l = l - r;
+            buffer = buffer + r;
+            off = off + r;
+            ret = ret + r;
+
+        } while ((l > 0) && (r >= 0));
+
+        debug_info(">> End  pread(" << fd << ", " << len << ", " << offset << ")= " << ret);
+        return ret;
     }
 };
 }  // namespace XPN

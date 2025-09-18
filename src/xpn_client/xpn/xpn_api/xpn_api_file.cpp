@@ -47,14 +47,14 @@ namespace XPN
 
     int xpn_api::open(const char *path, int flags, mode_t mode)
     {
-        XPN_DEBUG_BEGIN_CUSTOM(path<<", "<<flags<<", "<<mode);
+        XPN_DEBUG_BEGIN_CUSTOM(path<<", "<<format_open_flags(flags)<<", "<<format_open_mode(mode));
         int res = 0;
 
         std::string file_path;
         auto part_name = check_remove_part_from_path(path, file_path);
         if (part_name.empty()){
             errno = ENOENT;
-            XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
+            XPN_DEBUG_END_CUSTOM(path<<", "<<format_open_flags(flags)<<", "<<format_open_mode(mode));
             return -1;
         }
 
@@ -64,7 +64,7 @@ namespace XPN
         {
             res = read_metadata(file->m_mdata);
             if (res < 0 && O_CREAT != (flags & O_CREAT)){
-                XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
+                XPN_DEBUG_END_CUSTOM(path<<", "<<format_open_flags(flags)<<", "<<format_open_mode(mode));
                 return -1;
             }
 
@@ -76,7 +76,7 @@ namespace XPN
         if ((O_CREAT == (flags & O_CREAT))){
 
             std::vector<std::future<int>> v_res(file->m_part.m_data_serv.size());
-            for (size_t i = 0; i < file->m_part.m_data_serv.size(); i++)
+            for (uint64_t i = 0; i < file->m_part.m_data_serv.size(); i++)
             {
                 auto& serv = file->m_part.m_data_serv[i];
                 if (file->exist_in_serv(i)){
@@ -94,7 +94,7 @@ namespace XPN
                 if (aux_res < 0)
                 {
                     res = aux_res;
-                    XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
+                    XPN_DEBUG_END_CUSTOM(path<<", "<<format_open_flags(flags)<<", "<<format_open_mode(mode));
                     return res;
                 }
             }
@@ -116,6 +116,10 @@ namespace XPN
                 });
             }
             res = fut.get();
+            if (res < 0) {
+                XPN_DEBUG_END_CUSTOM(path<<", "<<format_open_flags(flags)<<", "<<format_open_mode(mode));
+                return res;
+            }
         }
 
         
@@ -128,7 +132,7 @@ namespace XPN
         file->m_mode = mode;
         res = m_file_table.insert(file);
 
-        XPN_DEBUG_END_CUSTOM(path<<", "<<flags<<", "<<mode);
+        XPN_DEBUG_END_CUSTOM(path<<", "<<format_open_flags(flags)<<", "<<format_open_mode(mode));
         return res;
     }
 
@@ -155,7 +159,7 @@ namespace XPN
         }
 
         std::vector<std::future<int>> v_res(file->m_data_vfh.size());
-        for (size_t i = 0; i < file->m_data_vfh.size(); i++)
+        for (uint64_t i = 0; i < file->m_data_vfh.size(); i++)
         {
             if (file->m_data_vfh[i].fd != -1)
             {
@@ -204,7 +208,7 @@ namespace XPN
         }
 
         std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
-        for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+        for (uint64_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             if (file.exist_in_serv(i)){
                 v_res[i] = m_worker->launch([i, &v_res, &file](){
@@ -265,7 +269,7 @@ namespace XPN
         }
 
         std::vector<std::future<int>> v_res(file.m_part.m_data_serv.size());
-        for (size_t i = 0; i < file.m_part.m_data_serv.size(); i++)
+        for (uint64_t i = 0; i < file.m_part.m_data_serv.size(); i++)
         {
             if (file.exist_in_serv(i)){
                 if (!new_file.exist_in_serv(i)){
