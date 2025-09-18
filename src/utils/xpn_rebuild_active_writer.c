@@ -1,6 +1,6 @@
 
 /*
- *  Copyright 2020-2024 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
+ *  Copyright 2020-2025 Felix Garcia Carballeira, Diego Camarmas Alonso, Alejandro Calderon Mateos, Dario Muñoz Muñoz
  *
  *  This file is part of Expand.
  *
@@ -19,45 +19,55 @@
  *
  */
 
-/* ... Include / Inclusion ........................................... */
 
-#include <dirent.h>
-#include <fcntl.h>
-#include <linux/limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+  /* ... Include / Inclusion ........................................... */
 
-#include "mpi.h"
-#include "base/ns.h"
-#include "xpn/xpn_simple/xpn_policy_rw.h"
+     #include <dirent.h>
+     #include <fcntl.h>
+     #include <linux/limits.h>
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <string.h>
+     #include <sys/stat.h>
+     #include <sys/types.h>
+     #include <unistd.h>
 
-/* ... Const / Const ................................................. */
+     #if defined(HAVE_MPI_H)
+     #include "mpi.h"
+     #endif
 
-#ifndef _LARGEFILE_SOURCE
-#define _LARGEFILE_SOURCE
-#endif
+     #include "ns.h"
+     #include "xpn/xpn_simple/xpn_policy_rw.h"
 
-#ifndef _FILE_OFFSET_BITS
-#define _FILE_OFFSET_BITS 64
-#endif
 
-#define HEADER_SIZE   8192
-#define TAG_OFFSET    10
-#define TAG_READ_SIZE 20
-#define TAG_BUF       30
+  /* ... Const / Const ................................................. */
 
-int *rank_actual_to_new = NULL;
-int *rank_actual_to_old = NULL;
-int *rank_new_to_actual = NULL;
-int *rank_old_to_actual = NULL;
-int old_size, new_size;
+     #ifndef _LARGEFILE_SOURCE
+     #define _LARGEFILE_SOURCE
+     #endif
 
-/* ... Functions / Funciones ......................................... */
+     #ifndef _FILE_OFFSET_BITS
+     #define _FILE_OFFSET_BITS 64
+     #endif
 
+     #define HEADER_SIZE   8192
+     #define TAG_OFFSET    10
+     #define TAG_READ_SIZE 20
+     #define TAG_BUF       30
+
+
+  /* ... Global variables / Variables globales ......................... */
+
+     int *rank_actual_to_new = NULL;
+     int *rank_actual_to_old = NULL;
+     int *rank_new_to_actual = NULL;
+     int *rank_old_to_actual = NULL;
+     int old_size, new_size;
+
+
+  /* ... Functions / Funciones ......................................... */
+
+#if defined(HAVE_MPI_H)
 int copy(char *entry, int is_file, int blocksize, int replication_level, int rank, int size) {
     struct stat st;
     int res;
@@ -380,10 +390,9 @@ int list(char *dir_name, int blocksize, int replication_level, int rank, int siz
 
 void calculate_ranks_sizes(char *path_old_hosts, char *path_new_hosts, int *old_rank, int *new_rank) {
     // Get ip and hostname
-    char *hostip = ns_get_host_ip();
+    char hostip[HOST_NAME_MAX];
+    ns_get_host_ip(hostip, HOST_NAME_MAX);
     char hostname[HOST_NAME_MAX];
-    char line[HOST_NAME_MAX];
-    int rank = 0;
     ns_get_hostname(hostname);
     int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -402,6 +411,8 @@ void calculate_ranks_sizes(char *path_old_hosts, char *path_new_hosts, int *old_
     }
 
     // Read line by line to get the new and old rank
+    char line[HOST_NAME_MAX];
+    int rank = 0;
     *old_rank = -1;
     while (fscanf(file_old, "%s", line) == 1) {
         if (strstr(line, hostip) != NULL || strstr(line, hostname) != NULL) {
@@ -427,23 +438,27 @@ cleanup_calculate_ranks_sizes:
         fclose(file_new);
     }
 }
+#endif
 
+
+#if defined(HAVE_MPI_H)
 // TODO: think if MPI_Abort is the desired error handler
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     int rank, size, old_rank, new_rank;
     int replication_level = 0;
     int blocksize = 524288;
     double start_time;
     int res = 0;
+
     //
     // Check arguments...
     //
-    if (argc < 4) {
+    if (argc < 4)
+    {
         printf("Usage:\n");
-        printf(
-            " ./%s <xpn local path> <path to old hostfile> <path to new hostfile> <optional destination block size> "
-            "<optional replication level>\n",
-            argv[0]);
+        printf(" ./%s <xpn local path> <path to old hostfile> <path to new hostfile> <optional destination block size> "
+               "<optional replication level>\n", argv[0]);
         printf("\n");
         return -1;
     }
@@ -547,5 +562,14 @@ int main(int argc, char *argv[]) {
     MPI_Finalize();
     return res;
 }
+#else
+  int main ( int argc, char *argv[] )
+  {
+      printf("ERROR: this utility must to be compiled with MPI support\n") ;
+      return -1 ;
+  }
+#endif
+
 
 /* ................................................................... */
+

@@ -42,7 +42,10 @@ namespace XPN
                 m_local_serv = index;
             }
 
-            res = server->init_comm();
+            debug_info("server->m_protocol "<<server->m_protocol);
+            if (server->m_protocol != "file") {
+                res = server->init_comm();
+            }
 
             XPN_DEBUG_END;
             return res;

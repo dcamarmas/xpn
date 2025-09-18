@@ -57,6 +57,8 @@
   // xpn_init.c
   int         xpn_init    ( void );
   int         xpn_destroy ( void );
+  void        xpn_print_partitions ( void );
+  void        xpn_clean_connections ( void );
   // to test fault tolerant
   int         xpn_mark_error_server(int index);
 

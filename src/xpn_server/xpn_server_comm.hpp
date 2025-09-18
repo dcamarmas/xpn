@@ -33,7 +33,7 @@ namespace XPN
     xpn_server_comm() = default;
     virtual ~xpn_server_comm() = default;
     
-    virtual int64_t read_operation(xpn_server_ops &op, int &rank_client_id, int &tag_client_id) = 0;
+    virtual int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) = 0;
     virtual int64_t read_data(void *data, int64_t size, int rank_client_id, int tag_client_id) = 0;
     virtual int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) = 0;
   };
@@ -44,11 +44,18 @@ namespace XPN
     xpn_server_control_comm() = default;
     virtual ~xpn_server_control_comm() = default;
 
-    virtual xpn_server_comm* accept(int socket) = 0;
+    virtual xpn_server_comm* accept(int socket, bool sendData = true) = 0;
     virtual void disconnect(xpn_server_comm *comm) = 0;
+
+    // Multiplexing
+    virtual xpn_server_comm* create(int rank_client_id) = 0;
+    virtual int rearm(int rank_client_id) = 0;
+    virtual void disconnect(int rank_client_id) = 0;
+    virtual int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) = 0;
 
     static std::unique_ptr<xpn_server_control_comm> Create(xpn_server_params &params);
   public:
     std::string m_port_name = std::string(MAX_PORT_NAME, '\0');
+    server_type m_type;
   };
 }

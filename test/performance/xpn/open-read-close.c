@@ -4,6 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define KB  (1024)
 #define BUFF_SIZE (1024*1024)
@@ -51,7 +52,7 @@ int main ( int argc, char *argv[] )
 
 	fd1 = xpn_open(argv[1], O_RDWR);
 	if (fd1 < 0) {
-	    printf("%d = xpn_open('%s', %o)\n", ret, argv[1], 00777) ;
+	    printf("Error: xpn_open('%s', %o) = %d %s\n", argv[1], 00777, fd1, strerror(errno));
 	    return -1 ;
 	}
 

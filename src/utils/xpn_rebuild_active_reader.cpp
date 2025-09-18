@@ -70,12 +70,12 @@ int copy(char *entry, int is_file, int blocksize, int replication_level, int ran
     int master_old = 0;
     char dest_path[PATH_MAX];
     int fd_dest = -1, fd_src = -1;
-    ssize_t read_size, write_size;
+    int64_t read_size, write_size;
     off_t offset_src, offset_dest, offset_real;
     int replication, rank_to_send;
     char *buf = NULL;
     int buf_len;
-    ssize_t *read_sizes = NULL;
+    int64_t *read_sizes = NULL;
     MPI_Comm old_comm;
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -148,7 +148,7 @@ int copy(char *entry, int is_file, int blocksize, int replication_level, int ran
             perror("malloc buf");
             MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
         }
-        read_sizes = (ssize_t *)malloc(size * sizeof(ssize_t));
+        read_sizes = (int64_t *)malloc(size * sizeof(int64_t));
         if (NULL == read_sizes) {
             perror("malloc read_sizes");
             MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);

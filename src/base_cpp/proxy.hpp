@@ -24,7 +24,6 @@
 #include <dlfcn.h>
 #include <string>
 #include <stdexcept>
-#include <base_cpp/debug.hpp>
 
 #define PROXY(func) \
     ::lookupSymbol<::func>(#func)

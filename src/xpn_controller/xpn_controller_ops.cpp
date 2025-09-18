@@ -28,8 +28,9 @@
 
 #include "base_cpp/args.hpp"
 #include "base_cpp/subprocess.hpp"
+#include "base_cpp/workers.hpp"
+#include "base_cpp/xpn_conf.hpp"
 #include "nfi/nfi_server.hpp"
-#include "xpn/xpn_conf.hpp"
 #include "xpn_controller.hpp"
 
 namespace XPN {
@@ -38,7 +39,7 @@ std::string xpn_controller::usage() {
     std::stringstream out;
     out << "xpn_controller [OPTION]... [ACTION]" << std::endl;
     out << "Actions: " << std::endl;
-    size_t max_str = 0;
+    uint64_t max_str = 0;
     for (auto& [key, _] : actions_str) {
         if (max_str < key.size()) {
             max_str = key.size();
@@ -70,19 +71,26 @@ int xpn_controller::run() {
     }
 
     int server_cores = ::atoi(std::string(m_args.get_option(option_server_cores)).c_str());
-    ret = start_servers(m_args.has_option(option_await), server_cores);
+    ret = start_servers(m_args.has_option(option_await), server_cores, m_args.has_option(option_debug));
     if (ret < 0) {
         std::cerr << "Error in start_servers" << std::endl;
         socket::close(server_socket);
         return ret;
     }
 
+    start_profiler();
+
     int connection_socket = -1;
     int op_code = 0;
     bool running = true;
+    std::mutex command_code_mutex;
+    std::mutex action_code_mutex;
+    std::mutex profiler_code_mutex;
+    std::unique_ptr<workers> worker = workers::Create(workers_mode::thread_on_demand, false);
+
     while (running) {
         connection_socket = -1;
-        debug_info("[XPN_CONTROLLER] Accepting connections");
+        debug_info("[XPN_CONTROLLER] Accepting connections in " << xpn_env::get_instance().xpn_controller_sck_port);
         ret = socket::server_accept(server_socket, connection_socket);
         if (ret < 0 || connection_socket < 0) {
             print_error("accept failed");
@@ -100,24 +108,40 @@ int xpn_controller::run() {
 
         switch (op_code) {
             case socket::xpn_controller::COMMAND_CODE:
-                ret = recv_command(connection_socket);
+                worker->launch_no_future([&, connection_socket]() {
+                    std::unique_lock lock(command_code_mutex);
+                    ret = recv_command(connection_socket);
+                    socket::close(connection_socket);
+                });
                 break;
 
             case socket::xpn_controller::ACTION_CODE:
-                action act;
-                ret = recv_action(connection_socket, act);
-                if (act == action::STOP) {
-                    running = false;
-                }
+                worker->launch_no_future([&, connection_socket]() {
+                    std::unique_lock lock(action_code_mutex);
+                    action act;
+                    ret = recv_action(connection_socket, act);
+                    if (act == action::STOP) {
+                        running = false;
+                    }
+                    socket::close(connection_socket);
+                    socket::close(server_socket);
+                });
+                break;
+            case socket::xpn_controller::PROFILER_CODE:
+                worker->launch_no_future([&, connection_socket]() {
+                    std::unique_lock lock(profiler_code_mutex);
+                    ret = recv_profiler(connection_socket);
+                    socket::close(connection_socket);
+                });
                 break;
 
             default:
                 print_error("Recv unknown op_code '" << op_code << "'");
                 break;
         }
-
-        socket::close(connection_socket);
     }
+    worker->wait_all();
+    socket::close(server_socket);
     debug_info("[XPN_CONTROLLER] >> End");
     return 0;
 }
@@ -184,7 +208,7 @@ int xpn_controller::mk_config(const std::string_view& hostfile, const char* conf
             storage_path.empty() ? XPN_CONF::DEFAULT_STORAGE_PATH : std::string(storage_path);
         while (std::getline(file, line)) {
             if (!line.empty()) {
-                line = nfi_parser::create(server_type_str + "_server", line, storage_path_str);
+                line = xpn_parser::create(server_type_str + "_server", line, storage_path_str);
                 part.server_urls.emplace_back(line);
             }
             line.clear();
@@ -218,12 +242,12 @@ int xpn_controller::update_config(const std::vector<std::string_view>& new_hostl
     xpn_conf::partition part = conf.partitions[0];
 
     std::string protocol, path;
-    std::tie(protocol, std::ignore, path) = nfi_parser::parse(conf.partitions[0].server_urls[0]);
+    std::tie(protocol, std::ignore, std::ignore, path) = xpn_parser::parse(conf.partitions[0].server_urls[0]);
 
     part.server_urls.clear();
     part.server_urls.reserve(new_hostlist.size());
     for (auto& srv : new_hostlist) {
-        part.server_urls.emplace_back(nfi_parser::create(protocol, std::string(srv), path));
+        part.server_urls.emplace_back(xpn_parser::create(protocol, std::string(srv), path));
     }
 
     {
@@ -239,7 +263,7 @@ int xpn_controller::update_config(const std::vector<std::string_view>& new_hostl
     return 0;
 }
 
-int xpn_controller::start_servers(bool await, int server_cores) {
+int xpn_controller::start_servers(bool await, int server_cores, bool debug) {
     int ret = 0;
     std::vector<std::string> servers;
 
@@ -285,7 +309,7 @@ int xpn_controller::start_servers(bool await, int server_cores) {
         args.emplace_back("--export=ALL");
         args.emplace_back("--mpi=none");
         std::stringstream servers_list;
-        for (size_t i = 0; i < servers.size(); i++) {
+        for (uint64_t i = 0; i < servers.size(); i++) {
             servers_list << servers[0];
             if (i != (servers.size() - 1)) {
                 servers_list << ",";
@@ -294,11 +318,20 @@ int xpn_controller::start_servers(bool await, int server_cores) {
         }
         args.emplace_back("-w");
         args.emplace_back(servers_list.str());
+        if (debug) {
+            args.emplace_back("gdb");
+            args.emplace_back("-batch");
+            args.emplace_back("-ex");
+            args.emplace_back("run");
+            args.emplace_back("-ex");
+            args.emplace_back("bt");
+            args.emplace_back("--args");
+        }
         args.emplace_back("xpn_server");
         args.emplace_back("-s");
         std::string protocol;
-        std::tie(protocol, std::ignore, std::ignore) = nfi_parser::parse(conf.partitions[0].server_urls[0]);
-        size_t pos = protocol.find('_');
+        std::tie(protocol, std::ignore, std::ignore, std::ignore) = xpn_parser::parse(conf.partitions[0].server_urls[0]);
+        uint64_t pos = protocol.find('_');
         args.emplace_back(protocol.substr(0, pos));
         args.emplace_back("-t");
         args.emplace_back("pool");
@@ -352,7 +385,8 @@ int xpn_controller::stop_servers(bool await) {
             if (await) {
                 buffer = socket::xpn_server::FINISH_CODE_AWAIT;
             }
-            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, socket);
+            // TODO: rethink with different ports
+            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, socket);
             if (ret < 0) {
                 print("[XPN_CONTROLLER] ERROR: socket connection " << name);
                 return ret;
@@ -409,8 +443,8 @@ int xpn_controller::ping_servers() {
             int socket;
             int ret = -1;
             int buffer = socket::xpn_server::PING_CODE;
-
-            ret = socket::client_connect(name, xpn_env::get_instance().xpn_sck_port, 5000, socket);
+            // TODO: rethink with different ports
+            ret = socket::client_connect(name, DEFAULT_XPN_SERVER_CONTROL_PORT, 5000, socket);
             if (ret < 0) {
                 print("[XPN_CONTROLLER] ERROR: socket connection " << name);
                 return ret;
@@ -472,7 +506,7 @@ int xpn_controller::expand(const std::vector<std::string_view>& new_hostlist) {
 #endif
             args.emplace_back("--export=ALL");
             std::stringstream servers_list;
-            for (size_t i = 0; i < new_hostlist.size(); i++) {
+            for (uint64_t i = 0; i < new_hostlist.size(); i++) {
                 servers_list << new_hostlist[i];
                 if (i != (new_hostlist.size() - 1)) {
                     servers_list << ",";
@@ -484,7 +518,7 @@ int xpn_controller::expand(const std::vector<std::string_view>& new_hostlist) {
             // Path of the servers
             // TODO: current restriction to have all the path the same
             std::string path;
-            std::tie(std::ignore, std::ignore, path) = nfi_parser::parse(old_hosts[0]);
+            std::tie(std::ignore, std::ignore, std::ignore, path) = xpn_parser::parse(old_hosts[0]);
             args.emplace_back(path);
             // Last size
             args.emplace_back(std::to_string(old_hosts.size()));
@@ -517,7 +551,7 @@ int xpn_controller::expand(const std::vector<std::string_view>& new_hostlist) {
         return ret;
     }
 
-    ret = start_servers(true, m_server_cores);
+    ret = start_servers(true, m_server_cores, false);
     if (ret < 0) {
         std::cerr << "Error: cannot start the servers" << std::endl;
         return ret;
@@ -563,7 +597,7 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
 #endif
             args.emplace_back("--export=ALL");
             std::stringstream servers_list;
-            for (size_t i = 0; i < old_hostlist.size(); i++) {
+            for (uint64_t i = 0; i < old_hostlist.size(); i++) {
                 servers_list << old_hostlist[i];
                 if (i != (old_hostlist.size() - 1)) {
                     servers_list << ",";
@@ -575,11 +609,11 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
             // Path of the servers
             // TODO: current restriction to have all the path the same
             std::string path;
-            std::tie(std::ignore, std::ignore, path) = nfi_parser::parse(old_hosts[0]);
+            std::tie(std::ignore, std::ignore, std::ignore, path) = xpn_parser::parse(old_hosts[0]);
             args.emplace_back(path);
             // The new list of servers
             std::stringstream new_servers_list;
-            for (size_t i = 0; i < new_hostlist.size(); i++) {
+            for (uint64_t i = 0; i < new_hostlist.size(); i++) {
                 new_servers_list << new_hostlist[i];
                 if (i != (new_hostlist.size() - 1)) {
                     new_servers_list << ",";
@@ -615,7 +649,7 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
         return ret;
     }
 
-    ret = start_servers(true, m_server_cores);
+    ret = start_servers(true, m_server_cores, false);
     if (ret < 0) {
         std::cerr << "Error: cannot start the servers" << std::endl;
         return ret;
@@ -629,6 +663,32 @@ int xpn_controller::shrink(const std::vector<std::string_view>& new_hostlist) {
     }
 
     debug_info("[XPN_CONTROLLER] >> End");
+    return 0;
+}
+
+int xpn_controller::start_profiler() {
+    auto profiler_file = xpn_env::get_instance().xpn_profiler_file;
+    if (profiler_file) {
+        std::ofstream file(profiler_file);
+        if (file.is_open()) {
+            file << profiler::get_header();
+        } else {
+            print_error("Error opening file " << profiler_file);
+        }
+    }
+    return 0;
+}
+
+int xpn_controller::end_profiler() {
+    auto profiler_file = xpn_env::get_instance().xpn_profiler_file;
+    if (profiler_file) {
+        std::ofstream file(profiler_file, std::ios::app);
+        if (file.is_open()) {
+            file << profiler::get_footer();
+        } else {
+            print_error("Error opening file " << profiler_file);
+        }
+    }
     return 0;
 }
 }  // namespace XPN

@@ -32,6 +32,7 @@ namespace XPN
 {
 
 nfi_mpi_server_control_comm::nfi_mpi_server_control_comm() {
+    XPN_PROFILE_FUNCTION();
     int ret, provided, claimed;
     int flag = 0;
     int xpn_thread = xpn_env::get_instance().xpn_thread;
@@ -88,6 +89,7 @@ nfi_mpi_server_control_comm::nfi_mpi_server_control_comm() {
 }
 
 nfi_mpi_server_control_comm::~nfi_mpi_server_control_comm() {
+    XPN_PROFILE_FUNCTION();
     int ret;
 
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_destroy] >> Begin");
@@ -113,12 +115,12 @@ nfi_mpi_server_control_comm::~nfi_mpi_server_control_comm() {
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_destroy] << End");
 }
 
-nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv_name) {
+nfi_xpn_server_comm* nfi_mpi_server_control_comm::control_connect(const std::string &srv_name, int srv_port) {
+    XPN_PROFILE_FUNCTION();
     int ret, err;
     int connection_socket;
     int buffer = socket::xpn_server::ACCEPT_CODE;
     char port_name[MAX_PORT_NAME];
-    MPI_Comm out_comm;
 
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] >> Begin");
 
@@ -133,7 +135,7 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     // Send connect intention
     if (m_rank == 0) {
         err = 0;
-        ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+        ret = socket::client_connect(srv_name, srv_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
         if (ret < 0) {
             debug_error("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] ERROR: socket connect");
             err = -1;
@@ -166,8 +168,13 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     MPI_Bcast(port_name, MAX_PORT_NAME, MPI_CHAR, 0, MPI_COMM_WORLD);
 
     // Connect...
-    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] Connect port "<<port_name);
+    return connect(srv_name, port_name);
+}
 
+nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect([[maybe_unused]] const std::string &srv_name, const std::string &port_name) {
+    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_connect] Connect port "<<port_name);
+    int ret;
+    MPI_Comm out_comm;
     int connect_retries = 0;
     int errclass, resultlen;
     char err_buffer[MPI_MAX_ERROR_STRING];
@@ -175,7 +182,7 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     MPI_Info_create(&info);
     MPI_Info_set(info, "timeout", "1");
     do {
-        ret = MPI_Comm_connect(port_name, MPI_INFO_NULL, 0, MPI_COMM_WORLD, &out_comm);
+        ret = MPI_Comm_connect(port_name.c_str(), MPI_INFO_NULL, 0, MPI_COMM_WORLD, &out_comm);
 
         MPI_Error_class(ret, &errclass);
         MPI_Error_string(ret, err_buffer, &resultlen);
@@ -203,7 +210,8 @@ nfi_xpn_server_comm* nfi_mpi_server_control_comm::connect(const std::string &srv
     return new (std::nothrow) nfi_mpi_server_comm(out_comm, m_rank, m_size);
 }
 
-void nfi_mpi_server_control_comm::disconnect(nfi_xpn_server_comm *comm) {
+void nfi_mpi_server_control_comm::disconnect(nfi_xpn_server_comm *comm, bool needSendCode) {
+    XPN_PROFILE_FUNCTION();
     int ret;
 
     nfi_mpi_server_comm *in_comm = static_cast<nfi_mpi_server_comm*>(comm);
@@ -211,9 +219,12 @@ void nfi_mpi_server_control_comm::disconnect(nfi_xpn_server_comm *comm) {
 
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &(rank));
-    if (rank == 0) {
-        debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_disconnect] Send disconnect message");
-        ret = in_comm->write_operation(xpn_server_ops::DISCONNECT);
+    if (rank == 0 && needSendCode) {
+        debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_disconnect] Send disconnect message");  
+        xpn_server_msg msg = {};
+        msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
+        msg.msg_size = 0;
+        ret = in_comm->write_operation(msg);
         if (ret < 0) {
             printf("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_disconnect] ERROR: nfi_mpi_server_comm_write_operation fails");
         }
@@ -234,22 +245,21 @@ void nfi_mpi_server_control_comm::disconnect(nfi_xpn_server_comm *comm) {
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_disconnect] << End");
 }
 
-int64_t nfi_mpi_server_comm::write_operation(xpn_server_ops op) {
+int64_t nfi_mpi_server_comm::write_operation(xpn_server_msg& msg) {
+    XPN_PROFILE_FUNCTION_ARGS(xpn_server_ops_name(static_cast<xpn_server_ops>(msg.op)));
     int ret;
-    int msg[2];
     int eclass, len;
     char estring[MPI_MAX_ERROR_STRING];
 
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_operation] >> Begin");
 
     // Message generation
-    msg[0] = (int)(pthread_self() % 32450) + 1;
-    msg[1] = static_cast<int>(op);
+    msg.tag = (int)(pthread_self() % 32450) + 1;
 
     // Send message
-    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_operation] Write operation send tag "<< msg[0]);
+    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_operation] Write operation send tag "<< msg.tag);
 
-    ret = MPI_Send(msg, 2, MPI_INT, 0, 0, m_comm);
+    ret = MPI_Send(&msg, msg.get_size(), MPI_BYTE, 0, 0, m_comm);
     if (MPI_SUCCESS != ret) {
         debug_error("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_operation] ERROR: MPI_Send < 0 : "<< ret);
         MPI_Error_class(ret, &eclass);
@@ -266,6 +276,7 @@ int64_t nfi_mpi_server_comm::write_operation(xpn_server_ops op) {
 }
 
 int64_t nfi_mpi_server_comm::write_data(const void *data, int64_t size) {
+    XPN_PROFILE_FUNCTION_ARGS(size);
     int ret;
 
     debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_data] >> Begin");
@@ -282,7 +293,7 @@ int64_t nfi_mpi_server_comm::write_data(const void *data, int64_t size) {
     int tag = (int)(pthread_self() % 32450) + 1;
 
     // Send message
-    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_data] Write data tag "<< tag);
+    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_write_data] Write data ("<<size<<", "<<tag<<")");
 
     ret = MPI_Send(data, size, MPI_CHAR, 0, tag, m_comm);
     if (MPI_SUCCESS != ret) {
@@ -296,7 +307,8 @@ int64_t nfi_mpi_server_comm::write_data(const void *data, int64_t size) {
     return size;
 }
 
-int64_t nfi_mpi_server_comm::read_data(void *data, ssize_t size) {
+int64_t nfi_mpi_server_comm::read_data(void *data, int64_t size) {
+    XPN_PROFILE_FUNCTION_ARGS(size);
     int ret;
     MPI_Status status;
 
@@ -314,7 +326,7 @@ int64_t nfi_mpi_server_comm::read_data(void *data, ssize_t size) {
     int tag = (int)(pthread_self() % 32450) + 1;
 
     // Get message
-    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_read_data] Read data tag "<< tag);
+    debug_info("[NFI_MPI_SERVER_COMM] [nfi_mpi_server_comm_read_data] Read data ("<<size<<", "<<tag<<")");
 
     ret = MPI_Recv(data, size, MPI_CHAR, 0, tag, m_comm, &status);
     if (MPI_SUCCESS != ret) {

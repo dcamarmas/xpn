@@ -27,20 +27,26 @@
 #include <csignal>
 #include <xpn_server/xpn_server_ops.hpp>
 
+#ifdef ENABLE_MQTT_SERVER
+#include "../nfi_mqtt_server/nfi_mqtt_server_comm.hpp"
+#endif
+
 namespace XPN {
 
-nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &srv_name )
+nfi_xpn_server_comm* nfi_sck_server_control_comm::control_connect ( const std::string &srv_name, int srv_port )
 {
-  struct hostent * hp;
-  struct sockaddr_in server_addr;
-  int ret, sd, flag, val;
+  int ret;
   int connection_socket;
   char port_name[MAX_PORT_NAME];
 
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] >> Begin");
-
+  
+  debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] srv_name '"<<srv_name<<"' srv_port '"<<srv_port<<"'");
   // Lookup port name
-  ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+  ret = socket::client_connect(srv_name, srv_port,
+                          xpn_env::get_instance().xpn_connect_timeout_ms,
+                          connection_socket,
+                          xpn_env::get_instance().xpn_connect_retry_time_ms);
   if (ret < 0)
   {
     debug_error("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: socket connect\n");
@@ -70,92 +76,51 @@ nfi_xpn_server_comm* nfi_sck_server_control_comm::connect ( const std::string &s
 
   debug_info("[NFI_SCK_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name);
 
-  // Socket...
-  sd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (sd < 0) {
-    perror("socket: ");
-    return nullptr;
-  }
-  debug_info("[NFI_SCK_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name<<" ==> "<<sd);
+  // Connect...
+  return connect(srv_name, port_name);
+}
 
-  // Set sockopt
-  flag = 1;
-  ret = ::setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, & flag, sizeof(flag));
-  if (ret < 0) {
-    perror("setsockopt: ");
-    return nullptr;
-  }
-
-  val = MAX_BUFFER_SIZE; //1 MB
-  ret = ::setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (char * ) & val, sizeof(int));
-  if (ret < 0) {
-    perror("setsockopt: ");
-    return nullptr;
-  }
-
-  val = MAX_BUFFER_SIZE; //1 MB
-  ret = setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (char * ) & val, sizeof(int));
-  if (ret < 0) {
-    perror("setsockopt: ");
-    return nullptr;
-  }
-
-  // gethost by name
-  hp = gethostbyname(srv_name.c_str());
-  if (hp == NULL)
-  {
-    fprintf(stderr, "nfi_sck_server_init: error gethostbyname %s (%s,%s)\n",
-    srv_name.c_str(), srv_name.c_str(), port_name);
-    return nullptr;
-  }
-
+nfi_xpn_server_comm* nfi_sck_server_control_comm::connect(const std::string &srv_name, const std::string &port_name) {
+  int ret, sd;
   // Connect...
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] Connect port "<<port_name);
 
-  bzero((char * ) & server_addr, sizeof(server_addr));
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_port   = htons(atoi(port_name));
-  memcpy( & (server_addr.sin_addr), hp->h_addr, hp->h_length);
-
-  int connect_retries = 0;
-  do
-  {
-    ret = ::connect(sd, (struct sockaddr * ) & server_addr, sizeof(server_addr));
-    if (ret < 0)
-    {
-      if (connect_retries == 0)
-      {
-        printf("----------------------------------------------------------------\n");
-        print("XPN Client "<<ns::get_host_name()<<" : Waiting for servers being up and runing...");
-        printf("----------------------------------------------------------------\n\n");
-      }
-      connect_retries++;
-      sleep(2);
-    }
-  } while(ret < 0 && connect_retries < 1);
-
-  if (ret < 0)
-  {
-    printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: connect fails\n");
+  ret = socket::client_connect(srv_name, atoi(port_name.c_str()), sd);
+  if (ret < 0) {
+    fprintf(stderr, "[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] ERROR: client_connect(%s,%s)\n", srv_name.c_str(), port_name.c_str());
     return nullptr;
+  }
+
+  void* res_mqtt = nullptr;
+  if (m_is_mqtt) {
+    #ifdef ENABLE_MQTT_SERVER
+    mosquitto * mqtt = nullptr;
+    nfi_mqtt_server::init(&mqtt, srv_name);
+    res_mqtt = mqtt;
+    #endif
   }
 
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_connect] << End\n");
 
-  return new (std::nothrow) nfi_sck_server_comm(sd);
+  return new (std::nothrow) nfi_sck_server_comm(sd, res_mqtt);
 }
 
-void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm) 
+void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm, bool needSendCode) 
 {
   int ret;
   nfi_sck_server_comm *in_comm = static_cast<nfi_sck_server_comm*>(comm);
 
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] >> Begin");
 
-  debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] Send disconnect message");
-  ret = in_comm->write_operation(xpn_server_ops::DISCONNECT);
-  if (ret < 0) {
-    printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] ERROR: nfi_sck_server_comm_write_operation fails");
+  if (needSendCode){
+    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] Send disconnect message");  
+    xpn_server_msg msg = {};
+    msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
+    msg.msg_size = 0;
+    ret = in_comm->write_operation(msg);
+    if (ret < 0) {
+      printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] ERROR: nfi_sck_server_comm_write_operation fails");
+    }
   }
 
   // Disconnect
@@ -165,26 +130,30 @@ void nfi_sck_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
   if (ret < 0) {
     printf("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] ERROR: MPI_Comm_disconnect fails");
   }
+  
+  if (m_is_mqtt && in_comm->m_mqtt) {
+    #ifdef ENABLE_MQTT_SERVER
+    nfi_mqtt_server::destroy(static_cast<mosquitto*>(in_comm->m_mqtt));
+    #endif
+  }
 
   delete comm;
 
   debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_disconnect] << End");
 }
 
-int64_t nfi_sck_server_comm::write_operation(xpn_server_ops op) {
+int64_t nfi_sck_server_comm::write_operation(xpn_server_msg& msg) {
     int ret;
-    int msg[2];
 
     debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_operation] >> Begin");
 
     // Message generation
-    msg[0] = (int)(pthread_self() % 32450) + 1;
-    msg[1] = (int)op;
+    msg.tag = (int)(pthread_self() % 32450) + 1;
 
     // Send message
-    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_operation] Write operation send tag "<< msg[0]);
+    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_operation] Write operation send tag "<< msg.tag);
 
-    ret = socket::send(m_socket, msg, sizeof(msg));
+    ret = socket::send(m_socket, &msg, msg.get_size());
     if (ret < 0) {
         debug_error("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_operation] ERROR: socket::send < 0 : "<< ret);
         return -1;
@@ -211,7 +180,7 @@ int64_t nfi_sck_server_comm::write_data(const void *data, int64_t size) {
     }
 
     // Send message
-    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_data] Write data");
+    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_write_data] Write data size "<<size);
 
     ret = socket::send(m_socket, data, size);
     if (ret < 0) {
@@ -225,7 +194,7 @@ int64_t nfi_sck_server_comm::write_data(const void *data, int64_t size) {
     return size;
 }
 
-int64_t nfi_sck_server_comm::read_data(void *data, ssize_t size) {
+int64_t nfi_sck_server_comm::read_data(void *data, int64_t size) {
     int ret;
 
     debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_read_data] >> Begin");
@@ -240,7 +209,7 @@ int64_t nfi_sck_server_comm::read_data(void *data, ssize_t size) {
     }
 
     // Get message
-    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_read_data] Read data");
+    debug_info("[NFI_SCK_SERVER_COMM] [nfi_sck_server_comm_read_data] Read data size "<<size);
 
     ret = socket::recv(m_socket, data, size);
     if (ret < 0) {

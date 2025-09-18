@@ -30,6 +30,7 @@ namespace XPN
 
         for (const auto& part : p)
         {
+            if (part == "/") continue;    
             return part.string();
         }
         return "";
@@ -45,6 +46,8 @@ namespace XPN
         {
             if (index != 0){
                 aux_p /= part;
+            } else if (part == "/"){
+                continue;
             }
             index++;
         }

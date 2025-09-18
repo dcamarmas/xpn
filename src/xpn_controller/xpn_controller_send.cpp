@@ -27,8 +27,8 @@
 
 #include "base_cpp/subprocess.hpp"
 #include "base_cpp/workers.hpp"
+#include "base_cpp/xpn_conf.hpp"
 #include "nfi/nfi_server.hpp"
-#include "xpn/xpn_conf.hpp"
 #include "xpn_controller.hpp"
 
 namespace XPN {
@@ -185,6 +185,12 @@ int xpn_controller::send_start_servers(int socket) {
     ret = socket::send(socket, &server_cores, sizeof(server_cores));
     if (ret != sizeof(server_cores)) {
         print_error("send server_cores");
+        return -1;
+    }
+    bool debug = m_args.has_option(option_debug);
+    ret = socket::send(socket, &debug, sizeof(debug));
+    if (ret != sizeof(debug)) {
+        print_error("send debug");
         return -1;
     }
     debug_info("[XPN_CONTROLLER] >> End");

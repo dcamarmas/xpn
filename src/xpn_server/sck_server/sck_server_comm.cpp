@@ -26,12 +26,17 @@
 #include "base_cpp/socket.hpp"
 #include <csignal>
 
+#ifdef ENABLE_MQTT_SERVER
+#include "../mqtt_server/mqtt_server_comm.hpp"
+#endif
+#include <sys/epoll.h>
+
 namespace XPN
 {
-sck_server_control_comm::sck_server_control_comm ()
+sck_server_control_comm::sck_server_control_comm (xpn_server_params &params, int port)
 {
-  int ret, val;
-  struct sockaddr_in server_addr;
+  int ret;
+  m_type = server_type::SCK;
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] >> Begin");
 
@@ -41,63 +46,33 @@ sck_server_control_comm::sck_server_control_comm ()
   // Socket init
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Scoket init");
 
-  m_socket = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (m_socket < 0)
-  {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket fails");
-    std::raise(SIGTERM);
-  }
-
-  // tcp_nodalay
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] TCP nodelay");
-
-  val = 1;
-  ret = ::setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
+  ret = socket::server_create(port, m_socket);
   if (ret < 0)
   {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: setsockopt fails");
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_create fails");
     std::raise(SIGTERM);
   }
-
-  // sock_reuseaddr
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Socket reuseaddr");
-
-  val = 1;
-  ret = ::setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&val, sizeof(int));
+  ret = socket::server_port(m_socket);
   if (ret < 0)
   {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: setsockopt fails");
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: socket server_port fails");
     std::raise(SIGTERM);
   }
+  m_port_name = std::to_string(ret);
 
-  // bind
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Socket bind");
-
-  bzero((char * )&server_addr, sizeof(server_addr));
-  server_addr.sin_family      = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port        = htons(0);
-
-
-  ret = ::bind(m_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
-  if (ret < 0)
-  {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: bind fails");
-    std::raise(SIGTERM);
+  if (params.srv_type == server_type::MQTT) {
+    #ifdef ENABLE_MQTT_SERVER
+    mosquitto* mqtt;
+    mqtt_server_comm::mqtt_server_mqtt_init(&mqtt);
+    m_mqtt = mqtt;
+    #endif
   }
 
-  // listen
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] Socket listen");
-
-  ret = ::listen(m_socket, 20);
-  if (ret < 0)
-  {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: listen fails");
+  m_epoll = epoll_create1(0);
+  if (m_epoll == -1) {
+    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] ERROR: epoll cannot create "<<strerror(errno));
     std::raise(SIGTERM);
   }
-  socklen_t len = sizeof(server_addr);
-  ::getsockname(m_socket, (struct sockaddr *)&server_addr, &len);
-  m_port_name = std::to_string(ntohs(server_addr.sin_port));
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] available at "<<m_port_name);
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_init] accepting...");
@@ -107,34 +82,44 @@ sck_server_control_comm::sck_server_control_comm ()
 
 sck_server_control_comm::~sck_server_control_comm()
 {
-  socket::close(m_socket);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_comm_destroy] >> End");
+  if (m_mqtt) {
+    #ifdef ENABLE_MQTT_SERVER
+    mqtt_server_comm::mqtt_server_mqtt_destroy(static_cast<mosquitto*>(m_mqtt));
+    #endif
+  }
+  [[maybe_unused]] int ret = socket::close(m_socket);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_comm_destroy] close("<<m_socket<<") = "<<ret);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_comm_destroy] >> End");
 }
 
-xpn_server_comm* sck_server_control_comm::accept ( int socket )
+xpn_server_comm* sck_server_control_comm::accept ( int socket, bool sendData )
 {
   int    ret, sc, flag;
   struct sockaddr_in client_addr;
   socklen_t size = sizeof(struct sockaddr_in);
 
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] >> Begin");
-
-  ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
-  if (ret < 0){
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: socket send port fails");
-    return nullptr;
+  if (sendData) {
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] send port");
+    ret = socket::send(socket, m_port_name.data(), MAX_PORT_NAME);
+    if (ret < 0) {
+      print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: socket send port fails");
+      return nullptr;
+    }
   }
 
   // Accept
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Accept");
-
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Accept("<<m_socket<<")");
   sc = ::accept(m_socket, (struct sockaddr *)&client_addr, &size);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Accept("<<m_socket<<") = "<<sc);
   if (sc < 0)
   {
-    print("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] ERROR: accept fails");
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] ERROR: accept fails");
     return nullptr;
   }
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] desp. accept conection from "<<sc);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] desp. accept conection from "<<sc);
   // tcp_nodelay
   flag = 1;
   ret = ::setsockopt(sc, IPPROTO_TCP, TCP_NODELAY, & flag, sizeof(flag));
@@ -161,17 +146,43 @@ xpn_server_comm* sck_server_control_comm::accept ( int socket )
     return nullptr;
   }
 
+  struct epoll_event event;
+  event.events = EPOLLIN | EPOLLONESHOT;
+  event.data.fd = sc;
+
+  if (epoll_ctl(m_epoll, EPOLL_CTL_ADD, sc, &event) == -1) {
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] Error: epoll_ctl fails "<<strerror(errno));
+    return nullptr;
+  }
+
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_accept] << End");
 
   return new (std::nothrow) sck_server_comm(sc);
 }
 
+int sck_server_control_comm::rearm(int socket) {
+  
+  struct epoll_event event;
+  event.events = EPOLLIN | EPOLLONESHOT;
+  event.data.fd = socket;
+
+  if (epoll_ctl(m_epoll, EPOLL_CTL_MOD, socket, &event) == -1) {
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_CONTROL_COMM] [sck_server_control_comm_destroy] Error: epoll_ctl fails "<<strerror(errno));
+    return -1;
+  }
+  return 0;
+}
 
 void sck_server_control_comm::disconnect ( xpn_server_comm* comm )
 {
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] >> Begin");
   
   sck_server_comm *in_comm = static_cast<sck_server_comm*>(comm);
+
+  if (epoll_ctl(m_epoll, EPOLL_CTL_DEL, in_comm->m_socket, NULL) == -1){
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] Error: epoll_ctl "<<strerror(errno));
+  }
+
   socket::close(in_comm->m_socket);
 
   delete comm;
@@ -179,31 +190,90 @@ void sck_server_control_comm::disconnect ( xpn_server_comm* comm )
   debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] << End");
 }
 
+void sck_server_control_comm::disconnect ( int socket )
+{
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] >> Begin");
+  
+  socket::close(socket);
 
-int64_t sck_server_comm::read_operation ( xpn_server_ops &op, int &rank_client_id, int &tag_client_id )
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_disconnect] << End");
+}
+
+xpn_server_comm* sck_server_control_comm::create ( int rank_client_id ) {
+  return new (std::nothrow) sck_server_comm(rank_client_id);
+}
+
+int64_t sck_read_operation ( int socket, xpn_server_msg &msg, int &tag_client_id )
 {
   int ret;
-  int msg[2];
+  uint64_t received = 0;
+  char * msg_p = reinterpret_cast<char*>(&msg);
 
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] >> Begin");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] >> Begin");
 
   // Get message
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] Read operation");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] Read operation");
 
-  ret = socket::recv(m_socket, msg, sizeof(msg));
-  if (MPI_SUCCESS != ret) {
-    debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] ERROR: read fails");
+  // Receive the head
+  while(received < msg.get_header_size()) {
+    ret = PROXY(read)(socket, msg_p+received, msg.get_header_size()-received);
+    if (ret <= 0) {
+      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] ERROR: read fails");
+      return -1;
+    }
+    received += ret;
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] received "<<received<<" msg header size "<<msg.get_header_size());
   }
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] readed the msg header");
+  
+  // Receive the rest of the msg
+  while (received < msg.get_size()) {
+    ret = PROXY(read)(socket, msg_p+received, msg.get_size()-received);
+    if (ret <= 0) {
+      debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] ERROR: read fails");
+      return -1;
+    }
+    received += ret;
+    debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] received "<<received<<" msg size "<<msg.get_size());
+  }
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] readed the msg");
+  
+  tag_client_id  = msg.tag;
 
-  rank_client_id = 0;
-  tag_client_id  = msg[0];
-  op             = static_cast<xpn_server_ops>(msg[1]);
-
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] read (SOURCE "<<m_socket<<", MPI_TAG "<<tag_client_id<<", MPI_ERROR "<<ret<<")");
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_operation] << End");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] read (SOURCE "<<socket<<", TAG "<<tag_client_id<<", ERROR "<<ret<<")");
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_read_operation] << End");
 
   // Return OK
   return 0;
+}
+
+int64_t sck_server_control_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
+{
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_control_comm_read_operation] >> Begin");
+  struct epoll_event event;
+
+  int nfds = epoll_wait(m_epoll, &event, 1, -1);
+  if (nfds == -1) {
+    debug_error("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_control_comm_read_operation] Error epoll_wait "<<strerror(errno));
+    return -1;
+  }
+
+  int socket = event.data.fd;
+  rank_client_id = socket;
+  auto ret = sck_read_operation(socket, msg, tag_client_id);
+
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_control_comm_read_operation] << End");
+
+  return ret;
+}
+
+int64_t sck_server_comm::read_operation ( xpn_server_msg &msg, int &rank_client_id, int &tag_client_id )
+{
+  rank_client_id = m_socket;
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm::read_operation] >> Begin");
+  auto ret = sck_read_operation(m_socket, msg, tag_client_id);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm::read_operation] << End");
+  return ret;
 }
 
 int64_t sck_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] int rank_client_id, [[maybe_unused]] int tag_client_id )
@@ -222,10 +292,10 @@ int64_t sck_server_comm::read_data ( void *data, int64_t size, [[maybe_unused]] 
   }
 
   // Get message
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] Read data tag "<< tag_client_id);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] Read data tag "<<tag_client_id<<" size "<<size);
 
   ret = socket::recv(m_socket, data, size);
-  if (MPI_SUCCESS != ret) {
+  if (ret <= 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_read_data] ERROR: read fails");
   }
 
@@ -252,10 +322,10 @@ int64_t sck_server_comm::write_data ( const void *data, int64_t size, [[maybe_un
   }
 
   // Send message
-  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] Write data tag "<< tag_client_id);
+  debug_info("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] Write data tag "<<tag_client_id<<" size "<<size);
 
   ret = socket::send(m_socket, data, size);
-  if (MPI_SUCCESS != ret) {
+  if (ret <= 0) {
     debug_warning("[Server="<<ns::get_host_name()<<"] [SCK_SERVER_COMM] [sck_server_comm_write_data] ERROR: MPI_Send fails");
   }
 

@@ -20,8 +20,8 @@
  */
 
 #pragma once
-
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -29,14 +29,14 @@
 #include "base_cpp/debug.hpp"
 #include "base_cpp/socket.hpp"
 #include "base_cpp/subprocess.hpp"
-#include "xpn/xpn_conf.hpp"
-#include "nfi/nfi_server.hpp"
+#include "base_cpp/xpn_conf.hpp"
+#include "base_cpp/xpn_parser.hpp"
 
 namespace XPN {
 class xpn_controller {
    public:
     enum class action {
-        NONE, // Default. Error
+        NONE,  // Default. Error
         MK_CONFIG,
         START,
         STOP,
@@ -55,10 +55,10 @@ class xpn_controller {
         {"ping_servers",    action::PING_SERVERS},
         {"start_servers",   action::START_SERVERS},
         {"stop_servers",    action::STOP_SERVERS},
-        {"expand_new",          action::EXPAND_NEW},
-        {"shrink_new",          action::SHRINK_NEW},
-        {"expand_change",          action::EXPAND_CHANGE},
-        {"shrink_change",          action::SHRINK_CHANGE},
+        {"expand_new",      action::EXPAND_NEW},
+        {"shrink_new",      action::SHRINK_NEW},
+        {"expand_change",   action::EXPAND_CHANGE},
+        {"shrink_change",   action::SHRINK_CHANGE},
     };
     std::unordered_map<action, std::string> actions_str_help = {
         {action::MK_CONFIG,     "Make the necesary config file. Necesary before the start"},
@@ -92,6 +92,7 @@ class xpn_controller {
     const args::option option_await             {"-w", "--await"            , "Await in the stop_servers"                       , XPN::args::option::opt_type::flag};
     const args::option option_server_cores      {"-c", "--server_cores"     , "Number of cores each server use (default: all cores with overlap)", XPN::args::option::opt_type::value};
     const args::option option_shared_dir        {"-s", "--shared_dir"       , "Shared dir in the job to use as temporal storage", XPN::args::option::opt_type::value};
+    const args::option option_debug             {"-d", "--debug"            , "Run the servers in debug mode with gdb"          , XPN::args::option::opt_type::flag};
     const std::vector<XPN::args::option> m_options = {
         option_hostfile,
         option_host_list,
@@ -102,6 +103,7 @@ class xpn_controller {
         option_await,
         option_server_cores,
         option_shared_dir,
+        option_debug,
     };
     args m_args;
 
@@ -114,13 +116,15 @@ class xpn_controller {
                   const std::string_view& replication_level, const std::string_view& server_type,
                   const std::string_view& storage_path);
     int update_config(const std::vector<std::string_view>& new_hostlist);
-    int start_servers(bool await, int server_cores);
+    int start_servers(bool await, int server_cores, bool debug);
     int stop_servers(bool await);
     int ping_servers();
     // The list of hosts need to be in order of (old_servers... , new_servers...)
     int expand(const std::vector<std::string_view>& new_hostlist);
     // The list of hosts need to be mising the removed hosts
     int shrink(const std::vector<std::string_view>& new_hostlist);
+    int start_profiler();
+    int end_profiler();
 
    public:
     // send ops
@@ -138,6 +142,7 @@ class xpn_controller {
     int recv_action(int socket, action& act);
     int recv_stop(int socket);
     int recv_command(int socket);
+    int recv_profiler(int socket);
     int recv_mk_config(int socket);
     int recv_start_servers(int socket);
     int recv_stop_servers(int socket);
@@ -153,40 +158,43 @@ class xpn_controller {
         xpn_conf conf;
         // TODO: do for more than the first partition
         out_servers.assign(conf.partitions[0].server_urls.begin(), conf.partitions[0].server_urls.end());
-        
-        for (auto &srv_url : out_servers)
-        {
+
+        for (auto& srv_url : out_servers) {
             std::string server;
-            std::tie(std::ignore, server, std::ignore) = nfi_parser::parse(srv_url);
+            std::tie(std::ignore, server, std::ignore, std::ignore) = xpn_parser::parse(srv_url);
             srv_url = server;
         }
 
-        #ifdef DEBUG
-        for (auto &serv : out_servers)
-        {
-            debug_info("[XPN_CONTROLLER] "<<serv);
+#ifdef DEBUG
+        for (auto& serv : out_servers) {
+            debug_info("[XPN_CONTROLLER] " << serv);
         }
-        #endif
+#endif
 
         debug_info("[XPN_CONTROLLER] >> End");
         return 0;
     }
 
-    static std::string get_controler_url() {
-        xpn_conf conf;
+    static std::string get_controller_url() {
+        static std::string controller_url = "";
+
+        if (controller_url.empty()) {
+            xpn_conf conf;
+            controller_url = conf.partitions[0].controler_url;
+        }
         // TODO: do for more than the first partition
-        return conf.partitions[0].controler_url;
+        return controller_url;
     }
 
     static int send_command(const std::string& command, bool await = true) {
         int socket = -1;
         int ret = -1;
         debug_info("[XPN_CONTROLLER] >> Start");
-        std::string controler_url = get_controler_url();
+        std::string controller_url = get_controller_url();
         // TODO: do for more than the first partition
-        ret = socket::client_connect(controler_url, xpn_env::get_instance().xpn_controller_sck_port, socket);
+        ret = socket::client_connect(controller_url, xpn_env::get_instance().xpn_controller_sck_port, socket);
         if (ret < 0 || socket < 0) {
-            print_error("Cannot connect to '" << controler_url << "'");
+            print_error("Cannot connect to '" << controller_url << "'");
             return -1;
         }
 
@@ -208,6 +216,49 @@ class xpn_controller {
         ret = socket::send(socket, &await, sizeof(await));
         if (ret < 0) {
             print_error("Cannot send await command");
+            socket::close(socket);
+            return -1;
+        }
+
+        int ret_command = 0;
+        ret = socket::recv(socket, &ret_command, sizeof(ret_command));
+        if (ret < 0) {
+            print_error("Cannot recv str_size");
+            socket::close(socket);
+            return -1;
+        }
+
+        socket::close(socket);
+        debug_info("[XPN_CONTROLLER] >> End");
+        return ret_command;
+    }
+
+    static int send_profiler(const std::string& profiler) {
+        int socket = -1;
+        int ret = -1;
+        debug_info("[XPN_CONTROLLER] >> Start");
+        std::string controller_url = get_controller_url();
+        // TODO: do for more than the first partition
+        debug_info("[XPN_CONTROLLER] connect to " << controller_url << " to port "
+                                                  << xpn_env::get_instance().xpn_controller_sck_port);
+        ret = socket::client_connect(controller_url, xpn_env::get_instance().xpn_controller_sck_port, socket);
+        if (ret < 0 || socket < 0) {
+            print_error("Cannot connect to '" << controller_url << "'");
+            return -1;
+        }
+
+        int op = socket::xpn_controller::PROFILER_CODE;
+        ret = socket::send(socket, &op, sizeof(op));
+        if (ret != sizeof(op)) {
+            print_error("Cannot send command_code");
+            socket::close(socket);
+            return -1;
+        }
+
+        debug_info("Send profiler '" << profiler.size() << "'");
+        ret = socket::send_str(socket, profiler);
+        if (ret < 0) {
+            print_error("Cannot send command");
             socket::close(socket);
             return -1;
         }

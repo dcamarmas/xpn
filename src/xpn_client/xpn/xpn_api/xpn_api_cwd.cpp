@@ -23,7 +23,7 @@
 
 namespace XPN
 {
-    char *xpn_api::getcwd(char *path, size_t size)
+    char *xpn_api::getcwd(char *path, uint64_t size)
     {
         XPN_DEBUG_BEGIN;
         int res = 0;

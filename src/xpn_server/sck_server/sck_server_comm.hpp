@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include "mpi.h"
 #include <string>
 #include <memory>
 
@@ -36,7 +35,7 @@ namespace XPN
     sck_server_comm(int socket) : m_socket(socket) {}
     ~sck_server_comm() override {}
 
-    int64_t read_operation(xpn_server_ops &op, int &rank_client_id, int &tag_client_id) override;
+    int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) override;
     int64_t read_data(void *data, int64_t size, int rank_client_id, int tag_client_id) override;
     int64_t write_data(const void *data, int64_t size, int rank_client_id, int tag_client_id) override;
   public:
@@ -46,13 +45,22 @@ namespace XPN
   class sck_server_control_comm : public xpn_server_control_comm
   {
   public:
-    sck_server_control_comm();
+    sck_server_control_comm(xpn_server_params &params, int port);
     ~sck_server_control_comm() override;
     
-    xpn_server_comm* accept(int socket) override;
+    xpn_server_comm* accept(int socket, bool sendData = true) override;
     void disconnect(xpn_server_comm *comm) override;
+    
+    xpn_server_comm* create(int rank_client_id) override;
+    int rearm(int rank_client_id) override;
+    void disconnect(int rank_client_id) override;
+    int64_t read_operation(xpn_server_msg &msg, int &rank_client_id, int &tag_client_id) override;
   private:
     int m_socket;
+    int m_epoll;
+
+  public:
+    void* m_mqtt = nullptr;
   };
 
 } // namespace XPN

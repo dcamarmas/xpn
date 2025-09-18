@@ -47,16 +47,16 @@ namespace XPN
         struct data{
             void fill(const xpn_metadata& mdata);
 
-            std::array<char, 3> magic_number = {'0', '0', '0'};                     // Magic number to identify if is correct the metadata
-            int      version = 0;                                      // Version number
-            int      type = 0;                                         // Type of file: file or directory
-            uint64_t block_size = 0;                                   // Size of block used
-            uint64_t file_size = 0;                                    // Size of the file
-            int      replication_level = 0;                            // Replication level of files: 0, 1, 2, ...
-            int      first_node = 0;                                   // Server which has the first block
-            int      distribution_policy = 0;                          // Distribution policy of blocks, default: round-robin
-            std::array<int, MAX_RECONSTURCTIONS> data_nserv = {0}; // Array of number of servers to reconstruct
-            std::array<int, MAX_RECONSTURCTIONS> offsets = {0};    // Array indicating the block where new server configuration starts
+            char     magic_number[4] = {'0', '0', '0', '0'};    // Magic number to identify if is correct the metadata
+            int32_t  version = 0;                               // Version number
+            int32_t  type = 0;                                  // Type of file: file or directory
+            int32_t  replication_level = 0;                     // Replication level of files: 0, 1, 2, ...
+            int32_t  first_node = 0;                            // Server which has the first block
+            int32_t  distribution_policy = 0;                   // Distribution policy of blocks, default: round-robin
+            uint64_t block_size = 0;                            // Size of block used
+            uint64_t file_size = 0;                             // Size of the file
+            int32_t  data_nserv[MAX_RECONSTURCTIONS] = {0};     // Array of number of servers to reconstruct
+            int32_t  offsets[MAX_RECONSTURCTIONS] = {0};        // Array indicating the block where new server configuration starts
             
             bool is_valid() { 
                 return magic_number[0] == MAGIC_NUMBER[0] && 

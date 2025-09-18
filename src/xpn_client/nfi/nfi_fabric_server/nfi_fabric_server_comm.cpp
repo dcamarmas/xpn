@@ -30,8 +30,9 @@
 
 namespace XPN {
 
-nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string &srv_name )
+nfi_xpn_server_comm* nfi_fabric_server_control_comm::control_connect ( const std::string &srv_name, int svr_port )
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
   int connection_socket;
   char port_name[MAX_PORT_NAME];
@@ -39,7 +40,7 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] >> Begin");
 
   // Lookup port name
-  ret = socket::client_connect(srv_name, xpn_env::get_instance().xpn_sck_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
+  ret = socket::client_connect(srv_name, svr_port, xpn_env::get_instance().xpn_connect_timeout_ms, connection_socket);
   if (ret < 0)
   {
     debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_connect] ERROR: socket connect\n");
@@ -67,9 +68,13 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
     return nullptr;
   }
 
+  return connect(srv_name, port_name);
+}
+
+nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect(const std::string &srv_name, const std::string &port_name) {
   debug_info("[NFI_FABRIC_SERVER_COMM] ----SERVER = "<<srv_name<<" PORT = "<<port_name);
 
-  int new_comm = lfi_client_create(srv_name.c_str(), atoi(port_name));
+  int new_comm = lfi_client_create(srv_name.c_str(), atoi(port_name.c_str()));
 
   if (new_comm < 0)
   {
@@ -82,17 +87,23 @@ nfi_xpn_server_comm* nfi_fabric_server_control_comm::connect ( const std::string
   return new (std::nothrow) nfi_fabric_server_comm(new_comm);
 }
 
-void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm) 
+void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm, bool needSendCode) 
 {
+  XPN_PROFILE_FUNCTION();
   int ret;
   nfi_fabric_server_comm *in_comm = static_cast<nfi_fabric_server_comm*>(comm);
 
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] >> Begin");
 
-  debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] Send disconnect message");
-  ret = in_comm->write_operation(xpn_server_ops::DISCONNECT);
-  if (ret < 0) {
-    printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
+  if (needSendCode) {
+    debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] Send disconnect message");
+    xpn_server_msg msg = {};
+    msg.op = static_cast<int>(xpn_server_ops::DISCONNECT);
+    msg.msg_size = 0;
+    ret = in_comm->write_operation(msg);
+    if (ret < 0) {
+      printf("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] ERROR: nfi_fabric_server_comm_write_operation fails");
+    }
   }
 
   // Disconnect
@@ -108,20 +119,19 @@ void nfi_fabric_server_control_comm::disconnect(nfi_xpn_server_comm *comm)
   debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_disconnect] << End");
 }
 
-int64_t nfi_fabric_server_comm::write_operation(xpn_server_ops op) {
+int64_t nfi_fabric_server_comm::write_operation(xpn_server_msg& msg) {
+    XPN_PROFILE_FUNCTION_ARGS(xpn_server_ops_name(static_cast<xpn_server_ops>(msg.op)));
     int ret;
-    int msg[2];
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] >> Begin");
 
     // Message generation
-    msg[0] = (int)(pthread_self() % 32450) + 1;
-    msg[1] = (int)op;
+    msg.tag = (int)(pthread_self() % 32450) + 1;
 
     // Send message
-    debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] Write operation send tag "<< msg[0]);
+    debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] Write operation send tag "<< msg.tag);
 
-    ret = lfi_tsend(m_comm, msg, sizeof(msg), 0);
+    ret = lfi_tsend(m_comm, &msg, msg.get_size(), 0);
     if (ret < 0) {
         debug_error("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_operation] ERROR: socket::send < 0 : "<< ret);
         return -1;
@@ -134,6 +144,7 @@ int64_t nfi_fabric_server_comm::write_operation(xpn_server_ops op) {
 }
 
 int64_t nfi_fabric_server_comm::write_data(const void *data, int64_t size) {
+    XPN_PROFILE_FUNCTION_ARGS(size);
     int ret;
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_write_data] >> Begin");
@@ -164,7 +175,8 @@ int64_t nfi_fabric_server_comm::write_data(const void *data, int64_t size) {
     return size;
 }
 
-int64_t nfi_fabric_server_comm::read_data(void *data, ssize_t size) {
+int64_t nfi_fabric_server_comm::read_data(void *data, int64_t size) {
+    XPN_PROFILE_FUNCTION_ARGS(size);
     int ret;
 
     debug_info("[NFI_FABRIC_SERVER_COMM] [nfi_fabric_server_comm_read_data] >> Begin");

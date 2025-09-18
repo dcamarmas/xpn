@@ -31,40 +31,32 @@
 
 #include "xpn_server/xpn_server_ops.hpp"
 #include "nfi_xpn_server_comm.hpp"
+#include "nfi_sck_server/nfi_sck_server_comm.hpp"
 #include "base_cpp/debug.hpp"
+#include "base_cpp/xpn_parser.hpp"
 
 namespace XPN
 {
     // Fordward declaration
     class xpn_fh;
     class xpn_metadata;
-    
-    class nfi_parser
-    {
-    public:
-        nfi_parser(const std::string &url);
-        static std::tuple<std::string, std::string, std::string> parse(const std::string& url);
-        static std::string create(const std::string& protocol, const std::string& server, const std::string& path);
-
-        const std::string m_url;
-        std::string m_protocol;
-        std::string m_server;
-        std::string m_path;
-    };
 
     class nfi_server 
     {
     public:
-        nfi_server(const nfi_parser &url);
+        nfi_server(const xpn_parser &url);
         int init_comm();
         int destroy_comm();
-        static bool is_local_server(const std::string &server);
+        static bool is_local_server(const std::string_view &server);
         
         static std::unique_ptr<nfi_server> Create(const std::string &url);
     public:
         std::string m_protocol; // protocol of the server: mpi_server sck_server
         std::string m_server;   // server address
+        int m_server_port;      // server port
         std::string m_path;     // path of the server
+
+        std::string m_connectionless_port = {}; // port for the connectionless socket
 
         int m_error = 0;        // For fault tolerance
     protected:
@@ -72,8 +64,9 @@ namespace XPN
                                 // + server
                                 // + path + more info (port, ...)
 
-        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm;
-        nfi_xpn_server_comm                         *m_comm;
+        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm = nullptr;
+        std::unique_ptr<nfi_xpn_server_control_comm> m_control_comm_connectionless = nullptr;
+        nfi_xpn_server_comm                         *m_comm = nullptr;
 
     public:
         // Operations 
@@ -93,11 +86,11 @@ namespace XPN
         virtual int nfi_rmdir       (const std::string &path, bool is_async) = 0;
         virtual int nfi_statvfs     (const std::string &path, struct ::statvfs &inf) = 0;
         virtual int nfi_read_mdata  (const std::string &path, xpn_metadata &mdata) = 0;
-        virtual int nfi_write_mdata (const std::string &path, const xpn_metadata &mdata, bool only_file_size) = 0;
+        virtual int nfi_write_mdata (const std::string &path, const xpn_metadata::data &mdata, bool only_file_size) = 0;
     protected:
     
         template<typename msg_struct>
-        int nfi_write_operation( xpn_server_ops op, msg_struct &msg )
+        int nfi_write_operation( xpn_server_ops op, msg_struct &msg, bool haveResponse = true )
         {
             int ret;
 
@@ -105,15 +98,33 @@ namespace XPN
 
             debug_info("[NFI_XPN] [nfi_write_operation] Send operation");
 
-            ret = m_comm->write_operation(op);
-            if (ret < 0)
-            {
+            xpn_server_msg message;
+            message.op = static_cast<int>(op);
+            message.msg_size = msg.get_size();
+            std::memcpy(message.msg_buffer, &msg, msg.get_size());
+
+            std::unique_ptr<std::unique_lock<std::mutex>> lock = nullptr;
+            if (!haveResponse) {
+                if (!xpn_env::get_instance().xpn_connect && m_comm == nullptr) {
+                    m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
+                } else if (m_comm && m_comm->m_type == server_type::SCK) {
+                    // Necessary lock, because the nfi sck comm is not reentrant in the communication part 
+                    auto sck_comm = static_cast<nfi_sck_server_comm*>(m_comm);
+                    lock = std::make_unique<std::unique_lock<std::mutex>>(sck_comm->m_mutex);
+                    debug_info("lock sck comm mutex");
+                }
+            }
+            ret = m_comm->write_operation(message);
+            if (ret < 0){
                 printf("[NFI_XPN] [nfi_write_operation] ERROR: nfi_write_operation fails");
                 return -1;
             }
+            if (!haveResponse && !xpn_env::get_instance().xpn_connect) {
+                m_control_comm_connectionless->disconnect(m_comm);
+                m_comm = nullptr;
+            }
 
-            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" -> ");
-            ret = m_comm->write_data((void *)&(msg), sizeof(msg));
+            debug_info("[NFI_XPN] [nfi_write_operation] Execute operation: "<<static_cast<int>(op)<<" "<<xpn_server_ops_name(op)<<" -> "<<ret);
 
             debug_info("[NFI_XPN] [nfi_write_operation] >> End");
 
@@ -123,31 +134,43 @@ namespace XPN
         template<typename msg_struct, typename req_struct>
         int nfi_do_request ( xpn_server_ops op, msg_struct &msg, req_struct &req )
         {
-            ssize_t ret;
+            int64_t ret;
             debug_info("[NFI_XPN] [nfi_server_do_request] >> Begin");
 
-            if (!xpn_env::get_instance().xpn_session_connect && m_comm == nullptr){
-                m_comm = m_control_comm->connect(m_server);
+            std::unique_ptr<std::unique_lock<std::mutex>> lock = nullptr;
+            if (!xpn_env::get_instance().xpn_connect && m_comm == nullptr){
+                m_comm = m_control_comm_connectionless->connect(m_server, m_connectionless_port);
+            } else if (m_comm->m_type == server_type::SCK) {
+                    // Necessary lock, because the nfi sck comm is not reentrant in the communication part 
+                auto sck_comm = static_cast<nfi_sck_server_comm*>(m_comm);
+                lock = std::make_unique<std::unique_lock<std::mutex>>(sck_comm->m_mutex);
+                debug_info("lock sck comm mutex");
             }
 
             // send request...
-            debug_info("[NFI_XPN] [nfi_server_do_request] Send operation: "<<static_cast<int>(op));
+            debug_info("[NFI_XPN] [nfi_server_do_request] Send operation: "<<static_cast<int>(op)<<" "<<xpn_server_ops_name(op));
 
             ret = nfi_write_operation(op, msg);
             if (ret < 0) {
+                debug_error("[NFI_XPN] [nfi_server_do_request] Error in nfi_write_operation");
                 return -1;
             }
 
             // read response...
-            debug_info("[NFI_XPN] [nfi_server_do_request] Response operation: "<<static_cast<int>(op));
-
+            debug_info("[NFI_XPN] [nfi_server_do_request] Response operation: "<<static_cast<int>(op)<<" "<<xpn_server_ops_name(op)<<" to read "<<sizeof(req));
             ret = m_comm->read_data((void *)&(req), sizeof(req));
             if (ret < 0) {
                 return -1;
             }
+            
+            #ifdef DEBUG
+            if constexpr (std::is_same<req_struct, st_xpn_server_status>::value) {
+                debug_info("[NFI_XPN] [nfi_server_do_request] req ret "<<req.ret<<" server_errno "<<req.server_errno);
+            }
+            #endif
 
-            if (!xpn_env::get_instance().xpn_session_connect){
-                m_control_comm->disconnect(m_comm);
+            if (!xpn_env::get_instance().xpn_connect){
+                m_control_comm_connectionless->disconnect(m_comm);
                 m_comm = nullptr;
             }
             debug_info("[NFI_XPN] [nfi_server_do_request] >> End");

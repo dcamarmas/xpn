@@ -32,25 +32,31 @@ namespace XPN
   class nfi_sck_server_comm : public nfi_xpn_server_comm
   {
   public:
-    nfi_sck_server_comm(int socket) : m_socket(socket) {}
+    nfi_sck_server_comm(int socket, void *mqtt) : m_socket(socket), m_mqtt(mqtt) {
+      m_type = server_type::SCK;
+    }
 
-    int64_t write_operation(xpn_server_ops op) override;
+    int64_t write_operation(xpn_server_msg& msg) override;
     int64_t read_data(void *data, int64_t size) override;
     int64_t write_data(const void *data, int64_t size) override;
   public:
     int m_socket;
+    void *m_mqtt;
+    std::mutex m_mutex = {};
   };
   
   class nfi_sck_server_control_comm : public nfi_xpn_server_control_comm
   {
   public:
-    nfi_sck_server_control_comm() = default;
+    nfi_sck_server_control_comm(bool is_mqtt) : m_is_mqtt(is_mqtt) {};
     ~nfi_sck_server_control_comm() = default;
     
-    nfi_xpn_server_comm* connect(const std::string &srv_name) override;
-    void disconnect(nfi_xpn_server_comm* comm) override;
+    nfi_xpn_server_comm* control_connect(const std::string &srv_name, int srv_port) override;
+    nfi_xpn_server_comm* connect(const std::string &srv_name, const std::string &port_name) override;
+    void disconnect(nfi_xpn_server_comm* comm, bool needSendCode = true) override;
 
   private:
+    bool m_is_mqtt;
   };
 
 } // namespace XPN

@@ -69,9 +69,9 @@
     int aux_serv;
     char *buf ;
     int buf_len;
-    off64_t offset_dest ;
-    off_t offset_src;
-    ssize_t read_size, write_size;
+    int64_t offset_dest ;
+    int64_t offset_src;
+    int64_t read_size = 0, write_size;
     struct stat st_src = {};
 
     //Alocate buffer
@@ -176,7 +176,7 @@
         return -1;
       }
 
-      off64_t ret_1;
+      int64_t ret_1;
       offset_src = 0;
       offset_dest = -blocksize;
 
@@ -194,7 +194,7 @@
               goto exit_search;
             }
           }
-        }while(offset_dest < static_cast<off64_t>(file.m_mdata.m_data.file_size));
+        }while(offset_dest < static_cast<int64_t>(file.m_mdata.m_data.file_size));
         exit_search:
         if (aux_serv != rank){
           continue;
@@ -203,7 +203,7 @@
         if(st_src.st_mtime != 0 && offset_src > st_src.st_size){
           break;
         }
-        if (offset_dest > static_cast<off64_t>(file.m_mdata.m_data.file_size)){
+        if (offset_dest > static_cast<int64_t>(file.m_mdata.m_data.file_size)){
           break;
         }
         if (replication != 0){

@@ -32,6 +32,7 @@
 #include <type_traits>
 #include <fstream>
 #include <filesystem>
+#include <algorithm>
 
 namespace XPN
 {
@@ -177,7 +178,7 @@ namespace XPN
     public:
         xpn_stats()
         {
-            for (size_t i = 0; i < m_ops_stats.size(); i++)
+            for (uint64_t i = 0; i < m_ops_stats.size(); i++)
             {
                 m_ops_stats[i].m_op = static_cast<xpn_server_ops>(i);
             }
@@ -191,7 +192,7 @@ namespace XPN
         io_stats m_read_total;
         io_stats m_write_total;
 
-        std::array<op_stats, static_cast<size_t>(xpn_server_ops::size)> m_ops_stats;
+        std::array<op_stats, static_cast<uint64_t>(xpn_server_ops::size)> m_ops_stats;
 
         template<typename stat_type>
         class scope_stat
@@ -229,7 +230,7 @@ namespace XPN
             out.m_read_total = m_read_total - other.m_read_total;
             out.m_write_total = m_write_total - other.m_write_total;
 
-            for (size_t i = 0; i < m_ops_stats.size(); i++)
+            for (uint64_t i = 0; i < m_ops_stats.size(); i++)
             {
                 out.m_ops_stats[i] = m_ops_stats[i] - other.m_ops_stats[i]; 
             }
@@ -245,7 +246,7 @@ namespace XPN
             out.m_read_total = m_read_total + other.m_read_total;
             out.m_write_total = m_write_total + other.m_write_total;
 
-            for (size_t i = 0; i < m_ops_stats.size(); i++)
+            for (uint64_t i = 0; i < m_ops_stats.size(); i++)
             {
                 out.m_ops_stats[i] = m_ops_stats[i] + other.m_ops_stats[i]; 
             }
@@ -261,7 +262,7 @@ namespace XPN
             m_read_total.set_time(utime);
             m_write_total.set_time(utime);
 
-            for (size_t i = 0; i < m_ops_stats.size(); i++)
+            for (uint64_t i = 0; i < m_ops_stats.size(); i++)
             {
                 m_ops_stats[i].set_time(utime); 
             }
