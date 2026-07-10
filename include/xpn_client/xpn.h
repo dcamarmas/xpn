@@ -59,6 +59,8 @@
   int         xpn_free_block_locality ( int *url_c, char **url_v[] );
 
   // xpn_open.c
+  //int         xpn_preload   (const char *virtual_path, const char *storage_path); // Auxiliary function //TODO
+  //int         xpn_flush     (const char *virtual_path, const char *storage_path); // Auxiliary function //TODO
   int         xpn_creat     (const char *path, mode_t perm);
   int         xpn_open      (const char *path, int flags , ...);
   int         xpn_close     (int fd);
