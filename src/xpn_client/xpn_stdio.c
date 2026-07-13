@@ -220,40 +220,6 @@
        return ret;
      }
 
-     //
-     // preload - flush //TODO
-     //
-
-     /*int xpn_preload(const char *virtual_path, const char *storage_path)
-     {
-       int ret;
-
-       debug_info("[XPN_STDIO] [xpn_preload] >> Begin\n");
-
-       XPN_API_LOCK();
-       ret = xpn_simple_preload(virtual_path, storage_path);
-       XPN_API_UNLOCK();
-
-       debug_info("[XPN_STDIO] [xpn_preload] >> End\n");
-
-       return ret;
-     }
-
-     int xpn_flush(const char *virtual_path, const char *storage_path)
-     {
-       int ret;
-
-       debug_info("[XPN_STDIO] [xpn_simple_flush] >> Begin\n");
-
-       XPN_API_LOCK();
-       ret = xpn_simple_flush(virtual_path, storage_path);
-       XPN_API_UNLOCK();
-
-       debug_info("[XPN_STDIO] [xpn_simple_flush] >> End\n");
-
-       return ret;
-     }*/
-
 
 /* ................................................................... */
 

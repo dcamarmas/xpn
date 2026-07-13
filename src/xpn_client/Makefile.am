@@ -100,6 +100,7 @@ XPN_HEADER= 		@top_srcdir@/include/xpn_client/xpn.h
 			@top_srcdir@/include/xpn_client/xpn/xpn_simple/xpn_init.h \
 			@top_srcdir@/include/xpn_client/xpn/xpn_simple/xpn_opendir.h \
 			@top_srcdir@/include/xpn_client/xpn/xpn_simple/xpn_open.h \
+			@top_srcdir@/include/xpn_client/xpn/xpn_simple/xpn_utils.h \
 			@top_srcdir@/include/xpn_client/xpn/xpn_simple/xpn_policy_cwd.h \
 			@top_srcdir@/include/xpn_client/xpn/xpn_simple/xpn_conf_reader.h \
 			@top_srcdir@/include/xpn_client/xpn/xpn_simple/xpn_policy_init.h \
@@ -203,6 +204,7 @@ XPN_CORE_OBJECTS=			@top_srcdir@/src/xpn_client/xpn/xpn_simple/xpncore/xpn_cwd.c
 					@top_srcdir@/src/xpn_client/xpn/xpn_simple/xpncore/xpn_metadata.c \
 					@top_srcdir@/src/xpn_client/xpn/xpn_simple/xpncore/xpn_opendir.c \
 					@top_srcdir@/src/xpn_client/xpn/xpn_simple/xpncore/xpn_rw.c \
+					@top_srcdir@/src/xpn_client/xpn/xpn_simple/xpncore/xpn_utils.c \
 					@top_srcdir@/src/xpn_client/xpn/xpn_simple/xpncore/xpn_stdio.c
 
 XPN_POLICY_OBJECTS=			@top_srcdir@/src/xpn_client/xpn/xpn_simple/policy/xpn_policy_cwd.c \
@@ -214,6 +216,7 @@ XPN_POLICY_OBJECTS=			@top_srcdir@/src/xpn_client/xpn/xpn_simple/policy/xpn_poli
 
 XPN_EP_OBJECTS=		                @top_srcdir@/src/xpn_client/xpn_api_mutex.c \
                                  	@top_srcdir@/src/xpn_client/xpn_unistd.c \
+                                 	@top_srcdir@/src/xpn_client/xpn_utils.c \
 					@top_srcdir@/src/xpn_client/xpn_stdio.c
 
 XPN_OBJECTS=$(XPN_CORE_OBJECTS) $(XPN_POLICY_OBJECTS) $(XPN_EP_OBJECTS)

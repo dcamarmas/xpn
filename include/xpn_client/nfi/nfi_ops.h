@@ -55,8 +55,8 @@
        op_closedir = 24,
 
        op_statfs   = 60,
-       //op_preload  = 61, //TODO
-       //op_flush    = 62, //TODO
+       op_preload  = 61,
+       op_flush    = 62,
 
        op_read_mdata  = 70,
        op_write_mdata = 71
@@ -85,8 +85,8 @@
      int nfi_worker_do_rmdir    ( struct nfi_worker *wrk, char *url );
 
      int nfi_worker_do_statfs   ( struct nfi_worker *wrk, struct nfi_info *inf );
-     //int nfi_worker_do_preload(struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path,int opt); //TODO
-     //int nfi_worker_do_flush(struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path,int opt); //TODO
+     int nfi_worker_do_preload  ( struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path,int opt );
+     int nfi_worker_do_flush    ( struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path,int opt );
 
      int nfi_worker_do_read_mdata   ( struct nfi_worker *wrk, char *url, struct xpn_metadata *mdata );
      int nfi_worker_do_write_mdata  ( struct nfi_worker *wrk, char *url, struct xpn_metadata *mdata, int only_file_size );

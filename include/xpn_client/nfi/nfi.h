@@ -150,13 +150,9 @@
     int     (*nfi_statfs)   (struct nfi_server *serv, struct nfi_info *inf);
     int     (*nfi_read_mdata)  (struct nfi_server *serv, char *url, struct xpn_metadata *mdata);
     int     (*nfi_write_mdata) (struct nfi_server *serv, char *url, struct xpn_metadata *mdata, int only_file_size);
-
-    //int     (*nfi_preload)  (struct nfi_server *serv, char *url, char *virtual_path, char* storage_path, int opt); //TODO
-    //int     (*nfi_flush)    (struct nfi_server *serv, char *url, char *virtual_path, char* storage_path, int opt); //TODO
+    int     (*nfi_preload)  (struct nfi_server *serv, char *url, char *virtual_path, char* storage_path, int opt);
+    int     (*nfi_flush)    (struct nfi_server *serv, char *url, char *virtual_path, char* storage_path, int opt);
   };
-
-
-  /* ... Functions / Funciones ......................................... */
 
 
   /* ................................................................... */

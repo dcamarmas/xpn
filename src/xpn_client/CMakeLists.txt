@@ -141,6 +141,7 @@ set (XPN_CORE_OBJECTS	xpn/xpn_simple/xpncore/xpn_cwd.c
 			xpn/xpn_simple/xpncore/xpn_init.c
 			xpn/xpn_simple/xpncore/xpn_open.c
 			xpn/xpn_simple/xpncore/xpn_opendir.c
+			xpn/xpn_simple/xpncore/xpn_preload_flush.c
 			xpn/xpn_simple/xpncore/xpn_rw.c
 			xpn/xpn_simple/xpncore/xpn_fopen.c
 			xpn/xpn_simple/xpncore/xpn_fclose.c
