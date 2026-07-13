@@ -52,81 +52,91 @@
 
        switch (head->type)
        {
-           //File API
-       case XPN_SERVER_OPEN_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] OPEN operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_open), sizeof(head->u_st_xpn_server_msg.op_open));
-           break;
-       case XPN_SERVER_CREAT_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] CREAT operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_creat), sizeof(head->u_st_xpn_server_msg.op_creat));
-           break;
-       case XPN_SERVER_READ_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] READ operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_read), sizeof(head->u_st_xpn_server_msg.op_read));
-           break;
-       case XPN_SERVER_WRITE_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] WRITE operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_write), sizeof(head->u_st_xpn_server_msg.op_write));
-           break;
-       case XPN_SERVER_CLOSE_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] CLOSE operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_close), sizeof(head->u_st_xpn_server_msg.op_close));
-           break;
-       case XPN_SERVER_RM_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] RM operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rm), sizeof(head->u_st_xpn_server_msg.op_rm));
-           break;
-       case XPN_SERVER_RM_FILE_ASYNC:
-           debug_info("[NFI_XPN] [nfi_write_operation] RM_ASYNC operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rm), sizeof(head->u_st_xpn_server_msg.op_rm));
-           break;
-       case XPN_SERVER_RENAME_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] RENAME operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rename), sizeof(head->u_st_xpn_server_msg.op_rename));
-           break;
-       case XPN_SERVER_GETATTR_FILE:
-           debug_info("[NFI_XPN] [nfi_write_operation] GETATTR operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_getattr), sizeof(head->u_st_xpn_server_msg.op_getattr));
-           break;
+          //File API
+          case XPN_SERVER_OPEN_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] OPEN operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_open), sizeof(head->u_st_xpn_server_msg.op_open));
+              break;
+          case XPN_SERVER_CREAT_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] CREAT operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_creat), sizeof(head->u_st_xpn_server_msg.op_creat));
+              break;
+          case XPN_SERVER_READ_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] READ operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_read), sizeof(head->u_st_xpn_server_msg.op_read));
+              break;
+          case XPN_SERVER_WRITE_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] WRITE operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_write), sizeof(head->u_st_xpn_server_msg.op_write));
+              break;
+          case XPN_SERVER_CLOSE_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] CLOSE operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_close), sizeof(head->u_st_xpn_server_msg.op_close));
+              break;
+          case XPN_SERVER_RM_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] RM operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rm), sizeof(head->u_st_xpn_server_msg.op_rm));
+              break;
+          case XPN_SERVER_RM_FILE_ASYNC:
+              debug_info("[NFI_XPN] [nfi_write_operation] RM_ASYNC operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rm), sizeof(head->u_st_xpn_server_msg.op_rm));
+              break;
+          case XPN_SERVER_RENAME_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] RENAME operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rename), sizeof(head->u_st_xpn_server_msg.op_rename));
+              break;
+          case XPN_SERVER_GETATTR_FILE:
+              debug_info("[NFI_XPN] [nfi_write_operation] GETATTR operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_getattr), sizeof(head->u_st_xpn_server_msg.op_getattr));
+              break;
 
-           //Directory API
-       case XPN_SERVER_MKDIR_DIR:
-           debug_info("[NFI_XPN] [nfi_write_operation] MKDIR operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_mkdir), sizeof(head->u_st_xpn_server_msg.op_mkdir));
-           break;
-       case XPN_SERVER_OPENDIR_DIR:
-           debug_info("[NFI_XPN] [nfi_write_operation] OPENDIR operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_opendir), sizeof(head->u_st_xpn_server_msg.op_opendir));
-           break;
-       case XPN_SERVER_READDIR_DIR:
-           debug_info("[NFI_XPN] [nfi_write_operation] READDIR operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_readdir), sizeof(head->u_st_xpn_server_msg.op_readdir));
-           break;
-       case XPN_SERVER_CLOSEDIR_DIR:
-           debug_info("[NFI_XPN] [nfi_write_operation] CLOSEDIR operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_closedir), sizeof(head->u_st_xpn_server_msg.op_closedir));
-           break;
-       case XPN_SERVER_RMDIR_DIR:
-           debug_info("[NFI_XPN] [nfi_write_operation] RMDIR operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rmdir), sizeof(head->u_st_xpn_server_msg.op_rmdir));
-           break;
-       case XPN_SERVER_RMDIR_DIR_ASYNC:
-           debug_info("[NFI_XPN] [nfi_write_operation] RMDIR_ASYNC operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rmdir), sizeof(head->u_st_xpn_server_msg.op_rmdir));
-           break;
-       case XPN_SERVER_READ_MDATA:
-           debug_info("[NFI_XPN] [nfi_write_operation] READ_MDATA operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_read_mdata), sizeof(head->u_st_xpn_server_msg.op_read_mdata));
-           break;
-       case XPN_SERVER_WRITE_MDATA:
-           debug_info("[NFI_XPN] [nfi_write_operation] WRITE_MDATA operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_write_mdata), sizeof(head->u_st_xpn_server_msg.op_write_mdata));
-           break;
-       case XPN_SERVER_WRITE_MDATA_FILE_SIZE:
-           debug_info("[NFI_XPN] [nfi_write_operation] WRITE_MDATA_FILE_SIZE operation\n");
-           ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_write_mdata_file_size), sizeof(head->u_st_xpn_server_msg.op_write_mdata_file_size));
-           break;
+          //Directory API
+          case XPN_SERVER_MKDIR_DIR:
+              debug_info("[NFI_XPN] [nfi_write_operation] MKDIR operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_mkdir), sizeof(head->u_st_xpn_server_msg.op_mkdir));
+              break;
+          case XPN_SERVER_OPENDIR_DIR:
+              debug_info("[NFI_XPN] [nfi_write_operation] OPENDIR operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_opendir), sizeof(head->u_st_xpn_server_msg.op_opendir));
+              break;
+          case XPN_SERVER_READDIR_DIR:
+              debug_info("[NFI_XPN] [nfi_write_operation] READDIR operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_readdir), sizeof(head->u_st_xpn_server_msg.op_readdir));
+              break;
+          case XPN_SERVER_CLOSEDIR_DIR:
+              debug_info("[NFI_XPN] [nfi_write_operation] CLOSEDIR operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_closedir), sizeof(head->u_st_xpn_server_msg.op_closedir));
+              break;
+          case XPN_SERVER_RMDIR_DIR:
+              debug_info("[NFI_XPN] [nfi_write_operation] RMDIR operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rmdir), sizeof(head->u_st_xpn_server_msg.op_rmdir));
+              break;
+          case XPN_SERVER_RMDIR_DIR_ASYNC:
+              debug_info("[NFI_XPN] [nfi_write_operation] RMDIR_ASYNC operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_rmdir), sizeof(head->u_st_xpn_server_msg.op_rmdir));
+              break;
+          case XPN_SERVER_READ_MDATA:
+              debug_info("[NFI_XPN] [nfi_write_operation] READ_MDATA operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_read_mdata), sizeof(head->u_st_xpn_server_msg.op_read_mdata));
+              break;
+          case XPN_SERVER_WRITE_MDATA:
+              debug_info("[NFI_XPN] [nfi_write_operation] WRITE_MDATA operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_write_mdata), sizeof(head->u_st_xpn_server_msg.op_write_mdata));
+              break;
+          case XPN_SERVER_WRITE_MDATA_FILE_SIZE:
+              debug_info("[NFI_XPN] [nfi_write_operation] WRITE_MDATA_FILE_SIZE operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char * ) & (head->u_st_xpn_server_msg.op_write_mdata_file_size), sizeof(head->u_st_xpn_server_msg.op_write_mdata_file_size));
+              break;
+
+          //Utils API
+          case XPN_SERVER_PRELOAD_FILE:
+              debug_info("[NFI_XPN] [nfi_preload_operation] PRELOAD operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char *) & (head->u_st_xpn_server_msg.op_preload), sizeof(head->u_st_xpn_server_msg.op_preload)) ;
+              break;
+          case XPN_SERVER_FLUSH_FILE:
+              debug_info("[NFI_XPN] [nfi_flush_operation] FLUSH operation\n");
+              ret = nfi_xpn_server_comm_write_data(params, (char *) & (head->u_st_xpn_server_msg.op_flush), sizeof(head->u_st_xpn_server_msg.op_flush)) ;
+              break;
        }
 
        debug_info("[NFI_XPN] [nfi_write_operation] >> End\n");
@@ -274,30 +284,32 @@
 
        // Fill serv->ops...
        bzero(serv->ops, sizeof(struct nfi_ops));
-       serv->ops->nfi_reconnect = nfi_xpn_server_reconnect;
+       serv->ops->nfi_reconnect  = nfi_xpn_server_reconnect;
        serv->ops->nfi_disconnect = nfi_xpn_server_disconnect;
-       serv->ops->nfi_destroy = nfi_xpn_server_destroy;
+       serv->ops->nfi_destroy    = nfi_xpn_server_destroy;
 
-       serv->ops->nfi_open = nfi_xpn_server_open;
-       serv->ops->nfi_create = nfi_xpn_server_create;
-       serv->ops->nfi_read = nfi_xpn_server_read;
-       serv->ops->nfi_write = nfi_xpn_server_write;
-       serv->ops->nfi_close = nfi_xpn_server_close;
-       serv->ops->nfi_remove = nfi_xpn_server_remove;
-       serv->ops->nfi_rename = nfi_xpn_server_rename;
+       serv->ops->nfi_open    = nfi_xpn_server_open;
+       serv->ops->nfi_create  = nfi_xpn_server_create;
+       serv->ops->nfi_read    = nfi_xpn_server_read;
+       serv->ops->nfi_write   = nfi_xpn_server_write;
+       serv->ops->nfi_close   = nfi_xpn_server_close;
+       serv->ops->nfi_remove  = nfi_xpn_server_remove;
+       serv->ops->nfi_rename  = nfi_xpn_server_rename;
        serv->ops->nfi_getattr = nfi_xpn_server_getattr;
        serv->ops->nfi_setattr = nfi_xpn_server_setattr;
 
-       serv->ops->nfi_opendir = nfi_xpn_server_opendir;
-       serv->ops->nfi_mkdir = nfi_xpn_server_mkdir;
-       serv->ops->nfi_readdir = nfi_xpn_server_readdir;
+       serv->ops->nfi_opendir  = nfi_xpn_server_opendir;
+       serv->ops->nfi_mkdir    = nfi_xpn_server_mkdir;
+       serv->ops->nfi_readdir  = nfi_xpn_server_readdir;
        serv->ops->nfi_closedir = nfi_xpn_server_closedir;
-       serv->ops->nfi_rmdir = nfi_xpn_server_rmdir;
+       serv->ops->nfi_rmdir    = nfi_xpn_server_rmdir;
 
-       serv->ops->nfi_statfs = nfi_xpn_server_statfs;
+       serv->ops->nfi_statfs  = nfi_xpn_server_statfs;
+       serv->ops->nfi_preload = nfi_xpn_server_preload;
+       serv->ops->nfi_flush   = nfi_xpn_server_flush;
 
        serv->ops->nfi_write_mdata = nfi_xpn_server_write_mdata;
-       serv->ops->nfi_read_mdata = nfi_xpn_server_read_mdata;
+       serv->ops->nfi_read_mdata  = nfi_xpn_server_read_mdata;
 
        // parse url...
        ret = ParseURL(url, prt, NULL, NULL, server, NULL, dir);
@@ -2256,6 +2268,117 @@ nfi_xpn_server_write_KO:
        }
 
        return req.ret;
+   }
+
+
+
+
+
+
+
+
+
+
+   int nfi_xpn_server_preload(struct nfi_server *serv, char *url, char *virtual_path, char *storage_path, int opt)
+   {
+/* TODO:
+     //char dir[PATH_MAX];
+     int ret;
+     struct nfi_xpn_server_server *server_aux;
+     struct st_xpn_server_msg msg;
+
+     DEBUG_BEGIN();
+
+     // Check arguments...
+     NULL_RET_ERR(serv, XPN_SERVERERR_PARAM) ;
+     NULL_RET_ERR(url,  XPN_SERVERERR_PARAM) ;
+     NULL_RET_ERR(virtual_path, XPN_SERVERERR_PARAM) ;
+     NULL_RET_ERR(storage_path, XPN_SERVERERR_PARAM) ;
+     nfi_xpn_server_keepConnected(serv) ;
+     NULL_RET_ERR(serv->private_info, XPN_SERVERERR_PARAM) ;
+
+     // get private_info...
+     server_aux = (struct nfi_xpn_server_server *) serv->private_info;
+     debug_info("[NFI-XPN] nfi_xpn_server_preload(ID=%s): begin %s - %s \n", server_aux->id, virtual_path, storage_path) ;
+
+     if (url[strlen(url)-1] == '/'){
+         xpn_server_err(XPN_SERVERERR_PARAM) ;
+         return -1;
+     }
+
+     server_aux = (struct nfi_xpn_server_server *) serv->private_info;
+     debug_info("[NFI-XPN] nfi_xpn_server_preload(ID=%s): preload %s in server %s.\n",server_aux->id,virtual_path,serv->server) ;
+
+     //bzero(&msg, sizeof(struct st_xpn_server_msg));
+
+     msg.type = XPN_SERVER_PRELOAD_FILE;
+     memccpy(msg.id, server_aux->id, 0, XPN_SERVER_ID-1) ;
+     memccpy(msg.u_st_xpn_server_msg.op_preload.virtual_path, virtual_path, 0, PATH_MAX-1) ;
+     memccpy(msg.u_st_xpn_server_msg.op_preload.storage_path, storage_path, 0, PATH_MAX-1) ;
+     msg.u_st_xpn_server_msg.op_preload.block_size = serv->block_size;
+     msg.u_st_xpn_server_msg.op_preload.opt        = opt;
+
+     nfi_xpn_server_doRequest(server_aux, &msg, (char *)&ret, sizeof(int)) ;
+
+     debug_info("[NFI-XPN] nfi_xpn_server_preload(ID=%s): end %s - %s = %d\n", server_aux->id,virtual_path, storage_path, ret) ;
+     if (ret < 0) {
+       printf("[NFI-XPN] Error en el preload\n") ;
+     }
+
+     DEBUG_END();
+
+     return ret;
+*/
+
+     return 0;
+   }
+
+
+   int nfi_xpn_server_flush ( struct nfi_server *serv,  char *url, char *virtual_path, char *storage_path, int opt )
+   {
+/* TODO:
+     //char dir[PATH_MAX];
+     int ret;
+     struct nfi_xpn_server_server *server_aux;
+     struct st_xpn_server_msg msg;
+
+     DEBUG_BEGIN();
+
+     // Check arguments...
+     NULL_RET_ERR(serv, XPN_SERVERERR_PARAM) ;
+     NULL_RET_ERR(url,  XPN_SERVERERR_PARAM) ;
+     NULL_RET_ERR(virtual_path, XPN_SERVERERR_PARAM) ;
+     NULL_RET_ERR(storage_path, XPN_SERVERERR_PARAM) ;
+     nfi_xpn_server_keepConnected(serv) ;
+     NULL_RET_ERR(serv->private_info, XPN_SERVERERR_PARAM) ;
+
+     // private_info...
+     server_aux = (struct nfi_xpn_server_server *) serv->private_info;
+     debug_info("[NFI-XPN] nfi_xpn_server_flush(ID=%s): begin %s - %s \n", server_aux->id,virtual_path, storage_path) ;
+
+     if (url[strlen(url)-1] == '/') {
+       xpn_server_err(XPN_SERVERERR_PARAM) ;
+       return -1;
+     }
+
+     server_aux = (struct nfi_xpn_server_server *) serv->private_info;
+     debug_info("[NFI-XPN] nfi_xpn_server_flush(ID=%s): open %s in server %s.\n",server_aux->id,virtual_path,serv->server) ;
+
+     //bzero(&msg, sizeof(struct st_xpn_server_msg));
+
+     msg.type = XPN_SERVER_FLUSH_FILE;
+     memccpy(msg.id, server_aux->id, 0, XPN_SERVER_ID-1) ;
+     memccpy(msg.u_st_xpn_server_msg.op_flush.virtual_path, virtual_path, 0, PATH_MAX-1) ;
+     memccpy(msg.u_st_xpn_server_msg.op_flush.storage_path, storage_path, 0, PATH_MAX-1) ;
+     msg.u_st_xpn_server_msg.op_flush.block_size = serv->block_size;
+     msg.u_st_xpn_server_msg.op_flush.opt = opt;
+
+     nfi_xpn_server_doRequest(server_aux, &msg, (char *)&ret, sizeof(int)) ;
+
+     DEBUG_END();
+*/
+
+     return 0;
    }
 
 

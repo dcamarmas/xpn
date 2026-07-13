@@ -94,34 +94,36 @@
 
   /* ... Functions / Funciones ......................................... */
 
-  int     nfi_xpn_server_init       ( char *url, struct nfi_server *serv, int server_type );
-  int     nfi_xpn_server_destroy    ( struct nfi_server *server );
+  int     nfi_xpn_server_init        ( char *url, struct nfi_server *serv, int server_type );
+  int     nfi_xpn_server_destroy     ( struct nfi_server *server );
 
-  int     nfi_xpn_server_connect    ( struct nfi_server *server, char *url, char* prt, char* serv, char* dir );
-  int     nfi_xpn_server_reconnect  ( struct nfi_server *server );
-  int     nfi_xpn_server_disconnect ( struct nfi_server *server );
+  int     nfi_xpn_server_connect     ( struct nfi_server *server, char *url, char* prt, char* serv, char* dir );
+  int     nfi_xpn_server_reconnect   ( struct nfi_server *server );
+  int     nfi_xpn_server_disconnect  ( struct nfi_server *server );
 
-  int     nfi_xpn_server_create     ( struct nfi_server *server, char *url, mode_t mode, struct nfi_attr *attr, struct nfi_fhandle  *fh );
-  int     nfi_xpn_server_open       ( struct nfi_server *server, char *url, int flags, mode_t mode, struct nfi_fhandle *fho );
-  ssize_t nfi_xpn_server_read       ( struct nfi_server *server, struct nfi_fhandle *fh, void *buffer, off_t offset, size_t size );
-  ssize_t nfi_xpn_server_write      ( struct nfi_server *server, struct nfi_fhandle *fh, void *buffer, off_t offset, size_t size );
-  int     nfi_xpn_server_close      ( struct nfi_server *server, struct nfi_fhandle *fh );
-  int     nfi_xpn_server_remove     ( struct nfi_server *server, char *url );
-  int     nfi_xpn_server_rename     ( struct nfi_server *server, char *old_url, char *new_url );
+  int     nfi_xpn_server_create      ( struct nfi_server *server, char *url, mode_t mode, struct nfi_attr *attr, struct nfi_fhandle  *fh );
+  int     nfi_xpn_server_open        ( struct nfi_server *server, char *url, int flags, mode_t mode, struct nfi_fhandle *fho );
+  ssize_t nfi_xpn_server_read        ( struct nfi_server *server, struct nfi_fhandle *fh, void *buffer, off_t offset, size_t size );
+  ssize_t nfi_xpn_server_write       ( struct nfi_server *server, struct nfi_fhandle *fh, void *buffer, off_t offset, size_t size );
+  int     nfi_xpn_server_close       ( struct nfi_server *server, struct nfi_fhandle *fh );
+  int     nfi_xpn_server_remove      ( struct nfi_server *server, char *url );
+  int     nfi_xpn_server_rename      ( struct nfi_server *server, char *old_url, char *new_url );
 
-  int     nfi_xpn_server_getattr    ( struct nfi_server *server, struct nfi_fhandle *fh, struct nfi_attr *attr );
-  int     nfi_xpn_server_setattr    ( struct nfi_server *server, struct nfi_fhandle *fh, struct nfi_attr *attr );
+  int     nfi_xpn_server_getattr     ( struct nfi_server *server, struct nfi_fhandle *fh, struct nfi_attr *attr );
+  int     nfi_xpn_server_setattr     ( struct nfi_server *server, struct nfi_fhandle *fh, struct nfi_attr *attr );
 
-  int     nfi_xpn_server_mkdir      ( struct nfi_server *server, char *url, mode_t mode, struct nfi_attr *attr, struct nfi_fhandle *fh );
-  int     nfi_xpn_server_opendir    ( struct nfi_server *server, char *url, struct nfi_fhandle *fho );
-  int     nfi_xpn_server_readdir    ( struct nfi_server *server, struct nfi_fhandle *fhd, struct dirent *entry );
-  int     nfi_xpn_server_closedir   ( struct nfi_server *server, struct nfi_fhandle *fhd );
-  int     nfi_xpn_server_rmdir      ( struct nfi_server *server, char *url );
+  int     nfi_xpn_server_mkdir       ( struct nfi_server *server, char *url, mode_t mode, struct nfi_attr *attr, struct nfi_fhandle *fh );
+  int     nfi_xpn_server_opendir     ( struct nfi_server *server, char *url, struct nfi_fhandle *fho );
+  int     nfi_xpn_server_readdir     ( struct nfi_server *server, struct nfi_fhandle *fhd, struct dirent *entry );
+  int     nfi_xpn_server_closedir    ( struct nfi_server *server, struct nfi_fhandle *fhd );
+  int     nfi_xpn_server_rmdir       ( struct nfi_server *server, char *url );
 
-  int     nfi_xpn_server_statfs     ( struct nfi_server *server, struct nfi_info *inf );
+  int     nfi_xpn_server_statfs      ( struct nfi_server *server, struct nfi_info *inf );
+  int     nfi_xpn_server_preload     ( struct nfi_server *server, char *url, char *virtual_path, char *storage_path, int opt );
+  int     nfi_xpn_server_flush       ( struct nfi_server *server, char *url, char *virtual_path, char *storage_path, int opt );
 
-  int     nfi_xpn_server_read_mdata      ( struct nfi_server *serv, char *url, struct xpn_metadata *mdata );
-  int     nfi_xpn_server_write_mdata     ( struct nfi_server *serv, char *url, struct xpn_metadata *mdata, int only_file_size );
+  int     nfi_xpn_server_read_mdata  ( struct nfi_server *server, char *url, struct xpn_metadata *mdata );
+  int     nfi_xpn_server_write_mdata ( struct nfi_server *server, char *url, struct xpn_metadata *mdata, int only_file_size );
 
   /* ................................................................... */
 
