@@ -195,18 +195,18 @@
            struct    st_xpn_server_status status;
        };
 
-       struct st_xpn_server_flush
+       struct st_xpn_server_preload
        {
-           char storage_path[PATH_MAX];
            char virtual_path[PATH_MAX];
+           char storage_path[PATH_MAX];
            int block_size;
            char opt;
        };
 
-       struct st_xpn_server_preload
+       struct st_xpn_server_flush
        {
-           char storage_path[PATH_MAX];
            char virtual_path[PATH_MAX];
+           char storage_path[PATH_MAX];
            int block_size;
            char opt;
        };
