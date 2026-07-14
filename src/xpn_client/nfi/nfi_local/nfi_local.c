@@ -1045,17 +1045,17 @@ int nfi_local_statfs ( __attribute__((__unused__)) struct nfi_server *serv, __at
 
 
 
-int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage_url )
+int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage_path )
 {
   int  ret;
-  char virtual_path[PATH_MAX], storage_path[PATH_MAX];
+  char virtual_path[PATH_MAX];
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_preload] >> Begin\n", serv->id);
 
   // Check arguments...
   NULL_RET_ERR(serv,         EINVAL);
   NULL_RET_ERR(virtual_url,  EINVAL);
-  NULL_RET_ERR(storage_url,  EINVAL);
+  NULL_RET_ERR(storage_path,  EINVAL);
   nfi_local_keep_connected(serv);
   NULL_RET_ERR(serv->private_info, EINVAL);
 
@@ -1070,16 +1070,6 @@ int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_preload] ParseURL(%s)= %s\n", serv->id, virtual_url, virtual_path);
 
-  ret = ParseURL(storage_url, NULL, NULL, NULL, NULL, NULL, storage_path);
-  if (ret < 0)
-  {
-    printf("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_preload] ERROR: incorrect url '%s'.\n", serv->id, storage_url);
-    errno = EINVAL;
-    return -1;
-  }
-
-  debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_preload] ParseURL(%s)= %s\n", serv->id, storage_path, storage_path);
-
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_preload] nfi_local_preload(%s,%s)\n", serv->id, virtual_path, storage_path);
 
   // <TODO>
@@ -1093,17 +1083,17 @@ int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage
   return ret;
 }
 
-int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_url )
+int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_path )
 {
   int  ret;
-  char virtual_path[PATH_MAX], storage_path[PATH_MAX];
+  char virtual_path[PATH_MAX];
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_flush] >> Begin\n", serv->id);
 
   // Check arguments...
   NULL_RET_ERR(serv,         EINVAL);
   NULL_RET_ERR(virtual_url,  EINVAL);
-  NULL_RET_ERR(storage_url,  EINVAL);
+  NULL_RET_ERR(storage_path,  EINVAL);
   nfi_local_keep_connected(serv);
   NULL_RET_ERR(serv->private_info, EINVAL);
 
@@ -1117,16 +1107,6 @@ int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_u
   }
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_flush] ParseURL(%s)= %s\n", serv->id, virtual_url, virtual_path);
-
-  ret = ParseURL(storage_url, NULL, NULL, NULL, NULL, NULL, storage_path);
-  if (ret < 0)
-  {
-    printf("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_flush] ERROR: incorrect url '%s'.\n", serv->id, storage_url);
-    errno = EINVAL;
-    return -1;
-  }
-
-  debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_flush] ParseURL(%s)= %s\n", serv->id, storage_path, storage_path);
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_flush] nfi_local_flush(%s,%s)\n", serv->id, virtual_path, storage_path);
 

@@ -2270,10 +2270,10 @@ nfi_xpn_server_write_KO:
        return req.ret;
     }
 
-    int nfi_xpn_server_preload ( struct nfi_server * serv, char * virtual_url, char * storage_url )
+    int nfi_xpn_server_preload ( struct nfi_server * serv, char * virtual_url, char * storage_path )
     {
        int ret;
-       char server[PATH_MAX], virtual_path[PATH_MAX], storage_path[PATH_MAX];
+       char server[PATH_MAX], virtual_path[PATH_MAX];
        struct nfi_xpn_server * server_aux;
        struct st_xpn_server_msg msg;
        struct st_xpn_server_status status;
@@ -2281,7 +2281,7 @@ nfi_xpn_server_write_KO:
        // Check arguments...
        NULL_RET_ERR(serv, EINVAL);
        NULL_RET_ERR(virtual_url, EINVAL);
-       NULL_RET_ERR(storage_url, EINVAL);
+       NULL_RET_ERR(storage_path, EINVAL);
        nfi_xpn_server_keep_connected(serv);
        NULL_RET_ERR(serv->private_info, EINVAL);
 
@@ -2314,19 +2314,6 @@ nfi_xpn_server_write_KO:
 
        debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ParseURL(%s)= %s; %s\n", serv->id, virtual_url, server, virtual_path);
 
-       // from url->server + dir
-       ret = ParseURL(storage_url, NULL, NULL, NULL, NULL, NULL, storage_path);
-       if (ret < 0)
-       {
-           errno = EINVAL;
-           printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ERROR: incorrect url '%s'.\n", serv->id, storage_url);
-           if (serv->keep_connected == 0) {
-               nfi_xpn_server_disconnect(serv);
-           }
-           return -1;
-       }
-
-       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ParseURL(%s)= %s; %s\n", serv->id, storage_path, server, storage_path);
        debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s,%s)\n", serv->id, virtual_path, storage_path);
 
        msg.u_st_xpn_server_msg.op_preload.block_size = serv->block_size;
@@ -2404,10 +2391,10 @@ nfi_xpn_server_write_KO:
        return ret;
     }
 
-    int nfi_xpn_server_flush ( struct nfi_server * serv, char * virtual_url, char * storage_url )
+    int nfi_xpn_server_flush ( struct nfi_server * serv, char * virtual_url, char * storage_path )
     {
        int ret;
-       char server[PATH_MAX], virtual_path[PATH_MAX], storage_path[PATH_MAX];
+       char server[PATH_MAX], virtual_path[PATH_MAX];
        struct nfi_xpn_server * server_aux;
        struct st_xpn_server_msg msg;
        struct st_xpn_server_status status;
@@ -2415,7 +2402,7 @@ nfi_xpn_server_write_KO:
        // Check arguments...
        NULL_RET_ERR(serv, EINVAL);
        NULL_RET_ERR(virtual_url, EINVAL);
-       NULL_RET_ERR(storage_url, EINVAL);
+       NULL_RET_ERR(storage_path, EINVAL);
        nfi_xpn_server_keep_connected(serv);
        NULL_RET_ERR(serv->private_info, EINVAL);
 
@@ -2448,19 +2435,6 @@ nfi_xpn_server_write_KO:
 
        debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ParseURL(%s)= %s; %s\n", serv->id, virtual_url, server, virtual_path);
 
-       // from url->server + dir
-       ret = ParseURL(storage_url, NULL, NULL, NULL, NULL, NULL, storage_path);
-       if (ret < 0)
-       {
-           errno = EINVAL;
-           printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ERROR: incorrect url '%s'.\n", serv->id, storage_url);
-           if (serv->keep_connected == 0) {
-               nfi_xpn_server_disconnect(serv);
-           }
-           return -1;
-       }
-
-       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ParseURL(%s)= %s; %s\n", serv->id, storage_path, server, storage_path);
        debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s,%s)\n", serv->id, virtual_path, storage_path);
 
        msg.u_st_xpn_server_msg.op_flush.block_size = serv->block_size;
