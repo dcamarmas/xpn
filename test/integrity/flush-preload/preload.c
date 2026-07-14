@@ -1,14 +1,15 @@
 
 #include <sys/param.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/file.h>
 #include <sys/fcntl.h>
-//#include <sys/stat.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/errno.h>
-#include "expand.h"
+
+#include "xpn.h"
 
 #ifndef KB
 #define KB 1024
@@ -39,13 +40,15 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
-  if(xpn_preload(destino, origen) != 0){
-  	printf("Error en el xpn_preload()\n");
+  int ret = xpn_preload(destino, origen);
+
+  if(ret != 0){
+  	printf("Error en el xpn_preload()=%d\n", ret);
   }else{
  	printf("Ok...\n");
   }
   
-  xpn_destroy();
+  //xpn_destroy();
   exit(0);
 }
 

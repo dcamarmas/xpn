@@ -1090,7 +1090,7 @@ cleanup_xpn_server_op_write_mdata_file_size:
     void xpn_server_op_preload ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id )
     {
         //int ret;
-        struct st_xpn_server_status req;
+        struct st_xpn_server_status status;
 
         // check params...
         if ( (NULL == head) || (NULL == params) ) {
@@ -1118,20 +1118,20 @@ cleanup_xpn_server_op_write_mdata_file_size:
 
         // <TODO>
         printf("Preload server function. Blocksize: %d\n", block_size);
-        req.ret = 0;
-        req.server_errno = 0;
+        status.ret = 0;
+        status.server_errno = 0;
         // </TODO>
 
-        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_preload] << End - preload(%s, %s, %d) = %d\n", params->rank, full_virtual_path, full_storage_path, block_size, req.ret);
+        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_preload] << End - preload(%s, %s, %d) = %d\n", params->rank, full_virtual_path, full_storage_path, block_size, status.ret);
 
         // send back the status
-        xpn_server_comm_write_data(params->server_type, comm, (char * ) & req, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
+        xpn_server_comm_write_data(params->server_type, comm, (char * ) & status, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
     }
 
     void xpn_server_op_flush ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id )
     {
         //int ret;
-        struct st_xpn_server_status req;
+        struct st_xpn_server_status status;
 
         // check params...
         if ( (NULL == head) || (NULL == params) ) {
@@ -1159,14 +1159,14 @@ cleanup_xpn_server_op_write_mdata_file_size:
 
         // <TODO>
         printf("flush server function. Blocksize: %d\n", block_size);
-        req.ret = 0;
-        req.server_errno = 0;
+        status.ret = 0;
+        status.server_errno = 0;
         // </TODO>
 
-        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_flush] << End - flush(%s, %s, %d) = %d\n", params->rank, full_virtual_path, full_storage_path, block_size, req.ret);
+        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_flush] << End - flush(%s, %s, %d) = %d\n", params->rank, full_virtual_path, full_storage_path, block_size, status.ret);
 
         // send back the status
-        xpn_server_comm_write_data(params->server_type, comm, (char * ) & req, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
+        xpn_server_comm_write_data(params->server_type, comm, (char * ) & status, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
     }
 
 

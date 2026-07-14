@@ -2404,7 +2404,6 @@ nfi_xpn_server_write_KO:
        return ret;
     }
 
-
     int nfi_xpn_server_flush ( struct nfi_server * serv, char * virtual_url, char * storage_url )
     {
        int ret;

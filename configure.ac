@@ -333,6 +333,7 @@ AC_CONFIG_FILES([ \
       test/integrity/mpi_connect_accept/Makefile \
       test/integrity/bypass_c/Makefile \
       test/integrity/xpn_metadata/Makefile \
+      test/integrity/flush-preload/Makefile \
       test/performance/xpn/Makefile \
       test/performance/xpn-proxy/Makefile \
       test/performance/xpn-proxy_posix/Makefile \

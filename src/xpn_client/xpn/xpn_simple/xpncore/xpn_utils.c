@@ -97,8 +97,15 @@
              res = nfiworker_wait(servers[j].wrk);
          }
 
-         free(servers);
-         free(mdata);
+         if (servers != NULL)
+         {
+             free(servers);
+         }
+
+         if (mdata != NULL)
+         {
+             free(mdata);
+         }
 
          // error checking
          if (res)
@@ -185,8 +192,15 @@
              res = nfiworker_wait(servers[j].wrk);
          }
 
-         free(servers);
-         free(mdata);
+         if (servers != NULL)
+         {
+             free(servers);
+         }
+
+         if (mdata != NULL)
+         {
+             free(mdata);
+         }
 
          // error checking
          if (res)
