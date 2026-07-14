@@ -197,17 +197,21 @@
 
        struct st_xpn_server_preload
        {
-           char virtual_path[PATH_MAX];
-           char storage_path[PATH_MAX];
-           int block_size;
+           int  virtual_path_len;
+           int  storage_path_len;
+           int  block_size;
+           char virtual_path[XPN_PATH_MAX];
+           char storage_path[XPN_PATH_MAX];
            char opt;
        };
 
        struct st_xpn_server_flush
        {
-           char virtual_path[PATH_MAX];
-           char storage_path[PATH_MAX];
-           int block_size;
+           int  virtual_path_len;
+           int  storage_path_len;
+           int  block_size;
+           char virtual_path[XPN_PATH_MAX];
+           char storage_path[XPN_PATH_MAX];
            char opt;
        };
 
@@ -256,8 +260,8 @@
                struct st_xpn_server_close op_closedir;
                struct st_xpn_server_path op_rmdir;
 
-               struct st_xpn_server_flush op_flush;
                struct st_xpn_server_preload op_preload;
+               struct st_xpn_server_flush op_flush;
 
                struct st_xpn_server_path op_read_mdata;
                struct st_xpn_server_write_mdata op_write_mdata;

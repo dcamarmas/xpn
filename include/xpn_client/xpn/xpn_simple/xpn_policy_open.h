@@ -37,29 +37,6 @@
 
   #define XPN_META_SIZE (4*KB)
 
-  /* ... Data structures / Estructuras de datos ........................ */
-
-  enum xpn_work{
-    no_xpn_op       = -1,
-    op_xpn_getattr  =  0,
-    op_xpn_setattr  =  1,
-    op_xpn_open     =  2,
-    op_xpn_creat    =  3,
-    op_xpn_close    =  4,
-    op_xpn_remove   =  5,
-    op_xpn_rename   =  6,
-    op_xpn_read     =  7,
-    op_xpn_write    =  8,
-    op_xpn_mkdir    =  9,
-    op_xpn_rmdir    = 10,
-    op_xpn_opendir  = 11,
-    op_xpn_readdir  = 12,
-    op_xpn_closedir = 13,
-    op_xpn_statfs   = 14,
-    op_xpn_preload  = 15,
-    op_xpn_flush    = 16
-  };
-
 
   /* ... Functions / Funciones ......................................... */
 

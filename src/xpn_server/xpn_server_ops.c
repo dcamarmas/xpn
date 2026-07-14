@@ -52,6 +52,8 @@
     // FS Operations
     void xpn_server_op_getnodename ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id );
     void xpn_server_op_fstat       ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id ); // TODO
+    void xpn_server_op_preload     ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id );
+    void xpn_server_op_flush       ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id );
 
     // Metadata
     void xpn_server_op_read_mdata            ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id ) ;
@@ -185,6 +187,21 @@
              ret = xpn_server_comm_read_data(server_type, th->comm, (char * ) & (head.u_st_xpn_server_msg.op_write_mdata_file_size), sizeof(head.u_st_xpn_server_msg.op_write_mdata_file_size), th->rank_client_id, th->tag_client_id);
              if (ret != -1) {
                  xpn_server_op_write_mdata_file_size(th->params, th->comm, & head, th->rank_client_id, th->tag_client_id);
+             }
+             break;
+
+            // FS Operations
+        case XPN_SERVER_PRELOAD_FILE:
+             ret = xpn_server_comm_read_data(server_type, th->comm, (char * ) & (head.u_st_xpn_server_msg.op_preload), sizeof(head.u_st_xpn_server_msg.op_preload), th->rank_client_id, th->tag_client_id);
+             if (ret != -1) {
+                 xpn_server_op_preload(th->params, th->comm, & head, th->rank_client_id, th->tag_client_id);
+             }
+             break;
+
+        case XPN_SERVER_FLUSH_FILE:
+             ret = xpn_server_comm_read_data(server_type, th->comm, (char * ) & (head.u_st_xpn_server_msg.op_flush), sizeof(head.u_st_xpn_server_msg.op_flush), th->rank_client_id, th->tag_client_id);
+             if (ret != -1) {
+                 xpn_server_op_flush(th->params, th->comm, & head, th->rank_client_id, th->tag_client_id);
              }
              break;
 
@@ -850,7 +867,7 @@ cleanup_xpn_server_op_write:
         // do operation
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_closedir] >> Begin - closedir(%ld)\n", params->rank, head->u_st_xpn_server_msg.op_closedir.dir);
 
-	errno = 0;
+    errno = 0;
         status.ret = filesystem_closedir(head->u_st_xpn_server_msg.op_closedir.dir);
         status.server_errno = errno;
 
@@ -879,7 +896,7 @@ cleanup_xpn_server_op_write:
         // do operation
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_rmdir] >> Begin - rmdir(%s)\n", params->rank, full_path);
 
-	errno = 0;
+    errno = 0;
         status.ret = filesystem_rmdir(full_path);
         status.server_errno = errno;
 
@@ -900,7 +917,7 @@ cleanup_xpn_server_op_write:
         // do operation
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_rmdir_async] >> Begin - rmdir(%s)\n", params->rank, head->u_st_xpn_server_msg.op_rmdir.path);
 
-	errno = 0;
+    errno = 0;
         filesystem_rmdir(head->u_st_xpn_server_msg.op_rmdir.path);
         // TODO: full_path needed ???
 
@@ -927,7 +944,7 @@ cleanup_xpn_server_op_write:
         // do operation
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_read_mdata] >> Begin - read_mdata(%s)\n", params->rank, full_path);
 
-	errno = 0;
+    errno = 0;
         fd = filesystem_open(full_path, O_RDWR);
         if (fd < 0)
         {
@@ -979,7 +996,7 @@ cleanup_xpn_server_op_read_mdata:
         // do operation
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_write_mdata] >> Begin - write_mdata(%s)\n", params->rank, full_path);
 
-	errno = 0;
+    errno = 0;
         fd = filesystem_open2(full_path, O_WRONLY | O_CREAT, S_IRWXU);
         if (fd < 0)
         {
@@ -1033,7 +1050,7 @@ cleanup_xpn_server_op_write_mdata:
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] mutex lock\n", params->rank);
         pthread_mutex_lock( & op_write_mdata_file_size_mutex);
 
-	errno = 0;
+        errno = 0;
         fd = filesystem_open(full_path, O_RDWR);
         if (fd < 0)
         {
@@ -1065,6 +1082,105 @@ cleanup_xpn_server_op_write_mdata_file_size:
         req.server_errno = errno;
 
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_write_mdata_file_size] << End - write_mdata_file_size(%s, %ld)=%d\n", params->rank, head->u_st_xpn_server_msg.op_write_mdata_file_size.path, head->u_st_xpn_server_msg.op_write_mdata_file_size.size, req.ret);
+
+        // send back the status
+        xpn_server_comm_write_data(params->server_type, comm, (char * ) & req, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void xpn_server_op_preload ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id )
+    {
+        //int ret;
+        struct st_xpn_server_status req;
+
+        // check params...
+        if ( (NULL == head) || (NULL == params) ) {
+            printf("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_preload] ERROR: NULL arguments\n", -1);
+            return;
+        }
+
+        // read full-virtual-path
+        char  full_virtual_path[XPN_PATH_MAX];
+        int   virtual_path_len = head->u_st_xpn_server_msg.op_preload.virtual_path_len;
+        char *virtual_path_msg = head->u_st_xpn_server_msg.op_preload.virtual_path ;
+        xpn_server_read_path(params->server_type, comm, full_virtual_path, XPN_PATH_MAX, virtual_path_msg, virtual_path_len, rank_client_id, tag_client_id) ;
+
+        // read full-storage-path
+        char  full_storage_path[XPN_PATH_MAX];
+        int   storage_path_len = head->u_st_xpn_server_msg.op_preload.storage_path_len;
+        char *storage_path_msg = head->u_st_xpn_server_msg.op_preload.storage_path ;
+        xpn_server_read_path(params->server_type, comm, full_storage_path, XPN_PATH_MAX, storage_path_msg, storage_path_len, rank_client_id, tag_client_id) ;
+
+        // read blocksize
+        int block_size = head->u_st_xpn_server_msg.op_preload.block_size;
+
+        // do operation
+        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_preload] >> Begin - preload(%s, %s, %d)\n", params->rank, full_virtual_path, full_storage_path, block_size);
+
+        // <TODO>
+        printf("Preload server function. Blocksize: %d\n", block_size);
+        req.ret = 0;
+        req.server_errno = 0;
+        // </TODO>
+
+        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_preload] << End - preload(%s, %s, %d) = %d\n", params->rank, full_virtual_path, full_storage_path, block_size, req.ret);
+
+        // send back the status
+        xpn_server_comm_write_data(params->server_type, comm, (char * ) & req, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
+    }
+
+    void xpn_server_op_flush ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id )
+    {
+        //int ret;
+        struct st_xpn_server_status req;
+
+        // check params...
+        if ( (NULL == head) || (NULL == params) ) {
+            printf("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_flush] ERROR: NULL arguments\n", -1);
+            return;
+        }
+
+        // read full-virtual-path
+        char  full_virtual_path[XPN_PATH_MAX];
+        int   virtual_path_len = head->u_st_xpn_server_msg.op_flush.virtual_path_len;
+        char *virtual_path_msg = head->u_st_xpn_server_msg.op_flush.virtual_path ;
+        xpn_server_read_path(params->server_type, comm, full_virtual_path, XPN_PATH_MAX, virtual_path_msg, virtual_path_len, rank_client_id, tag_client_id) ;
+
+        // read full-storage-path
+        char  full_storage_path[XPN_PATH_MAX];
+        int   storage_path_len = head->u_st_xpn_server_msg.op_flush.storage_path_len;
+        char *storage_path_msg = head->u_st_xpn_server_msg.op_flush.storage_path ;
+        xpn_server_read_path(params->server_type, comm, full_storage_path, XPN_PATH_MAX, storage_path_msg, storage_path_len, rank_client_id, tag_client_id) ;
+
+        // read blocksize
+        int block_size = head->u_st_xpn_server_msg.op_flush.block_size;
+
+        // do operation
+        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_flush] >> Begin - flush(%s, %s, %d)\n", params->rank, full_virtual_path, full_storage_path, block_size);
+
+        // <TODO>
+        printf("flush server function. Blocksize: %d\n", block_size);
+        req.ret = 0;
+        req.server_errno = 0;
+        // </TODO>
+
+        debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_flush] << End - flush(%s, %s, %d) = %d\n", params->rank, full_virtual_path, full_storage_path, block_size, req.ret);
 
         // send back the status
         xpn_server_comm_write_data(params->server_type, comm, (char * ) & req, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
