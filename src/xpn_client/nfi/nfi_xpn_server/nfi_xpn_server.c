@@ -129,11 +129,11 @@
               break;
 
           //Utils API
-          case XPN_SERVER_PRELOAD_FILE:
+          case XPN_SERVER_PRELOAD:
               debug_info("[NFI_XPN] [nfi_preload_operation] PRELOAD operation\n");
               ret = nfi_xpn_server_comm_write_data(params, (char *) & (head->u_st_xpn_server_msg.op_preload), sizeof(head->u_st_xpn_server_msg.op_preload)) ;
               break;
-          case XPN_SERVER_FLUSH_FILE:
+          case XPN_SERVER_FLUSH:
               debug_info("[NFI_XPN] [nfi_flush_operation] FLUSH operation\n");
               ret = nfi_xpn_server_comm_write_data(params, (char *) & (head->u_st_xpn_server_msg.op_flush), sizeof(head->u_st_xpn_server_msg.op_flush)) ;
               break;
@@ -2268,165 +2268,276 @@ nfi_xpn_server_write_KO:
        }
 
        return req.ret;
-   }
+    }
+
+    int nfi_xpn_server_preload ( struct nfi_server * serv, char * virtual_url, char * storage_url )
+    {
+       int ret;
+       char server[PATH_MAX], virtual_path[PATH_MAX], storage_path[PATH_MAX];
+       struct nfi_xpn_server * server_aux;
+       struct st_xpn_server_msg msg;
+       struct st_xpn_server_status status;
+
+       // Check arguments...
+       NULL_RET_ERR(serv, EINVAL);
+       NULL_RET_ERR(virtual_url, EINVAL);
+       NULL_RET_ERR(storage_url, EINVAL);
+       nfi_xpn_server_keep_connected(serv);
+       NULL_RET_ERR(serv->private_info, EINVAL);
+
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] >> Begin\n", serv->id);
+
+       // private_info...
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] Get server private info\n", serv->id);
+
+       server_aux = (struct nfi_xpn_server * ) serv->private_info;
+       if (server_aux == NULL)
+       {
+           errno = EINVAL;
+           if (serv->keep_connected == 0) {
+               nfi_xpn_server_disconnect(serv);
+           }
+           return -1;
+       }
+
+       // from url->server + dir
+       ret = ParseURL(virtual_url, NULL, NULL, NULL, server, NULL, virtual_path);
+       if (ret < 0)
+       {
+           errno = EINVAL;
+           printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ERROR: incorrect url '%s'.\n", serv->id, virtual_url);
+           if (serv->keep_connected == 0) {
+               nfi_xpn_server_disconnect(serv);
+           }
+           return -1;
+       }
+
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ParseURL(%s)= %s; %s\n", serv->id, virtual_url, server, virtual_path);
+
+       // from url->server + dir
+       ret = ParseURL(storage_url, NULL, NULL, NULL, NULL, NULL, storage_path);
+       if (ret < 0)
+       {
+           errno = EINVAL;
+           printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ERROR: incorrect url '%s'.\n", serv->id, storage_url);
+           if (serv->keep_connected == 0) {
+               nfi_xpn_server_disconnect(serv);
+           }
+           return -1;
+       }
+
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ParseURL(%s)= %s; %s\n", serv->id, storage_path, server, storage_path);
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s,%s)\n", serv->id, virtual_path, storage_path);
+
+       msg.u_st_xpn_server_msg.op_preload.block_size = serv->block_size;
+
+       int virtual_path_len = strlen(virtual_path);
+       msg.u_st_xpn_server_msg.op_preload.virtual_path_len = virtual_path_len;
+       bzero(msg.u_st_xpn_server_msg.op_preload.virtual_path, XPN_PATH_MAX);
+
+       int storage_path_len = strlen(storage_path);
+       msg.u_st_xpn_server_msg.op_preload.storage_path_len = storage_path_len;
+       bzero(msg.u_st_xpn_server_msg.op_preload.storage_path, XPN_PATH_MAX);
+
+       if (virtual_path_len < XPN_PATH_MAX)
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_preload.virtual_path, virtual_path, 0, virtual_path_len);
+       }
+       else
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_preload.virtual_path, virtual_path, 0, XPN_PATH_MAX);
+       }
+
+       if (storage_path_len < XPN_PATH_MAX)
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_preload.storage_path, storage_path, 0, storage_path_len);
+       }
+       else
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_preload.storage_path, storage_path, 0, XPN_PATH_MAX);
+       }
+
+       msg.type = XPN_SERVER_PRELOAD;
+
+       if (virtual_path_len >= XPN_PATH_MAX || storage_path_len >= XPN_PATH_MAX)
+       {
+           ret = nfi_write_operation(server_aux, & msg);
+           if (ret < 0) {
+               return -1;
+           }
+
+           if (virtual_path_len >= XPN_PATH_MAX)
+           {
+                if (nfi_xpn_server_comm_write_data(server_aux, virtual_path + XPN_PATH_MAX, virtual_path_len - XPN_PATH_MAX) < 0 ) {
+                   return -1;
+                }
+           }
+
+           if (storage_path_len >= XPN_PATH_MAX)
+           {
+                if (nfi_xpn_server_comm_write_data(server_aux, storage_path + XPN_PATH_MAX, storage_path_len - XPN_PATH_MAX) < 0 ) {
+                   return -1;
+                }
+           }
+
+           ret = nfi_xpn_server_comm_read_data(server_aux, (char * ) & (status), sizeof(struct st_xpn_server_status));
+           if (ret < 0) {
+               return -1;
+           }
+       }
+       else
+       {
+           nfi_xpn_server_do_request(server_aux, & msg, (char * ) & (status), sizeof(struct st_xpn_server_status));
+       }
+
+       if (status.ret < 0) {
+           errno = status.server_errno;
+       }
+
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s,%s)=%d\n", serv->id, virtual_path, storage_path, ret);
+       debug_info("[NFI_XPN] [nfi_xpn_server_preload] >> End\n");
+
+       if (serv->keep_connected == 0) {
+           nfi_xpn_server_disconnect(serv);
+       }
+
+       return ret;
+    }
 
 
+    int nfi_xpn_server_flush ( struct nfi_server * serv, char * virtual_url, char * storage_url )
+    {
+       int ret;
+       char server[PATH_MAX], virtual_path[PATH_MAX], storage_path[PATH_MAX];
+       struct nfi_xpn_server * server_aux;
+       struct st_xpn_server_msg msg;
+       struct st_xpn_server_status status;
 
+       // Check arguments...
+       NULL_RET_ERR(serv, EINVAL);
+       NULL_RET_ERR(virtual_url, EINVAL);
+       NULL_RET_ERR(storage_url, EINVAL);
+       nfi_xpn_server_keep_connected(serv);
+       NULL_RET_ERR(serv->private_info, EINVAL);
 
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] >> Begin\n", serv->id);
 
+       // private_info...
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] Get server private info\n", serv->id);
 
+       server_aux = (struct nfi_xpn_server * ) serv->private_info;
+       if (server_aux == NULL)
+       {
+           errno = EINVAL;
+           if (serv->keep_connected == 0) {
+               nfi_xpn_server_disconnect(serv);
+           }
+           return -1;
+       }
 
+       // from url->server + dir
+       ret = ParseURL(virtual_url, NULL, NULL, NULL, server, NULL, virtual_path);
+       if (ret < 0)
+       {
+           errno = EINVAL;
+           printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ERROR: incorrect url '%s'.\n", serv->id, virtual_url);
+           if (serv->keep_connected == 0) {
+               nfi_xpn_server_disconnect(serv);
+           }
+           return -1;
+       }
 
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ParseURL(%s)= %s; %s\n", serv->id, virtual_url, server, virtual_path);
 
+       // from url->server + dir
+       ret = ParseURL(storage_url, NULL, NULL, NULL, NULL, NULL, storage_path);
+       if (ret < 0)
+       {
+           errno = EINVAL;
+           printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ERROR: incorrect url '%s'.\n", serv->id, storage_url);
+           if (serv->keep_connected == 0) {
+               nfi_xpn_server_disconnect(serv);
+           }
+           return -1;
+       }
 
-   int nfi_xpn_server_preload(struct nfi_server *serv, char *url, char *virtual_path, char *storage_path, int opt)
-   {
-     int ret;
-     char dir[PATH_MAX], server[PATH_MAX], protocol[PATH_MAX];
-     struct nfi_xpn_server * server_aux;
-     struct st_xpn_server_msg msg;
-     struct st_xpn_server_status status;
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ParseURL(%s)= %s; %s\n", serv->id, storage_path, server, storage_path);
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s,%s)\n", serv->id, virtual_path, storage_path);
 
-     DEBUG_BEGIN();
+       msg.u_st_xpn_server_msg.op_flush.block_size = serv->block_size;
 
-     // Check arguments...
-     NULL_RET_ERR(serv, EINVAL);
-     NULL_RET_ERR(url,  EINVAL);
-     NULL_RET_ERR(virtual_path, EINVAL);
-     NULL_RET_ERR(storage_path, EINVAL);
-     nfi_xpn_server_keep_connected(serv);
-     NULL_RET_ERR(serv->private_info, EINVAL);
+       int virtual_path_len = strlen(virtual_path);
+       msg.u_st_xpn_server_msg.op_flush.virtual_path_len = virtual_path_len;
+       bzero(msg.u_st_xpn_server_msg.op_flush.virtual_path, XPN_PATH_MAX);
 
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] >> Begin\n", serv->id);
+       int storage_path_len = strlen(storage_path);
+       msg.u_st_xpn_server_msg.op_flush.storage_path_len = storage_path_len;
+       bzero(msg.u_st_xpn_server_msg.op_flush.storage_path, XPN_PATH_MAX);
 
-     // private_info...
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] Get server private info\n", serv->id);
+       if (virtual_path_len < XPN_PATH_MAX)
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_flush.virtual_path, virtual_path, 0, virtual_path_len);
+       }
+       else
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_flush.virtual_path, virtual_path, 0, XPN_PATH_MAX);
+       }
 
-     server_aux = (struct nfi_xpn_server * ) serv->private_info;
-     if (server_aux == NULL) {
-         errno = EINVAL;
-         printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ERROR: NULL serv->private_info.\n", serv->id);
-         goto nfi_xpn_server_preload_KO;
-     }
+       if (storage_path_len < XPN_PATH_MAX)
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_flush.storage_path, storage_path, 0, storage_path_len);
+       }
+       else
+       {
+           memccpy(msg.u_st_xpn_server_msg.op_flush.storage_path, storage_path, 0, XPN_PATH_MAX);
+       }
 
-     // from url->protocol + server + dir
-     ret = ParseURL(url, protocol, NULL, NULL, server, NULL, dir);
-     if (ret < 0) {
-         errno = EINVAL;
-         printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ERROR: incorrect url '%s'.\n", serv->id, url);
-         goto nfi_xpn_server_preload_KO;
-     }
+       msg.type = XPN_SERVER_FLUSH;
 
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ParseURL(%s)= %s; %s\n", serv->id, url, server, dir);
+       if (virtual_path_len >= XPN_PATH_MAX || storage_path_len >= XPN_PATH_MAX)
+       {
+           ret = nfi_write_operation(server_aux, & msg);
+           if (ret < 0) {
+               return -1;
+           }
 
+           if (virtual_path_len >= XPN_PATH_MAX)
+           {
+                if (nfi_xpn_server_comm_write_data(server_aux, virtual_path + XPN_PATH_MAX, virtual_path_len - XPN_PATH_MAX) < 0 ) {
+                   return -1;
+                }
+           }
 
-     int virtual_path_len = strlen(virtual_path);
-     int storage_path_len = strlen(storage_path);
+           if (storage_path_len >= XPN_PATH_MAX)
+           {
+                if (nfi_xpn_server_comm_write_data(server_aux, storage_path + XPN_PATH_MAX, storage_path_len - XPN_PATH_MAX) < 0 ) {
+                   return -1;
+                }
+           }
 
-     msg.type = XPN_SERVER_PRELOAD_FILE;
-     memccpy(msg.u_st_xpn_server_msg.op_preload.virtual_path, virtual_path, 0, virtual_path_len);
-     memccpy(msg.u_st_xpn_server_msg.op_preload.storage_path, storage_path, 0, storage_path_len);
-     msg.u_st_xpn_server_msg.op_preload.block_size = serv->block_size;
-     msg.u_st_xpn_server_msg.op_preload.opt        = opt;
+           ret = nfi_xpn_server_comm_read_data(server_aux, (char * ) & (status), sizeof(struct st_xpn_server_status));
+           if (ret < 0) {
+               return -1;
+           }
+       }
+       else
+       {
+           nfi_xpn_server_do_request(server_aux, & msg, (char * ) & (status), sizeof(struct st_xpn_server_status));
+       }
 
+       if (status.ret < 0) {
+           errno = status.server_errno;
+       }
 
-     nfi_xpn_server_do_request(server_aux, & msg, (char * ) & (status), sizeof(struct st_xpn_server_status));
-     if (status.ret < 0) {
-         errno = status.server_errno;
-         debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ERROR: preload fails '%s' in server %s.\n", serv->id, dir, serv->server);
-         goto nfi_xpn_server_preload_KO;
-     }
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s,%s)=%d\n", serv->id, virtual_path, storage_path, ret);
+       debug_info("[NFI_XPN] [nfi_xpn_server_flush] >> End\n");
 
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s)\n", serv->id, dir);
+       if (serv->keep_connected == 0) {
+           nfi_xpn_server_disconnect(serv);
+       }
 
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] >> End\n", serv->id);
-
-     if (serv->keep_connected == 0) {
-         nfi_xpn_server_disconnect(serv);
-     }
-     return 0;
-
-nfi_xpn_server_preload_KO:
-     if (serv->keep_connected == 0) {
-         nfi_xpn_server_disconnect(serv);
-     }
-     return -1;
-   }
-
-
-   int nfi_xpn_server_flush ( struct nfi_server *serv,  char *url, char *virtual_path, char *storage_path, int opt )
-   {
-     int ret;
-     char dir[PATH_MAX], server[PATH_MAX], protocol[PATH_MAX];
-     struct nfi_xpn_server * server_aux;
-     struct st_xpn_server_msg msg;
-     struct st_xpn_server_status status;
-
-     DEBUG_BEGIN();
-
-     // Check arguments...
-     NULL_RET_ERR(serv, EINVAL);
-     NULL_RET_ERR(url,  EINVAL);
-     NULL_RET_ERR(virtual_path, EINVAL);
-     NULL_RET_ERR(storage_path, EINVAL);
-     nfi_xpn_server_keep_connected(serv);
-     NULL_RET_ERR(serv->private_info, EINVAL);
-
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] >> Begin\n", serv->id);
-
-     // private_info...
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] Get server private info\n", serv->id);
-
-     server_aux = (struct nfi_xpn_server * ) serv->private_info;
-     if (server_aux == NULL) {
-         errno = EINVAL;
-         printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ERROR: NULL serv->private_info.\n", serv->id);
-         goto nfi_xpn_server_flush_KO;
-     }
-
-     // from url->protocol + server + dir
-     ret = ParseURL(url, protocol, NULL, NULL, server, NULL, dir);
-     if (ret < 0) {
-         errno = EINVAL;
-         printf("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ERROR: incorrect url '%s'.\n", serv->id, url);
-         goto nfi_xpn_server_flush_KO;
-     }
-
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ParseURL(%s)= %s; %s\n", serv->id, url, server, dir);
-
-
-     int virtual_path_len = strlen(virtual_path);
-     int storage_path_len = strlen(storage_path);
-
-     msg.type = XPN_SERVER_FLUSH_FILE;
-     memccpy(msg.u_st_xpn_server_msg.op_flush.virtual_path, virtual_path, 0, virtual_path_len);
-     memccpy(msg.u_st_xpn_server_msg.op_flush.storage_path, storage_path, 0, storage_path_len);
-     msg.u_st_xpn_server_msg.op_flush.block_size = serv->block_size;
-     msg.u_st_xpn_server_msg.op_flush.opt        = opt;
-
-
-     nfi_xpn_server_do_request(server_aux, & msg, (char * ) & (status), sizeof(struct st_xpn_server_status));
-     if (status.ret < 0) {
-         errno = status.server_errno;
-         debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ERROR: flush fails '%s' in server %s.\n", serv->id, dir, serv->server);
-         goto nfi_xpn_server_flush_KO;
-     }
-
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s)\n", serv->id, dir);
-
-     debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] >> End\n", serv->id);
-
-     if (serv->keep_connected == 0) {
-         nfi_xpn_server_disconnect(serv);
-     }
-     return 0;
-
-nfi_xpn_server_flush_KO:
-     if (serv->keep_connected == 0) {
-         nfi_xpn_server_disconnect(serv);
-     }
-     return -1;
-   }
+       return ret;
+    }
 
 
  /* ................................................................... */

@@ -64,8 +64,8 @@
 
        // FS Operations
        #define XPN_SERVER_STATFS_DIR       60
-       #define XPN_SERVER_PRELOAD_FILE     61
-       #define XPN_SERVER_FLUSH_FILE       62
+       #define XPN_SERVER_PRELOAD          61
+       #define XPN_SERVER_FLUSH            62
 
        // Metadata
        #define XPN_SERVER_READ_MDATA             70

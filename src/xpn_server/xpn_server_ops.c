@@ -191,14 +191,14 @@
              break;
 
             // FS Operations
-        case XPN_SERVER_PRELOAD_FILE:
+        case XPN_SERVER_PRELOAD:
              ret = xpn_server_comm_read_data(server_type, th->comm, (char * ) & (head.u_st_xpn_server_msg.op_preload), sizeof(head.u_st_xpn_server_msg.op_preload), th->rank_client_id, th->tag_client_id);
              if (ret != -1) {
                  xpn_server_op_preload(th->params, th->comm, & head, th->rank_client_id, th->tag_client_id);
              }
              break;
 
-        case XPN_SERVER_FLUSH_FILE:
+        case XPN_SERVER_FLUSH:
              ret = xpn_server_comm_read_data(server_type, th->comm, (char * ) & (head.u_st_xpn_server_msg.op_flush), sizeof(head.u_st_xpn_server_msg.op_flush), th->rank_client_id, th->tag_client_id);
              if (ret != -1) {
                  xpn_server_op_flush(th->params, th->comm, & head, th->rank_client_id, th->tag_client_id);
@@ -1086,23 +1086,6 @@ cleanup_xpn_server_op_write_mdata_file_size:
         // send back the status
         xpn_server_comm_write_data(params->server_type, comm, (char * ) & req, sizeof(struct st_xpn_server_status), rank_client_id, tag_client_id);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     void xpn_server_op_preload ( xpn_server_param_st * params, void * comm, struct st_xpn_server_msg * head, int rank_client_id, int tag_client_id )
     {

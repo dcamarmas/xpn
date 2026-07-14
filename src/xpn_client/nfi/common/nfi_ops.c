@@ -121,11 +121,11 @@ void nfi_do_operation (struct st_th th_arg)
       break;
     case op_preload:
       debug_info("[%s] nfi_worker_run(%lu)->nfi_preload\n", __FILE__, (unsigned long int) pthread_self());
-      ret = wrk->server->ops->nfi_preload(wrk->server, wrk->arg.url, wrk->arg.virtual_path, wrk->arg.storage_path, wrk->arg.opt);
+      ret = wrk->server->ops->nfi_preload(wrk->server, wrk->arg.virtual_path, wrk->arg.storage_path);
       break;
     case op_flush:
       debug_info("[%s] nfi_worker_run(%lu)->nfi_flush\n", __FILE__, (unsigned long int) pthread_self());
-      ret = wrk->server->ops->nfi_flush(wrk->server, wrk->arg.url, wrk->arg.virtual_path, wrk->arg.storage_path, wrk->arg.opt);
+      ret = wrk->server->ops->nfi_flush(wrk->server, wrk->arg.virtual_path, wrk->arg.storage_path);
       break;
 
     //Metadata
