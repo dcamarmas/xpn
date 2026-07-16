@@ -88,7 +88,7 @@
 
              // Worker
              servers[j].wrk->thread = servers[j].xpn_thread;
-             nfi_worker_do_preload(servers[j].wrk, url_serv, (char * ) url_serv, (char * )storage_path, 1);
+             nfi_worker_do_preload(servers[j].wrk, url_serv, (char * ) url_serv, (char * )storage_path, XpnSearchPart(pd)->block_size, XpnSearchPart(pd)->replication_level);
          }
 
          // (2/2) ... and Wait
@@ -183,7 +183,7 @@
 
              // Worker
              servers[j].wrk->thread = servers[j].xpn_thread;
-             nfi_worker_do_flush(servers[j].wrk, url_serv, (char * ) url_serv, (char * )storage_path, 1);
+             nfi_worker_do_flush(servers[j].wrk, url_serv, (char * ) url_serv, (char * )storage_path, XpnSearchPart(pd)->block_size, XpnSearchPart(pd)->replication_level);
          }
 
          // (2/2) ... and Wait

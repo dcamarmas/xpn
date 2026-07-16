@@ -2270,7 +2270,7 @@ nfi_xpn_server_write_KO:
        return req.ret;
     }
 
-    int nfi_xpn_server_preload ( struct nfi_server * serv, char * virtual_url, char * storage_path )
+    int nfi_xpn_server_preload ( struct nfi_server * serv, char * virtual_url, char * storage_path, int block_size, int replication_level )
     {
        int ret;
        char server[PATH_MAX], virtual_path[PATH_MAX];
@@ -2314,9 +2314,10 @@ nfi_xpn_server_write_KO:
 
        debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] ParseURL(%s)= %s; %s\n", serv->id, virtual_url, server, virtual_path);
 
-       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s,%s)\n", serv->id, virtual_path, storage_path);
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s,%s,%d,%d)\n", serv->id, virtual_path, storage_path, block_size, replication_level);
 
-       msg.u_st_xpn_server_msg.op_preload.block_size = serv->block_size;
+       msg.u_st_xpn_server_msg.op_preload.block_size = block_size;
+       msg.u_st_xpn_server_msg.op_preload.replication_level = replication_level;
 
        int virtual_path_len = strlen(virtual_path);
        msg.u_st_xpn_server_msg.op_preload.virtual_path_len = virtual_path_len;
@@ -2381,7 +2382,7 @@ nfi_xpn_server_write_KO:
            errno = status.server_errno;
        }
 
-       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s,%s)=%d\n", serv->id, virtual_path, storage_path, ret);
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_preload] nfi_xpn_server_preload(%s,%s,%d,%d)=%d\n", serv->id, virtual_path, storage_path, block_size, replication_level, ret);
        debug_info("[NFI_XPN] [nfi_xpn_server_preload] >> End\n");
 
        if (serv->keep_connected == 0) {
@@ -2391,7 +2392,7 @@ nfi_xpn_server_write_KO:
        return ret;
     }
 
-    int nfi_xpn_server_flush ( struct nfi_server * serv, char * virtual_url, char * storage_path )
+    int nfi_xpn_server_flush ( struct nfi_server * serv, char * virtual_url, char * storage_path, int block_size, int replication_level )
     {
        int ret;
        char server[PATH_MAX], virtual_path[PATH_MAX];
@@ -2435,9 +2436,10 @@ nfi_xpn_server_write_KO:
 
        debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] ParseURL(%s)= %s; %s\n", serv->id, virtual_url, server, virtual_path);
 
-       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s,%s)\n", serv->id, virtual_path, storage_path);
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s,%s,%d,%d)\n", serv->id, virtual_path, storage_path, block_size, replication_level);
 
-       msg.u_st_xpn_server_msg.op_flush.block_size = serv->block_size;
+       msg.u_st_xpn_server_msg.op_preload.block_size = block_size;
+       msg.u_st_xpn_server_msg.op_preload.replication_level = replication_level;
 
        int virtual_path_len = strlen(virtual_path);
        msg.u_st_xpn_server_msg.op_flush.virtual_path_len = virtual_path_len;
@@ -2502,7 +2504,7 @@ nfi_xpn_server_write_KO:
            errno = status.server_errno;
        }
 
-       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s,%s)=%d\n", serv->id, virtual_path, storage_path, ret);
+       debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_xpn_server_flush] nfi_xpn_server_flush(%s,%s,%d,%d)=%d\n", serv->id, virtual_path, storage_path, block_size, replication_level, ret);
        debug_info("[NFI_XPN] [nfi_xpn_server_flush] >> End\n");
 
        if (serv->keep_connected == 0) {

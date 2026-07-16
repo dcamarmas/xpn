@@ -200,6 +200,7 @@
            int  virtual_path_len;
            int  storage_path_len;
            int  block_size;
+           int  replication_level;
            char virtual_path[XPN_PATH_MAX];
            char storage_path[XPN_PATH_MAX];
            char opt;
@@ -210,6 +211,7 @@
            int  virtual_path_len;
            int  storage_path_len;
            int  block_size;
+           int  replication_level;
            char virtual_path[XPN_PATH_MAX];
            char storage_path[XPN_PATH_MAX];
            char opt;

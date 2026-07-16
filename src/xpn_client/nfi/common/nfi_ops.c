@@ -121,11 +121,11 @@ void nfi_do_operation (struct st_th th_arg)
       break;
     case op_preload:
       debug_info("[%s] nfi_worker_run(%lu)->nfi_preload\n", __FILE__, (unsigned long int) pthread_self());
-      ret = wrk->server->ops->nfi_preload(wrk->server, wrk->arg.virtual_path, wrk->arg.storage_path);
+      ret = wrk->server->ops->nfi_preload(wrk->server, wrk->arg.virtual_path, wrk->arg.storage_path, wrk->arg.block_size, wrk->arg.replication_level);
       break;
     case op_flush:
       debug_info("[%s] nfi_worker_run(%lu)->nfi_flush\n", __FILE__, (unsigned long int) pthread_self());
-      ret = wrk->server->ops->nfi_flush(wrk->server, wrk->arg.virtual_path, wrk->arg.storage_path);
+      ret = wrk->server->ops->nfi_flush(wrk->server, wrk->arg.virtual_path, wrk->arg.storage_path, wrk->arg.block_size, wrk->arg.replication_level);
       break;
 
     //Metadata
@@ -407,7 +407,7 @@ int nfi_worker_do_statfs (struct nfi_worker * wrk, struct nfi_info * inf)
   return 0;
 }
 
-int nfi_worker_do_preload(struct nfi_worker * wrk, char * url, char * virtual_path, char * storage_path, int opt) 
+int nfi_worker_do_preload(struct nfi_worker * wrk, char * url, char * virtual_path, char * storage_path, int block_size, int replication_level ) 
 {
     debug_info("[%s] %s (%lu) with_threads = %d\n", __FILE__, __FUNCTION__, (unsigned long int) pthread_self(), wrk->thread);
 
@@ -422,7 +422,8 @@ int nfi_worker_do_preload(struct nfi_worker * wrk, char * url, char * virtual_pa
     strcpy(wrk->arg.url, url);
     strcpy(wrk->arg.virtual_path, virtual_path);
     strcpy(wrk->arg.storage_path, storage_path);
-    wrk->arg.opt = opt;
+    wrk->arg.block_size = block_size;
+    wrk->arg.replication_level = replication_level;
 
     // Do operation
     nfiworker_launch(nfi_do_operation, wrk);
@@ -430,7 +431,7 @@ int nfi_worker_do_preload(struct nfi_worker * wrk, char * url, char * virtual_pa
     return 0;
 }
 
-int nfi_worker_do_flush(struct nfi_worker * wrk, char * url, char * virtual_path, char * storage_path, int opt) 
+int nfi_worker_do_flush(struct nfi_worker * wrk, char * url, char * virtual_path, char * storage_path, int block_size, int replication_level ) 
 {
     debug_info("[%s] %s (%lu) with_threads = %d\n", __FILE__, __FUNCTION__, (unsigned long int) pthread_self(), wrk->thread);
 
@@ -445,7 +446,8 @@ int nfi_worker_do_flush(struct nfi_worker * wrk, char * url, char * virtual_path
     strcpy(wrk->arg.url, url);
     strcpy(wrk->arg.virtual_path, virtual_path);
     strcpy(wrk->arg.storage_path, storage_path);
-    wrk->arg.opt = opt;
+    wrk->arg.block_size = block_size;
+    wrk->arg.replication_level = replication_level;
 
     // Do operation
     nfiworker_launch(nfi_do_operation, wrk);

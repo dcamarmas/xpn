@@ -119,8 +119,8 @@
   int     nfi_xpn_server_rmdir       ( struct nfi_server *server, char *url );
 
   int     nfi_xpn_server_statfs      ( struct nfi_server *server, struct nfi_info *inf );
-  int     nfi_xpn_server_preload     ( struct nfi_server * serv, char * virtual_url, char * storage_url );
-  int     nfi_xpn_server_flush       ( struct nfi_server * serv, char * virtual_url, char * storage_url );
+  int     nfi_xpn_server_preload     ( struct nfi_server * serv, char * virtual_url, char * storage_url, int block_size, int replication_level );
+  int     nfi_xpn_server_flush       ( struct nfi_server * serv, char * virtual_url, char * storage_url, int block_size, int replication_level );
 
   int     nfi_xpn_server_read_mdata  ( struct nfi_server *server, char *url, struct xpn_metadata *mdata );
   int     nfi_xpn_server_write_mdata ( struct nfi_server *server, char *url, struct xpn_metadata *mdata, int only_file_size );

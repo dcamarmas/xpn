@@ -51,12 +51,6 @@
      #define MIN(a,b) (((a)<(b))?(a):(b))
      #define HEADER_SIZE 8192
 
-     char command[4*1024];
-     char src_path [PATH_MAX+5];
-     char dest_path [PATH_MAX+5];
-
-     int xpn_path_len = 0;
-
 
   /* ... Functions / Funciones ......................................... */
 
@@ -72,6 +66,9 @@
     off_t offset_src;
     ssize_t read_size, write_size;
     struct stat st_src = {0};
+     char src_path [PATH_MAX+5];
+     char dest_path[PATH_MAX+5];
+     int xpn_path_len ;
 
     debug_info("entry %s is_file %d dir_name %s dest_prefix %s blocksize %d replication_level %d rank %d size %d \n",entry, is_file, dir_name, dest_prefix, blocksize, replication_level, rank, size);
 
@@ -116,6 +113,7 @@
     }
     else if (is_file)
     {
+      xpn_path_len = strlen(dest_prefix) ;
       int master_node = hash(&src_path[xpn_path_len], size, 1);
       if (rank == master_node)
       {
@@ -251,6 +249,7 @@
     char path_dst [PATH_MAX];
     int buff_coord = 1;
 
+    int xpn_path_len = strlen(dest_prefix) ;
     int master_node = hash(&dir_name[xpn_path_len], size, 1);
     if (rank == master_node)
     {
@@ -331,7 +330,7 @@
       int rank, size;
       int replication_level = 0;
       int blocksize = 524288;
-      double start_time;
+      double start_time, stop_time;
 
       //
       // Check arguments...
@@ -354,15 +353,18 @@
       MPI_Init(&argc, &argv);
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       MPI_Comm_size(MPI_COMM_WORLD, &size);
-      start_time = MPI_Wtime();
+
       if (rank == 0) {
           printf("Copying from %s to %s blocksize %d replication_level %d \n", argv[1], argv[2], blocksize, replication_level);
       }
-      xpn_path_len = strlen(argv[1]);
+
+      start_time = MPI_Wtime();
       list (argv[1], argv[2], blocksize, replication_level, rank, size);
       MPI_Barrier(MPI_COMM_WORLD);
+      stop_time = MPI_Wtime();
+
       if (rank == 0){
-          printf("Flush elapsed time %f mseg\n", (MPI_Wtime() - start_time)*1000);
+          printf("Flush elapsed time %f mseg\n", (stop_time - start_time)*1000);
       }
 
       MPI_Finalize();

@@ -1117,7 +1117,10 @@ cleanup_xpn_server_op_write_mdata_file_size:
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_preload] >> Begin - preload(%s, %s, %d)\n", params->rank, full_virtual_path, full_storage_path, block_size);
 
         // <TODO>
-        printf("Preload server function. Blocksize: %d\n", block_size);
+        printf("Preload server function\n");
+        printf("Storage path: %s\n", full_storage_path);
+        printf("Virtual path: %s\n", full_virtual_path);
+        printf("Block size: %d\n", block_size);
         status.ret = 0;
         status.server_errno = 0;
         // </TODO>
@@ -1158,7 +1161,10 @@ cleanup_xpn_server_op_write_mdata_file_size:
         debug_info("[Server=%d] [XPN_SERVER_OPS] [xpn_server_op_flush] >> Begin - flush(%s, %s, %d)\n", params->rank, full_virtual_path, full_storage_path, block_size);
 
         // <TODO>
-        printf("flush server function. Blocksize: %d\n", block_size);
+        printf("Flush server function\n");
+        printf("Storage path: %s\n", full_storage_path);
+        printf("Virtual path: %s\n", full_virtual_path);
+        printf("Block size: %d\n", block_size);
         status.ret = 0;
         status.server_errno = 0;
         // </TODO>

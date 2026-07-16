@@ -88,8 +88,8 @@
   int     nfi_local_rmdir      ( struct nfi_server *server, char *url );
 
   int     nfi_local_statfs     ( struct nfi_server *server, struct nfi_info *inf );
-  int     nfi_local_preload    ( struct nfi_server *server, char *virtual_url, char *storage_url );
-  int     nfi_local_flush      ( struct nfi_server *server, char *virtual_url, char *storage_url );
+  int     nfi_local_preload    ( struct nfi_server *serv, char *virtual_url, char *storage_path, int block_size, int replication_level );
+  int     nfi_local_flush      ( struct nfi_server *serv, char *virtual_url, char *storage_path, int block_size, int replication_level );
 
   int     nfi_local_read_mdata   ( struct nfi_server *server, char *url, struct xpn_metadata *mdata );
   int     nfi_local_write_mdata  ( struct nfi_server *server, char *url, struct xpn_metadata *mdata, int only_file_size );

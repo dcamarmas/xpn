@@ -150,8 +150,8 @@
     int     (*nfi_statfs)      (struct nfi_server *serv, struct nfi_info *inf);
     int     (*nfi_read_mdata)  (struct nfi_server *serv, char *url, struct xpn_metadata *mdata);
     int     (*nfi_write_mdata) (struct nfi_server *serv, char *url, struct xpn_metadata *mdata, int only_file_size);
-    int     (*nfi_preload)     (struct nfi_server * serv, char * virtual_url, char * storage_url);
-    int     (*nfi_flush)       (struct nfi_server * serv, char * virtual_url, char * storage_url);
+    int     (*nfi_preload)     (struct nfi_server *serv, char * virtual_url, char * storage_url, int block_size, int replication_level );
+    int     (*nfi_flush)       (struct nfi_server *serv, char * virtual_url, char * storage_url, int block_size, int replication_level );
   };
 
 

@@ -85,8 +85,8 @@
      int nfi_worker_do_rmdir    ( struct nfi_worker *wrk, char *url );
 
      int nfi_worker_do_statfs   ( struct nfi_worker *wrk, struct nfi_info *inf );
-     int nfi_worker_do_preload  ( struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path,int opt );
-     int nfi_worker_do_flush    ( struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path,int opt );
+     int nfi_worker_do_preload  ( struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path, int block_size, int replication_level );
+     int nfi_worker_do_flush    ( struct nfi_worker *wrk, char *url, char *virtual_path,char *storage_path, int block_size, int replication_level );
 
      int nfi_worker_do_read_mdata   ( struct nfi_worker *wrk, char *url, struct xpn_metadata *mdata );
      int nfi_worker_do_write_mdata  ( struct nfi_worker *wrk, char *url, struct xpn_metadata *mdata, int only_file_size );

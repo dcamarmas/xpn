@@ -48,19 +48,17 @@
      #define _FILE_OFFSET_BITS 64
      #endif
 
+     #ifndef MIN
      #define MIN(a,b) (((a)<(b))?(a):(b))
+     #endif
+
+     #ifndef HEADER_SIZE
      #define HEADER_SIZE 8192
-
-     char command[4*1024];
-     char src_path [PATH_MAX+5];
-     char dest_path [PATH_MAX+5];
-
-     int xpn_path_len = 0;
+     #endif
 
 
   /* ... Functions / Funciones ......................................... */
 
-#if defined(HAVE_MPI_H)
   int copy(char * entry, int is_file, char * dir_name, char * dest_prefix, int blocksize, int replication_level, int rank, int size)
   {  
     int  ret;
@@ -75,6 +73,8 @@
     int i;
     ssize_t read_size, write_size;
     struct stat st;
+    char src_path [PATH_MAX+5];
+    char dest_path[PATH_MAX+5];
 
     debug_info("entry %s is_file %d dir_name %s dest_prefix %s blocksize %d replication_level %d rank %d size %d \n",entry, is_file, dir_name, dest_prefix, blocksize, replication_level, rank, size);
 
@@ -186,6 +186,7 @@ finish_copy:
       mdata.file_size = st.st_size;
       // Write mdata only when necesary
       int write_mdata = 0;
+      int xpn_path_len = strlen(dest_prefix);
       int master_dir = hash(&dest_path[xpn_path_len], size, 0);
       int has_master_dir = 0;
       int aux_serv;
@@ -227,7 +228,6 @@ finish_copy:
     free(buf);
     return 0;
   }
-
 
   int list (char * dir_name, char * dest_prefix, int blocksize, int replication_level, int rank, int size)
   {
@@ -286,7 +286,6 @@ finish_copy:
 
     return 0;
   }
-#endif
 
 #if defined (HAVE_MPI_H)
   int main(int argc, char *argv[])
@@ -294,7 +293,7 @@ finish_copy:
     int rank, size;
     int replication_level = 0;
     int blocksize = 524288;
-    double start_time;
+    double start_time, stop_time;
 
     //
     // Check arguments...
@@ -317,16 +316,20 @@ finish_copy:
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    start_time = MPI_Wtime();
+
     if (rank == 0){
         printf("Copying from %s to %s blocksize %d replication_level %d \n", argv[1], argv[2], blocksize, replication_level);
     }
-    xpn_path_len = strlen(argv[2]);
+
+    start_time = MPI_Wtime();
     list (argv[1], argv[2], blocksize, replication_level, rank, size);
     MPI_Barrier(MPI_COMM_WORLD);
+    stop_time = MPI_Wtime();
+
     if (rank == 0){
-        printf("Preload elapsed time %f mseg\n", (MPI_Wtime() - start_time)*1000);
+        printf("Preload elapsed time %f mseg\n", (stop_time - start_time)*1000);
     }
+
     MPI_Finalize();
     return 0;
   }

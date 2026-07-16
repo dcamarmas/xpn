@@ -1037,15 +1037,7 @@ int nfi_local_statfs ( __attribute__((__unused__)) struct nfi_server *serv, __at
   return 0;
 }
 
-
-
-
-
-
-
-
-
-int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage_path )
+int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage_path, int block_size, int replication_level )
 {
   int  ret;
   char virtual_path[PATH_MAX];
@@ -1074,6 +1066,10 @@ int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage
 
   // <TODO>
   printf("Preload function\n");
+  printf("Storage path: %s\n", storage_path);
+  printf("Virtual path: %s\n", virtual_path);
+  printf("block_size: %d\n", block_size);
+  printf("Replication level: %d\n", replication_level);
   ret = 0;
   // </TODO>
 
@@ -1083,7 +1079,7 @@ int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage
   return ret;
 }
 
-int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_path )
+int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_path, int block_size, int replication_level )
 {
   int  ret;
   char virtual_path[PATH_MAX];
@@ -1111,7 +1107,11 @@ int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_p
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_flush] nfi_local_flush(%s,%s)\n", serv->id, virtual_path, storage_path);
 
   // <TODO>
-  printf("flush function\n");
+  printf("Flush function\n");
+  printf("Storage path: %s\n", storage_path);
+  printf("Virtual path: %s\n", virtual_path);
+  printf("block_size: %d\n", block_size);
+  printf("Replication level: %d\n", replication_level);
   ret = 0;
   // </TODO>
 

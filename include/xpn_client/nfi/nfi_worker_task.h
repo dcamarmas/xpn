@@ -63,6 +63,9 @@
        struct nfi_attr      * attr;
        int                    opt;
 
+       int    block_size;
+       int    replication_level;
+
        struct nfi_info      * inf;
 
        int                    n_io;
