@@ -1070,7 +1070,32 @@ int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage
   printf("Virtual path: %s\n", virtual_path);
   printf("block_size: %d\n", block_size);
   printf("Replication level: %d\n", replication_level);
-  ret = 0;
+
+  char    str_replication_level[1024];
+  sprintf(str_replication_level, "%d", replication_level);
+
+  int pid;
+  char *arguments[] = {"xpn.sh", 
+                        //"--numnodes", "$NHOST",
+                        //"--hostfile", "${HOSTFILE}",
+                        "--source_path", storage_path,
+                        "--xpn_storage_path", virtual_path,
+                        "--replication_level", str_replication_level,
+                        "preload", NULL };
+  
+  pid = fork();
+  switch(pid)
+  {
+      case -1: // error
+          perror ("fork:");
+          return -1;
+      case 0: // child
+          execvp(arguments[0], arguments);
+          perror ("execvp:");
+          break;
+      default: // father
+          while (wait(&ret) != pid);
+  }
   // </TODO>
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_preload] nfi_local_preload(%s,%s)=%d\n", serv->id, virtual_path, storage_path, ret);
@@ -1112,7 +1137,32 @@ int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_p
   printf("Virtual path: %s\n", virtual_path);
   printf("block_size: %d\n", block_size);
   printf("Replication level: %d\n", replication_level);
-  ret = 0;
+
+  char    str_replication_level[1024];
+  sprintf(str_replication_level, "%d", replication_level);
+
+  int pid;
+  char *arguments[] = {"xpn.sh", 
+                        //"--numnodes", "$NHOST",
+                        //"--hostfile", "${HOSTFILE}",
+                        "--destination_path", storage_path,
+                        "--xpn_storage_path", virtual_path,
+                        "--replication_level", str_replication_level,
+                        "flush", NULL };
+  
+  pid = fork();
+  switch(pid)
+  {
+      case -1: // error
+          perror ("fork:");
+          return -1;
+      case 0: // child
+          execvp(arguments[0], arguments);
+          perror ("execvp:");
+          break;
+      default: // father
+          while (wait(&ret) != pid);
+  }
   // </TODO>
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_flush] nfi_local_flush(%s,%s)=%d\n", serv->id, virtual_path, storage_path, ret);
@@ -1120,22 +1170,6 @@ int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_p
 
   return ret;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int nfi_local_read_mdata ( struct nfi_server *server, char *url, struct xpn_metadata *mdata )
 {
