@@ -137,7 +137,7 @@ int nfi_local_init ( char *url, struct nfi_server *serv, __attribute__((__unused
   int ret;
   char server[PATH_MAX], dir[PATH_MAX], prt[PATH_MAX];
   struct nfi_local_server *server_aux;
-  
+ 
   // check params...
   if (serv == NULL) {
     printf("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_init] ERROR: serv argument is NULL\n", -1);
@@ -266,7 +266,7 @@ int nfi_local_destroy ( struct nfi_server *serv )
   if (server_aux == NULL) {
     return -1;
   }
-  
+ 
   // Workers destroy...
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_destroy] Destroy workers\n", serv->id);
 
@@ -388,7 +388,7 @@ int nfi_local_reconnect ( struct nfi_server *serv ) //TODO
 
   strcpy(server_aux->path, dir);
   serv->private_info = (void *)server_aux;
-  
+ 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_reconnect] << End\n", serv->id);
 
   return 0;
@@ -534,7 +534,7 @@ ssize_t nfi_local_write ( struct nfi_server *serv, struct nfi_fhandle *fh, void 
 
   // private_info file handle
   fh_aux = (struct nfi_local_fhandle *) fh->priv_fh;
-  
+ 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_write] nfi_local_write(%s, %ld, %ld)\n", serv->id, fh_aux->path, offset, size);
 
   int fd;
@@ -592,7 +592,7 @@ int nfi_local_close ( struct nfi_server *serv, struct nfi_fhandle *fh )
 
     // private_info file handle
     fh_aux = (struct nfi_local_fhandle *) fh->priv_fh;
-    
+   
     debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_close] nfi_local_close(%d)\n", serv->id, fh_aux->fd);
 
     ret = filesystem_close(fh_aux->fd);
@@ -898,7 +898,7 @@ int nfi_local_readdir ( struct nfi_server *serv,  struct nfi_fhandle *fh, struct
 
   debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_readdir] nfi_local_readdir(%s)\n", serv->id, fh_aux->path);
   s = filesystem_opendir(fh_aux->path);
-  
+ 
   filesystem_seekdir(s, fh_aux->telldir);
   // Reset errno
   errno = 0;
@@ -936,7 +936,7 @@ int nfi_local_closedir ( __attribute__((__unused__)) struct nfi_server *serv, __
 
     // private_info file handle
     fh_aux = (struct nfi_local_fhandle *) fh->priv_fh;
-    
+   
     debug_info("[SERV_ID=%d] [NFI_LOCAL] [nfi_local_closedir] nfi_local_closedir(%d)\n", serv->id, fh_aux->dir);
 
     ret = filesystem_closedir(fh_aux->dir);
@@ -1075,14 +1075,14 @@ int nfi_local_preload (struct nfi_server *serv, char *virtual_url, char *storage
   sprintf(str_replication_level, "%d", replication_level);
 
   int pid;
-  char *arguments[] = {"xpn.sh", 
+  char *arguments[] = {"xpn.sh",
                         //"--numnodes", "$NHOST",
                         //"--hostfile", "${HOSTFILE}",
                         "--source_path", storage_path,
                         "--xpn_storage_path", virtual_path,
                         "--replication_level", str_replication_level,
                         "preload", NULL };
-  
+ 
   pid = fork();
   switch(pid)
   {
@@ -1142,14 +1142,14 @@ int nfi_local_flush (struct nfi_server *serv, char *virtual_url, char *storage_p
   sprintf(str_replication_level, "%d", replication_level);
 
   int pid;
-  char *arguments[] = {"xpn.sh", 
+  char *arguments[] = {"xpn.sh",
                         //"--numnodes", "$NHOST",
                         //"--hostfile", "${HOSTFILE}",
                         "--destination_path", storage_path,
                         "--xpn_storage_path", virtual_path,
                         "--replication_level", str_replication_level,
                         "flush", NULL };
-  
+ 
   pid = fork();
   switch(pid)
   {
@@ -1267,7 +1267,7 @@ int nfi_local_write_mdata ( struct nfi_server *server, char *url, struct xpn_met
   }
 
   debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_local_write_mdata] ParseURL(%s)= %s\n", server->id, url, dir);
-  
+ 
   debug_info("[SERV_ID=%d] [NFI_XPN] [nfi_local_write_mdata] nfi_local_write_mdata(%s)\n", server->id, dir);
 
   fd = filesystem_open2(dir, O_WRONLY | O_CREAT, S_IRWXU);
@@ -1287,4 +1287,7 @@ int nfi_local_write_mdata ( struct nfi_server *server, char *url, struct xpn_met
   debug_info("[Server=%d] [XPN_SERVER_OPS] [nfi_local_write_mdata] << End\n", server->id);
   return ret;
 }
+
+
 /* ................................................................... */
+
