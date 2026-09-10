@@ -22,13 +22,11 @@
 
 
 # 1) software (if needed)...
-spack  load m4
-spack  load autoconf
 module load mpich/4.3.0-ofi
 
 # 2) working path...
 MPICC_PATH=/opt/ohpc/pub/mpi/mpich-4.3.0-ofi/bin/mpicc
-INSTALL_PATH=$HOME/dcamarma/bin/
+INSTALL_PATH=$HOME/bin/
 BASE_PATH=$(dirname $0)
 
 # 3) preconfigure build-me...
