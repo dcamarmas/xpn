@@ -3002,7 +3002,7 @@
       value = getenv("XPN_IS_MPI_SERVER");
       if (NULL == value)
       {
-        debug_info("[BYPASS] << After MPI_Init_thread dentro\n");
+        debug_info("[BYPASS] << After MPI_Init_thread\n");
         return PMPI_Init_thread( argc, argv, required, provided );
       }
       else
