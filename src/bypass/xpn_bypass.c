@@ -3005,6 +3005,10 @@
         debug_info("[BYPASS] << After MPI_Init_thread\n");
         return PMPI_Init_thread( argc, argv, required, provided );
       }
+      else
+      {
+        MPI_Query_thread(provided);
+      }
 
       debug_info("[BYPASS] << After MPI_Init_thread\n");
 
