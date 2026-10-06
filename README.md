@@ -70,6 +70,27 @@
 ### 2026
 
 <details>
+<summary>:newspaper: Improving big data analytics ecosystems using ad-hoc parallel file systems</summary>
+ 
+  * Journal paper: Journal of Big Data
+  * Authors: Gabriel Sotodosos-Morales, Felix Garcia-Carballeira, Diego Camarmas-Alonso, Alejandro Calderon-Mateos, Dario Muñoz-Muñoz, Jesus Carretero
+  * [:link: Open publication](https://doi.org/10.1186/s40537-026-01559-6)
+  ```bibtex
+  @article{Sotodosos-Morales2026,
+    author    = {Sotodosos-Morales, Gabriel and Garcia-Carballeira, Felix and Camarmas-Alonso, Diego and Calderon-Mateos, Alejandro and Muñoz-Muñoz, Dario and Carretero, Jesus},
+    title     = {Improving big data analytics ecosystems using ad-hoc parallel file systems},
+    journal   = {Journal of Big Data},
+    year      = {2026},
+    month     = {sep},
+    day       = {22},
+    issn      = {2196-1115},
+    doi       = {10.1186/s40537-026-01559-6},
+    url       = {https://doi.org/10.1186/s40537-026-01559-6},
+  }
+  ```
+</details>
+
+<details>
 <summary>:newspaper: Expand: An ad-hoc file system for parallel and distributed environments</summary>
  
   * Journal paper: SoftwareX
@@ -105,6 +126,28 @@
     number={454},
     year={2026},
     publisher={Springer}
+  }
+  ```
+</details>
+
+<details>
+<summary>:newspaper: Adaptive Compression Techniques for Ad-Hoc Parallel File Systems Based on MPI</summary>
+  
+  * Conference paper: 33rd European MPI Users' Group Meeting (EuroMPI 2026)
+  * Authors: Dario Muñoz-Muñoz, Felix Garcia-Carballeira, Alejandro Calderon-Mateos, Diego Camarmas-Alonso, Jesus Carretero
+  * [:link: Open publication](http://dx.doi.org/10.1007/978-3-032-40777-1_12)
+  ```bibtex
+  @inbook{Mu_oz_Mu_oz_2026,
+    title        = {Adaptive Compression Techniques for Ad-Hoc Parallel File Systems Based on MPI},
+    author       = {Muñoz-Muñoz, Dario and Garcia-Carballeira, Felix and Calderon-Mateos, Alejandro and Camarmas-Alonso, Diego and Carretero, Jesus},
+    ISBN         = {9783032407771},
+    ISSN         = {1611-3349},
+    url          = {http://dx.doi.org/10.1007/978-3-032-40777-1_12},
+    DOI          = {10.1007/978-3-032-40777-1_12},
+    booktitle    = {Recent Advances in the Message Passing Interface},
+    publisher    = {Springer Nature Switzerland},
+    year         = {2026},
+    pages        = {202–217}
   }
   ```
 </details>
